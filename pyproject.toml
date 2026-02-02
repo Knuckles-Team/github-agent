@@ -18,13 +18,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "pydantic-ai",
+    "pydantic-ai-slim[fastmcp,openai,anthropic,google,huggingface,a2a,ag-ui,web]>=1.32.0",
+    "pydantic-ai-skills",
+    "fastapi>=0.128.0",
     "fastmcp",
     "uvicorn",
     "fastapi",
-    "pydantic-ai-skills",
-    "fasta2a",
-    "requests"
 ]
 
 [project.scripts]
