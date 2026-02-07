@@ -7,7 +7,7 @@ description: "Manage code security tools and scans. Triggers: Code Security Agen
 This skill handles operations related to the Code Security Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

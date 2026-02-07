@@ -7,7 +7,7 @@ description: "Search GitHub documentation to answer support questions. Triggers:
 This skill handles operations related to the Support Docs Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

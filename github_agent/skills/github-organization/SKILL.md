@@ -7,7 +7,7 @@ description: "Manage GitHub Organizations and memberships. Triggers: Organizatio
 This skill handles operations related to the Organizations Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

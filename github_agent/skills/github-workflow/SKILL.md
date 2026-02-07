@@ -7,7 +7,7 @@ description: "Manage GitHub Actions workflows and CI/CD operations. Triggers: Ac
 This skill handles operations related to the Actions Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

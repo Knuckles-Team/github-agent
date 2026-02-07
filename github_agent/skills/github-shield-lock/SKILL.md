@@ -7,7 +7,7 @@ description: "Manage secret scanning and protection features. Triggers: Secret P
 This skill handles operations related to the Secret Protection Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

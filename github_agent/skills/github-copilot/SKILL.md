@@ -7,7 +7,7 @@ description: "Assist with coding tasks using GitHub Copilot. Triggers: Copilot A
 This skill handles operations related to the Copilot Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions

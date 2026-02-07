@@ -7,7 +7,7 @@ description: "Manage GitHub Gists. Triggers: Gists Agent."
 This skill handles operations related to the Gists Agent.
 
 ### Available Tools
-Refer to the GitHub Agent documentation for available tools for this agent. 
+Refer to the GitHub Agent documentation for available tools for this agent.
 This skill is a placeholder for the specialized agent capabilities.
 
 ### Usage Instructions
