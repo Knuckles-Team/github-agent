@@ -21,7 +21,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 0.2.0*
+*Version: 0.2.1*
 
 ## Overview
 
