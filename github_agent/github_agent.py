@@ -39,7 +39,7 @@ from pydantic import ValidationError
 from pydantic_ai.ui import SSE_CONTENT_TYPE
 from pydantic_ai.ui.ag_ui import AGUIAdapter
 
-__version__ = "0.2.7"
+__version__ = "0.2.8"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -379,13 +379,39 @@ def create_agent(
             else:
                 pass
 
+        # Collect tool names for logging
+        all_tool_names = []
+        for ts in tag_toolsets:
+            try:
+                # Unwrap FilteredToolset
+                current_ts = ts
+                while hasattr(current_ts, "wrapped"):
+                    current_ts = current_ts.wrapped
+
+                # Check for .tools (e.g. SkillsToolset)
+                if hasattr(current_ts, "tools") and isinstance(current_ts.tools, dict):
+                    all_tool_names.extend(current_ts.tools.keys())
+                # Check for ._tools (some implementations might use private attr)
+                elif hasattr(current_ts, "_tools") and isinstance(
+                    current_ts._tools, dict
+                ):
+                    all_tool_names.extend(current_ts._tools.keys())
+                else:
+                    # Fallback for MCP or others where tools are not available sync
+                    all_tool_names.append(f"<{type(current_ts).__name__}>")
+            except Exception as e:
+                logger.info(f"Unable to retrieve toolset: {e}")
+                pass
+
+        tool_list_str = ", ".join(all_tool_names)
+        logger.info(f"Available tools for {agent_name} ({tag}): {tool_list_str}")
         agent = Agent(
-            name=agent_name,
-            system_prompt=system_prompt,
             model=model,
-            model_settings=settings,
+            system_prompt=system_prompt,
+            name=agent_name,
             toolsets=tag_toolsets,
             tool_timeout=DEFAULT_TOOL_TIMEOUT,
+            model_settings=settings,
         )
         child_agents[tag] = agent
 
@@ -400,171 +426,267 @@ def create_agent(
     @supervisor.tool
     async def assign_task_to_context_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to user context and general GitHub status to the Context Agent."""
-        return (
-            await child_agents["person"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["person"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Context Agent: {e}")
+            return f"Error executing task for Context Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_actions_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to GitHub Actions and Workflows to the Actions Agent."""
-        return (
-            await child_agents["workflow"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["workflow"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Actions Agent: {e}")
+            return f"Error executing task for Actions Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_code_security_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to code security and scanning to the Code Security Agent."""
-        return (
-            await child_agents["codescan"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["codescan"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Code Security Agent: {e}")
+            return f"Error executing task for Code Security Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_dependabot_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Dependabot to the Dependabot Agent."""
-        return (
-            await child_agents["dependabot"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["dependabot"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Dependabot Agent: {e}")
+            return f"Error executing task for Dependabot Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_discussions_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to GitHub Discussions to the Discussions Agent."""
-        return (
-            await child_agents["comment-discussion"].run(
-                task, usage=ctx.usage, deps=ctx.deps
-            )
-        ).output
+        try:
+            return (
+                await child_agents["comment-discussion"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Discussions Agent: {e}")
+            return f"Error executing task for Discussions Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_gists_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Gists to the Gists Agent."""
-        return (
-            await child_agents["logo-gist"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["logo-gist"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Gists Agent: {e}")
+            return f"Error executing task for Gists Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_git_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to low-level Git operations (refs, blobs) to the Git Agent."""
-        return (
-            await child_agents["git-branch"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["git-branch"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Git Agent: {e}")
+            return f"Error executing task for Git Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_issues_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Issues (create, list, comment) to the Issues Agent."""
-        return (
-            await child_agents["issue-opened"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["issue-opened"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Issues Agent: {e}")
+            return f"Error executing task for Issues Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_labels_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Labels to the Labels Agent."""
-        return (
-            await child_agents["tag"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["tag"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Labels Agent: {e}")
+            return f"Error executing task for Labels Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_notifications_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Notifications to the Notifications Agent."""
-        return (
-            await child_agents["bell"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["bell"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Notifications Agent: {e}")
+            return f"Error executing task for Notifications Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_organizations_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Organizations to the Organizations Agent."""
-        return (
-            await child_agents["organization"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["organization"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Organizations Agent: {e}")
+            return f"Error executing task for Organizations Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_projects_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to GitHub Projects to the Projects Agent."""
-        return (
-            await child_agents["project"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["project"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Projects Agent: {e}")
+            return f"Error executing task for Projects Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_pull_requests_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Pull Requests to the Pull Requests Agent."""
-        return (
-            await child_agents["git-pull-request"].run(
-                task, usage=ctx.usage, deps=ctx.deps
-            )
-        ).output
+        try:
+            return (
+                await child_agents["git-pull-request"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Pull Requests Agent: {e}")
+            return f"Error executing task for Pull Requests Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_repos_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Repositories (list, settings, delete) to the Repositories Agent."""
-        return (
-            await child_agents["repo"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["repo"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Repositories Agent: {e}")
+            return f"Error executing task for Repositories Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_secret_protection_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Secret Protection to the Secret Protection Agent."""
-        return (
-            await child_agents["shield-lock"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["shield-lock"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Secret Protection Agent: {e}")
+            return f"Error executing task for Secret Protection Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_security_advisories_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Security Advisories to the Security Advisories Agent."""
-        return (
-            await child_agents["shield"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["shield"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Security Advisories Agent: {e}")
+            return f"Error executing task for Security Advisories Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_stargazers_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Stargazers to the Stargazers Agent."""
-        return (
-            await child_agents["star"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["star"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Stargazers Agent: {e}")
+            return f"Error executing task for Stargazers Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_users_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to Users to the Users Agent."""
-        return (
-            await child_agents["people"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["people"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Users Agent: {e}")
+            return f"Error executing task for Users Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_copilot_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task related to GitHub Copilot coding tasks to the Copilot Agent."""
-        return (
-            await child_agents["copilot"].run(task, usage=ctx.usage, deps=ctx.deps)
-        ).output
+        try:
+            return (
+                await child_agents["copilot"].run(task, usage=ctx.usage, deps=ctx.deps)
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Copilot Agent: {e}")
+            return f"Error executing task for Copilot Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_copilot_spaces_agent(
         ctx: RunContext[Any], task: str
     ) -> str:
         """Assign a task related to Copilot Spaces to the Copilot Spaces Agent."""
-        return (
-            await child_agents["copilot_spaces"].run(
-                task, usage=ctx.usage, deps=ctx.deps
-            )
-        ).output
+        try:
+            return (
+                await child_agents["copilot_spaces"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Copilot Spaces Agent: {e}")
+            return f"Error executing task for Copilot Spaces Agent: {e}"
 
     @supervisor.tool
     async def assign_task_to_support_docs_agent(ctx: RunContext[Any], task: str) -> str:
         """Assign a task to search GitHub Support Docs to the Support Docs Agent."""
-        return (
-            await child_agents["github_support_docs_search"].run(
-                task, usage=ctx.usage, deps=ctx.deps
-            )
-        ).output
+        try:
+            return (
+                await child_agents["github_support_docs_search"].run(
+                    task, usage=ctx.usage, deps=ctx.deps
+                )
+            ).output
+        except Exception as e:
+            logger.exception(f"Error in Support Docs Agent: {e}")
+            return f"Error executing task for Support Docs Agent: {e}"
 
     return supervisor
 
@@ -600,7 +722,6 @@ def create_agent_server(
         mcp_config=mcp_config,
         skills_directory=skills_directory,
         ssl_verify=ssl_verify,
-        timeout=DEFAULT_TIMEOUT,
     )
 
     if skills_directory and os.path.exists(skills_directory):

@@ -2,8 +2,8 @@
 services:
   github-mcp:
     image: ghcr.io/github/github-mcp-server:latest
-    container_name: github-agent
-    hostname: github-agent
+    container_name: github-mcp
+    hostname: github-mcp
     logging:
       driver: json-file
       options:
@@ -15,13 +15,12 @@ services:
       - "8787:8787"
     environment:
       GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
-      GITHUB_HOST: ${GITHUB_HOST:-https://github.com}
 
   github-agent:
-    image: docker.io/knucklessg1/github:latest
-    #    build:
-    #      context: . # Debug
-    #      dockerfile: debug.Dockerfile
+    # image: docker.io/knucklessg1/github:latest
+    build:
+      context: . # Debug
+      dockerfile: debug.Dockerfile
     container_name: github-agent
     hostname: github-agent
     command: [ "github-agent" ]

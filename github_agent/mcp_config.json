@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "github": {
+      "url": "${MCP_URL:-http://github-mcp:8787/mcp}",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_ACCESS_TOKEN}"
+      },
+      "timeout": 200000
+    }
+  }
+}
