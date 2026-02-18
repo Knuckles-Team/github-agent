@@ -2,9 +2,22 @@
 # coding: utf-8
 
 import os
+import httpx
+import pickle
+import yaml
+import logging
+from pathlib import Path
+from typing import Union, List, Any, Optional
+import json
+from importlib.resources import files, as_file
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.models.huggingface import HuggingFaceModel
+from pydantic_ai.models.groq import GroqModel
+from pydantic_ai.models.mistral import MistralModel
+from fasta2a import Skill
 
 try:
-
     from openai import AsyncOpenAI
     from pydantic_ai.providers.openai import OpenAIProvider
 except ImportError:
@@ -26,26 +39,16 @@ except ImportError:
     MistralProvider = None
 
 try:
+    from pydantic_ai.models.anthropic import AnthropicModel
     from anthropic import AsyncAnthropic
     from pydantic_ai.providers.anthropic import AnthropicProvider
 except ImportError:
+    AnthropicModel = None
     AsyncAnthropic = None
     AnthropicProvider = None
 
-import httpx
-import pickle
-import yaml
-from pathlib import Path
-from typing import Any, Union, List, Optional
-import json
-from importlib.resources import files, as_file
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.models.huggingface import HuggingFaceModel
-from pydantic_ai.models.groq import GroqModel
-from pydantic_ai.models.mistral import MistralModel
-from pydantic_ai_skills import Skill
+
+logger = logging.getLogger(__name__)
 
 
 def to_integer(string: Union[str, int] = None) -> int:
@@ -163,6 +166,9 @@ def load_model(file: str) -> Any:
 def retrieve_package_name() -> str:
     """
     Returns the top-level package name of the module that imported this utils.py.
+
+    Works reliably when utils.py is inside a proper package (with __init__.py or
+    implicit namespace package) and the caller does normal imports.
     """
     if __package__:
         top = __package__.partition(".")[0]
@@ -363,6 +369,16 @@ def create_model(
 def extract_tool_tags(tool_def: Any) -> List[str]:
     """
     Extracts tags from a tool definition object.
+
+    Found structure in debug:
+    tool_def.name (str)
+    tool_def.meta (dict) -> {'fastmcp': {'tags': ['tag']}}
+
+    This function checks multiple paths to be robust:
+    1. tool_def.meta['fastmcp']['tags']
+    2. tool_def.meta['tags']
+    3. tool_def.metadata['tags'] (legacy/alternative wrapper)
+    4. tool_def.metadata.get('meta')... (nested path)
     """
     tags_list = []
 
@@ -409,3 +425,10 @@ def tool_in_tag(tool_def: Any, tag: str) -> bool:
         return True
     else:
         return False
+
+
+def filter_tools_by_tag(tools: List[Any], tag: str) -> List[Any]:
+    """
+    Filters a list of tools for a given tag.
+    """
+    return [t for t in tools if tool_in_tag(t, tag)]
