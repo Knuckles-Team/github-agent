@@ -52,8 +52,8 @@ ENV HOST=${HOST} \
     UV_COMPILE_BYTECODE=1
 
 RUN apt-get update \
-    && apt-get install -y curl nano \
+    && apt-get install -y ripgrep tree fd-find curl nano \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && uv pip install --system --upgrade --verbose --no-cache --break-system-packages --prerelease=allow github-agent>=0.2.13
+    && uv pip install --system --upgrade --verbose --no-cache --break-system-packages --prerelease=allow github-agent>=0.2.14
 
 CMD ["gitlab-mcp"]
