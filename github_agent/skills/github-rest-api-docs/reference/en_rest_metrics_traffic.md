@@ -1,0 +1,476 @@
+[Skip to main content](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#main-content)
+[GitHub Docs](https://docs.github.com/en)
+Version: Free, Pro, & Team
+Search or ask Copilot
+Search or askCopilot
+Select language: current language is English
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=docs+header&ref_page=docs)
+Search or ask Copilot
+Search or askCopilot
+Open menu
+Open Sidebar
+  * [REST API](https://docs.github.com/en/rest "REST API")/
+  * [Metrics](https://docs.github.com/en/rest/metrics "Metrics")/
+  * [Traffic](https://docs.github.com/en/rest/metrics/traffic "Traffic")
+
+
+[](https://docs.github.com/en)
+## [REST API](https://docs.github.com/en/rest)
+API Version: 2022-11-28 (latest)
+  * [Quickstart](https://docs.github.com/en/rest/quickstart)
+  * About the REST API
+    * [About the REST API](https://docs.github.com/en/rest/about-the-rest-api/about-the-rest-api)
+    * [Comparing GitHub's APIs](https://docs.github.com/en/rest/about-the-rest-api/comparing-githubs-rest-api-and-graphql-api)
+    * [API Versions](https://docs.github.com/en/rest/about-the-rest-api/api-versions)
+    * [Breaking changes](https://docs.github.com/en/rest/about-the-rest-api/breaking-changes)
+    * [OpenAPI description](https://docs.github.com/en/rest/about-the-rest-api/about-the-openapi-description-for-the-rest-api)
+  * Using the REST API
+    * [Getting started](https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api)
+    * [Rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+    * [Pagination](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api)
+    * [Libraries](https://docs.github.com/en/rest/using-the-rest-api/libraries-for-the-rest-api)
+    * [Best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)
+    * [Troubleshooting](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api)
+    * [Timezones](https://docs.github.com/en/rest/using-the-rest-api/timezones-and-the-rest-api)
+    * [CORS and JSONP](https://docs.github.com/en/rest/using-the-rest-api/using-cors-and-jsonp-to-make-cross-origin-requests)
+    * [Issue event types](https://docs.github.com/en/rest/using-the-rest-api/issue-event-types)
+    * [GitHub event types](https://docs.github.com/en/rest/using-the-rest-api/github-event-types)
+  * Authentication
+    * [Authenticating](https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api)
+    * [Keeping API credentials secure](https://docs.github.com/en/rest/authentication/keeping-your-api-credentials-secure)
+    * [Endpoints for GitHub App installation tokens](https://docs.github.com/en/rest/authentication/endpoints-available-for-github-app-installation-access-tokens)
+    * [Endpoints for GitHub App user tokens](https://docs.github.com/en/rest/authentication/endpoints-available-for-github-app-user-access-tokens)
+    * [Endpoints for fine-grained PATs](https://docs.github.com/en/rest/authentication/endpoints-available-for-fine-grained-personal-access-tokens)
+    * [Permissions for GitHub Apps](https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps)
+    * [Permissions for fine-grained PATs](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)
+  * Guides
+    * [Script with JavaScript](https://docs.github.com/en/rest/guides/scripting-with-the-rest-api-and-javascript)
+    * [Script with Ruby](https://docs.github.com/en/rest/guides/scripting-with-the-rest-api-and-ruby)
+    * [Discover resources for a user](https://docs.github.com/en/rest/guides/discovering-resources-for-a-user)
+    * [Delivering deployments](https://docs.github.com/en/rest/guides/delivering-deployments)
+    * [Rendering data as graphs](https://docs.github.com/en/rest/guides/rendering-data-as-graphs)
+    * [Working with comments](https://docs.github.com/en/rest/guides/working-with-comments)
+    * [Building a CI server](https://docs.github.com/en/rest/guides/building-a-ci-server)
+    * [Get started - Git database](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database)
+    * [Get started - Checks](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-checks)
+    * [Encrypt secrets](https://docs.github.com/en/rest/guides/encrypting-secrets-for-the-rest-api)
+
+
+* * *
+  * Actions
+    * Artifacts
+    * Cache
+    * GitHub-hosted runners
+    * OIDC
+    * Permissions
+    * Secrets
+    * Self-hosted runner groups
+    * Self-hosted runners
+    * Variables
+    * Workflow jobs
+    * Workflow runs
+    * Workflows
+  * Activity
+    * Events
+    * Feeds
+    * Notifications
+    * Starring
+    * Watching
+  * Apps
+    * GitHub Apps
+    * Installations
+    * Marketplace
+    * OAuth authorizations
+    * Webhooks
+  * Billing
+    * Budgets
+    * Billing usage
+  * Branches
+    * Branches
+    * Protected branches
+  * Campaigns
+    * Security campaigns
+  * Checks
+    * Check runs
+    * Check suites
+  * Classroom
+    * Classroom
+  * Code scanning
+    * Code scanning
+  * Code security settings
+    * Configurations
+  * Codes of conduct
+    * Codes of conduct
+  * Codespaces
+    * Codespaces
+    * Organizations
+    * Organization secrets
+    * Machines
+    * Repository secrets
+    * User secrets
+  * Collaborators
+    * Collaborators
+    * Invitations
+  * Commits
+    * Commits
+    * Commit comments
+    * Commit statuses
+  * Copilot
+    * Copilot metrics
+    * Copilot user management
+  * Credentials
+    * Revocation
+  * Dependabot
+    * Alerts
+    * Repository access
+    * Secrets
+  * Dependency graph
+    * Dependency review
+    * Dependency submission
+    * Software bill of materials (SBOM)
+  * Deploy keys
+    * Deploy keys
+  * Deployments
+    * Deployment branch policies
+    * Deployments
+    * Environments
+    * Protection rules
+    * Deployment statuses
+  * Emojis
+    * Emojis
+  * Enterprise teams
+    * Enterprise team members
+    * Enterprise team organizations
+    * Enterprise teams
+  * Gists
+    * Gists
+    * Comments
+  * Git database
+    * Blobs
+    * Commits
+    * References
+    * Tags
+    * Trees
+  * Gitignore
+    * Gitignore
+  * Interactions
+    * Organization
+    * Repository
+    * User
+  * Issues
+    * Assignees
+    * Comments
+    * Events
+    * Issues
+    * Issue dependencies
+    * Labels
+    * Milestones
+    * Sub-issues
+    * Timeline
+  * Licenses
+    * Licenses
+  * Markdown
+    * Markdown
+  * Meta
+    * Meta
+  * Metrics
+    * Community
+    * Statistics
+    * Traffic
+      * [About repository traffic](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#about-repository-traffic)
+      * [Get repository clones](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones)
+      * [Get top referral paths](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths)
+      * [Get top referral sources](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources)
+      * [Get page views](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views)
+  * Migrations
+    * Organizations
+    * Source endpoints
+    * Users
+  * Models
+    * Catalog
+    * Embeddings
+    * Inference
+  * Organizations
+    * API Insights
+    * Artifact metadata
+    * Artifact attestations
+    * Blocking users
+    * Custom properties
+    * Issue types
+    * Members
+    * Network configurations
+    * Organization roles
+    * Organizations
+    * Outside collaborators
+    * Personal access tokens
+    * Rule suites
+    * Rules
+    * Security managers
+    * Webhooks
+  * Packages
+    * Packages
+  * Pages
+    * Pages
+  * Private registries
+    * Organization configurations
+  * Projects
+    * Draft Project items
+    * Project fields
+    * Project items
+    * Projects
+    * Project views
+  * Pull requests
+    * Pull requests
+    * Review comments
+    * Review requests
+    * Reviews
+  * Rate limit
+    * Rate limit
+  * Reactions
+    * Reactions
+  * Releases
+    * Releases
+    * Release assets
+  * Repositories
+    * Attestations
+    * Autolinks
+    * Contents
+    * Custom properties
+    * Forks
+    * Repositories
+    * Rule suites
+    * Rules
+    * Webhooks
+  * Search
+    * Search
+  * Secret scanning
+    * Push protection
+    * Secret scanning
+  * Security advisories
+    * Global security advisories
+    * Repository security advisories
+  * Teams
+    * Members
+    * Teams
+  * Users
+    * Attestations
+    * Blocking users
+    * Emails
+    * Followers
+    * GPG keys
+    * Git SSH keys
+    * Social accounts
+    * SSH signing keys
+    * Users
+
+
+The REST API is now versioned. For more information, see "[About API versioning](https://docs.github.com/rest/overview/api-versions)."
+  * [REST API](https://docs.github.com/en/rest "REST API")/
+  * [Metrics](https://docs.github.com/en/rest/metrics "Metrics")/
+  * [Traffic](https://docs.github.com/en/rest/metrics/traffic "Traffic")
+
+
+# REST API endpoints for repository traffic
+Use the REST API to retrieve information provided in your repository graph.
+## [About repository traffic](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#about-repository-traffic)
+You can use these endpoints to retrieve information provided in your repository graph, for repositories that you have write access to. For more information, see [Viewing traffic to a repository](https://docs.github.com/en/repositories/viewing-activity-and-data-for-your-repository/viewing-traffic-to-a-repository).
+## [Get repository clones](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones)
+Get the total number of clones and breakdown per day or week for the last 14 days. Timestamps are aligned to UTC midnight of the beginning of the day or week. Week begins on Monday.
+### [Fine-grained access tokens for "Get repository clones"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones--fine-grained-access-tokens)
+This endpoint works with the following fine-grained token types:
+  * [GitHub App user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)
+  * [GitHub App installation access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
+  * [Fine-grained personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token)
+
+
+The fine-grained token must have the following permission set:
+  * "Administration" repository permissions (read)
+
+
+### [Parameters for "Get repository clones"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones--parameters)
+Headers Name, Type, Description
+---
+`accept` string Setting to `application/vnd.github+json` is recommended.
+Path parameters Name, Type, Description
+---
+`owner` string Required The account owner of the repository. The name is not case sensitive.
+`repo` string Required The name of the repository without the `.git` extension. The name is not case sensitive.
+Query parameters Name, Type, Description
+---
+`per` string The time frame to display results for. Default: `day` Can be one of: `day`, `week`
+### [HTTP response status codes for "Get repository clones"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones--status-codes)
+Status code | Description
+---|---
+`200` | OK
+`403` | Forbidden
+### [Code samples for "Get repository clones"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-repository-clones--code-samples)
+#### Request example
+get/repos/{owner}/{repo}/traffic/clones
+  * cURL
+  * JavaScript
+  * GitHub CLI
+
+
+Copy to clipboard curl request example
+`curl -L \   -H "Accept: application/vnd.github+json" \   -H "Authorization: Bearer <YOUR-TOKEN>" \   -H "X-GitHub-Api-Version: 2022-11-28" \   https://api.github.com/repos/OWNER/REPO/traffic/clones`
+Response
+  * Example response
+  * Response schema
+
+
+`Status: 200`
+`{   "count": 173,   "uniques": 128,   "clones": [     {       "timestamp": "2016-10-10T00:00:00Z",       "count": 2,       "uniques": 1     },     {       "timestamp": "2016-10-11T00:00:00Z",       "count": 17,       "uniques": 16     },     {       "timestamp": "2016-10-12T00:00:00Z",       "count": 21,       "uniques": 15     },     {       "timestamp": "2016-10-13T00:00:00Z",       "count": 8,       "uniques": 7     },     {       "timestamp": "2016-10-14T00:00:00Z",       "count": 5,       "uniques": 5     },     {       "timestamp": "2016-10-15T00:00:00Z",       "count": 2,       "uniques": 2     },     {       "timestamp": "2016-10-16T00:00:00Z",       "count": 8,       "uniques": 7     },     {       "timestamp": "2016-10-17T00:00:00Z",       "count": 26,       "uniques": 15     },     {       "timestamp": "2016-10-18T00:00:00Z",       "count": 19,       "uniques": 17     },     {       "timestamp": "2016-10-19T00:00:00Z",       "count": 19,       "uniques": 14     },     {       "timestamp": "2016-10-20T00:00:00Z",       "count": 19,       "uniques": 15     },     {       "timestamp": "2016-10-21T00:00:00Z",       "count": 9,       "uniques": 7     },     {       "timestamp": "2016-10-22T00:00:00Z",       "count": 5,       "uniques": 5     },     {       "timestamp": "2016-10-23T00:00:00Z",       "count": 6,       "uniques": 5     },     {       "timestamp": "2016-10-24T00:00:00Z",       "count": 7,       "uniques": 5     }   ] }`
+## [Get top referral paths](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths)
+Get the top 10 popular contents over the last 14 days.
+### [Fine-grained access tokens for "Get top referral paths"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths--fine-grained-access-tokens)
+This endpoint works with the following fine-grained token types:
+  * [GitHub App user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)
+  * [GitHub App installation access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
+  * [Fine-grained personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token)
+
+
+The fine-grained token must have the following permission set:
+  * "Administration" repository permissions (read)
+
+
+### [Parameters for "Get top referral paths"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths--parameters)
+Headers Name, Type, Description
+---
+`accept` string Setting to `application/vnd.github+json` is recommended.
+Path parameters Name, Type, Description
+---
+`owner` string Required The account owner of the repository. The name is not case sensitive.
+`repo` string Required The name of the repository without the `.git` extension. The name is not case sensitive.
+### [HTTP response status codes for "Get top referral paths"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths--status-codes)
+Status code | Description
+---|---
+`200` | OK
+`403` | Forbidden
+### [Code samples for "Get top referral paths"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-paths--code-samples)
+#### Request example
+get/repos/{owner}/{repo}/traffic/popular/paths
+  * cURL
+  * JavaScript
+  * GitHub CLI
+
+
+Copy to clipboard curl request example
+`curl -L \   -H "Accept: application/vnd.github+json" \   -H "Authorization: Bearer <YOUR-TOKEN>" \   -H "X-GitHub-Api-Version: 2022-11-28" \   https://api.github.com/repos/OWNER/REPO/traffic/popular/paths`
+Response
+  * Example response
+  * Response schema
+
+
+`Status: 200`
+`[   {     "path": "/github/hubot",     "title": "github/hubot: A customizable life embetterment robot.",     "count": 3542,     "uniques": 2225   },   {     "path": "/github/hubot/blob/master/docs/scripting.md",     "title": "hubot/scripting.md at master · github/hubot · GitHub",     "count": 1707,     "uniques": 804   },   {     "path": "/github/hubot/tree/master/docs",     "title": "hubot/docs at master · github/hubot · GitHub",     "count": 685,     "uniques": 435   },   {     "path": "/github/hubot/tree/master/src",     "title": "hubot/src at master · github/hubot · GitHub",     "count": 577,     "uniques": 347   },   {     "path": "/github/hubot/blob/master/docs/index.md",     "title": "hubot/index.md at master · github/hubot · GitHub",     "count": 379,     "uniques": 259   },   {     "path": "/github/hubot/blob/master/docs/adapters.md",     "title": "hubot/adapters.md at master · github/hubot · GitHub",     "count": 354,     "uniques": 201   },   {     "path": "/github/hubot/tree/master/examples",     "title": "hubot/examples at master · github/hubot · GitHub",     "count": 340,     "uniques": 260   },   {     "path": "/github/hubot/blob/master/docs/deploying/heroku.md",     "title": "hubot/heroku.md at master · github/hubot · GitHub",     "count": 324,     "uniques": 217   },   {     "path": "/github/hubot/blob/master/src/robot.coffee",     "title": "hubot/robot.coffee at master · github/hubot · GitHub",     "count": 293,     "uniques": 191   },   {     "path": "/github/hubot/blob/master/LICENSE.md",     "title": "hubot/LICENSE.md at master · github/hubot · GitHub",     "count": 281,     "uniques": 222   } ]`
+## [Get top referral sources](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources)
+Get the top 10 referrers over the last 14 days.
+### [Fine-grained access tokens for "Get top referral sources"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources--fine-grained-access-tokens)
+This endpoint works with the following fine-grained token types:
+  * [GitHub App user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)
+  * [GitHub App installation access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
+  * [Fine-grained personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token)
+
+
+The fine-grained token must have the following permission set:
+  * "Administration" repository permissions (read)
+
+
+### [Parameters for "Get top referral sources"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources--parameters)
+Headers Name, Type, Description
+---
+`accept` string Setting to `application/vnd.github+json` is recommended.
+Path parameters Name, Type, Description
+---
+`owner` string Required The account owner of the repository. The name is not case sensitive.
+`repo` string Required The name of the repository without the `.git` extension. The name is not case sensitive.
+### [HTTP response status codes for "Get top referral sources"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources--status-codes)
+Status code | Description
+---|---
+`200` | OK
+`403` | Forbidden
+### [Code samples for "Get top referral sources"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-top-referral-sources--code-samples)
+#### Request example
+get/repos/{owner}/{repo}/traffic/popular/referrers
+  * cURL
+  * JavaScript
+  * GitHub CLI
+
+
+Copy to clipboard curl request example
+`curl -L \   -H "Accept: application/vnd.github+json" \   -H "Authorization: Bearer <YOUR-TOKEN>" \   -H "X-GitHub-Api-Version: 2022-11-28" \   https://api.github.com/repos/OWNER/REPO/traffic/popular/referrers`
+Response
+  * Example response
+  * Response schema
+
+
+`Status: 200`
+`[   {     "referrer": "Google",     "count": 4,     "uniques": 3   },   {     "referrer": "stackoverflow.com",     "count": 2,     "uniques": 2   },   {     "referrer": "eggsonbread.com",     "count": 1,     "uniques": 1   },   {     "referrer": "yandex.ru",     "count": 1,     "uniques": 1   } ]`
+## [Get page views](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views)
+Get the total number of views and breakdown per day or week for the last 14 days. Timestamps are aligned to UTC midnight of the beginning of the day or week. Week begins on Monday.
+### [Fine-grained access tokens for "Get page views"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views--fine-grained-access-tokens)
+This endpoint works with the following fine-grained token types:
+  * [GitHub App user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app)
+  * [GitHub App installation access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
+  * [Fine-grained personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token)
+
+
+The fine-grained token must have the following permission set:
+  * "Administration" repository permissions (read)
+
+
+### [Parameters for "Get page views"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views--parameters)
+Headers Name, Type, Description
+---
+`accept` string Setting to `application/vnd.github+json` is recommended.
+Path parameters Name, Type, Description
+---
+`owner` string Required The account owner of the repository. The name is not case sensitive.
+`repo` string Required The name of the repository without the `.git` extension. The name is not case sensitive.
+Query parameters Name, Type, Description
+---
+`per` string The time frame to display results for. Default: `day` Can be one of: `day`, `week`
+### [HTTP response status codes for "Get page views"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views--status-codes)
+Status code | Description
+---|---
+`200` | OK
+`403` | Forbidden
+### [Code samples for "Get page views"](https://docs.github.com/en/rest/metrics/traffic?apiVersion=2022-11-28#get-page-views--code-samples)
+#### Request example
+get/repos/{owner}/{repo}/traffic/views
+  * cURL
+  * JavaScript
+  * GitHub CLI
+
+
+Copy to clipboard curl request example
+`curl -L \   -H "Accept: application/vnd.github+json" \   -H "Authorization: Bearer <YOUR-TOKEN>" \   -H "X-GitHub-Api-Version: 2022-11-28" \   https://api.github.com/repos/OWNER/REPO/traffic/views`
+Response
+  * Example response
+  * Response schema
+
+
+`Status: 200`
+`{   "count": 14850,   "uniques": 3782,   "views": [     {       "timestamp": "2016-10-10T00:00:00Z",       "count": 440,       "uniques": 143     },     {       "timestamp": "2016-10-11T00:00:00Z",       "count": 1308,       "uniques": 414     },     {       "timestamp": "2016-10-12T00:00:00Z",       "count": 1486,       "uniques": 452     },     {       "timestamp": "2016-10-13T00:00:00Z",       "count": 1170,       "uniques": 401     },     {       "timestamp": "2016-10-14T00:00:00Z",       "count": 868,       "uniques": 266     },     {       "timestamp": "2016-10-15T00:00:00Z",       "count": 495,       "uniques": 157     },     {       "timestamp": "2016-10-16T00:00:00Z",       "count": 524,       "uniques": 175     },     {       "timestamp": "2016-10-17T00:00:00Z",       "count": 1263,       "uniques": 412     },     {       "timestamp": "2016-10-18T00:00:00Z",       "count": 1402,       "uniques": 417     },     {       "timestamp": "2016-10-19T00:00:00Z",       "count": 1394,       "uniques": 424     },     {       "timestamp": "2016-10-20T00:00:00Z",       "count": 1492,       "uniques": 448     },     {       "timestamp": "2016-10-21T00:00:00Z",       "count": 1153,       "uniques": 332     },     {       "timestamp": "2016-10-22T00:00:00Z",       "count": 566,       "uniques": 168     },     {       "timestamp": "2016-10-23T00:00:00Z",       "count": 675,       "uniques": 184     },     {       "timestamp": "2016-10-24T00:00:00Z",       "count": 614,       "uniques": 237     }   ] }`
+## Help and support
+### Did you find what you needed?
+YesNo
+[Privacy policy](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
+### Help us make these docs great!
+All GitHub docs are open source. See something that's wrong or unclear? Submit a pull request.
+[](https://github.com/github/docs/blob/main/content/rest/metrics/traffic.md)
+[Learn how to contribute](https://docs.github.com/contributing)
+### Still need help?
+[](https://github.com/orgs/community/discussions)
+[](https://support.github.com)
+## Legal
+  * © 2026 GitHub, Inc.
+  * [Terms](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
+  * [Privacy](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
+  * [Status](https://www.githubstatus.com/)
+  * [Pricing](https://github.com/pricing)
+  * [Expert services](https://services.github.com)
+  * [Blog](https://github.blog)
+
+
+REST API endpoints for repository traffic - GitHub Docs
