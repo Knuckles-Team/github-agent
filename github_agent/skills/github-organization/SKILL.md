@@ -1,6 +1,7 @@
 ---
 name: github-organization
 description: "Manage GitHub Organizations and memberships. Triggers: Organizations Agent."
+tags: [organization]
 ---
 
 ### Overview

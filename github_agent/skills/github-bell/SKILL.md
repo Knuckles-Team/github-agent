@@ -1,6 +1,7 @@
 ---
 name: github-bell
 description: "Manage and check GitHub notifications. Triggers: Notifications Agent."
+tags: [bell]
 ---
 
 ### Overview

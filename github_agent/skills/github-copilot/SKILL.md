@@ -1,6 +1,7 @@
 ---
 name: github-copilot
 description: "Assist with coding tasks using GitHub Copilot. Triggers: Copilot Agent."
+tags: [copilot]
 ---
 
 ### Overview

@@ -1,6 +1,7 @@
 ---
 name: github-people
 description: "Access public user information and profile data. Triggers: Users Agent."
+tags: [people]
 ---
 
 ### Overview

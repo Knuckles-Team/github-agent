@@ -1,6 +1,7 @@
 ---
 name: github-comment-discussion
 description: "Manage GitHub Discussions. Triggers: Discussions Agent."
+tags: [comment-discussion]
 ---
 
 ### Overview

@@ -1,6 +1,7 @@
 ---
 name: github-github-support-docs-search
 description: "Search GitHub documentation to answer support questions. Triggers: Support Docs Agent."
+tags: [github-support-docs-search]
 ---
 
 ### Overview

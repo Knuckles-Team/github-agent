@@ -1,6 +1,7 @@
 ---
 name: github-shield
 description: "Access and manage security advisories. Triggers: Security Advisories Agent."
+tags: [shield]
 ---
 
 ### Overview

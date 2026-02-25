@@ -1,6 +1,7 @@
 ---
 name: github-git-pull-request
 description: "Manage Pull Requests (list, create, review, merge). Triggers: Pull Requests Agent."
+tags: [git-pull-request]
 ---
 
 ### Overview

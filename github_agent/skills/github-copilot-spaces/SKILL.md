@@ -1,6 +1,7 @@
 ---
 name: github-copilot-spaces
 description: "Manage Copilot Spaces. Triggers: Copilot Spaces Agent."
+tags: [copilot-spaces]
 ---
 
 ### Overview

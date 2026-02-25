@@ -1,6 +1,7 @@
 ---
 name: github-dependabot
 description: "Manage Dependabot alerts and configurations. Triggers: Dependabot Agent."
+tags: [dependabot]
 ---
 
 ### Overview

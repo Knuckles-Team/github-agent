@@ -1,6 +1,7 @@
 ---
 name: github-person
 description: "Provide context about the current user and functionality within GitHub. Triggers: Context Agent."
+tags: [person]
 ---
 
 ### Overview

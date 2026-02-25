@@ -1,6 +1,7 @@
 ---
 name: github-logo-gist
 description: "Manage GitHub Gists. Triggers: Gists Agent."
+tags: [logo-gist]
 ---
 
 ### Overview

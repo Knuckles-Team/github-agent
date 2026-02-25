@@ -1,6 +1,7 @@
 ---
 name: github-tag
 description: "Manage repository labels. Triggers: Labels Agent."
+tags: [tag]
 ---
 
 ### Overview

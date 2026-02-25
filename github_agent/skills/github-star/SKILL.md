@@ -1,6 +1,7 @@
 ---
 name: github-star
 description: "Manage and view repository stargazers. Triggers: Stargazers Agent."
+tags: [star]
 ---
 
 ### Overview

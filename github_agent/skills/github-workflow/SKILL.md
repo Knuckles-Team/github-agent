@@ -1,6 +1,7 @@
 ---
 name: github-workflow
 description: "Manage GitHub Actions workflows and CI/CD operations. Triggers: Actions Agent."
+tags: [workflow]
 ---
 
 ### Overview

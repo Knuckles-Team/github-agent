@@ -1,6 +1,7 @@
 ---
 name: github-project
 description: "Manage GitHub Projects (V2/Beta). Triggers: Projects Agent."
+tags: [project]
 ---
 
 ### Overview

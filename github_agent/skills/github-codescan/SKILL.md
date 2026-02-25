@@ -1,6 +1,7 @@
 ---
 name: github-codescan
 description: "Manage code security tools and scans. Triggers: Code Security Agent."
+tags: [codescan]
 ---
 
 ### Overview

@@ -1,6 +1,7 @@
 ---
 name: github-issue-opened
 description: "Manage GitHub Issues (create, list, update, comment). Triggers: Issues Agent."
+tags: [issue-opened]
 ---
 
 ### Overview

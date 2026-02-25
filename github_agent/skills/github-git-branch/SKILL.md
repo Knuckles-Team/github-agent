@@ -1,6 +1,7 @@
 ---
 name: github-git-branch
 description: "Perform low-level Git operations via the GitHub API. Triggers: Git Agent."
+tags: [git-branch]
 ---
 
 ### Overview

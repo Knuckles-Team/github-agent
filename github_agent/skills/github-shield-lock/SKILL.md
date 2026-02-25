@@ -1,6 +1,7 @@
 ---
 name: github-shield-lock
 description: "Manage secret scanning and protection features. Triggers: Secret Protection Agent."
+tags: [shield-lock]
 ---
 
 ### Overview

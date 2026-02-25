@@ -1,6 +1,7 @@
 ---
 name: github-repo
 description: "Manage GitHub Repositories (create, list, delete, settings). Triggers: Repositories Agent."
+tags: [repo]
 ---
 
 ### Overview
