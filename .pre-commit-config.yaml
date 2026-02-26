@@ -20,6 +20,7 @@ repos:
       exclude: .gitignore
     - id: check-merge-conflict
     - id: detect-private-key
+      exclude: 'github_agent/skills/.*-docs/'
     - id: trailing-whitespace
     - id: end-of-file-fixer
     - id: no-commit-to-branch
