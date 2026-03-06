@@ -1,5 +1,21 @@
 ---
 services:
+  github-mcp:
+    image: ghcr.io/github/github-mcp-server:latest
+    container_name: github-mcp
+    hostname: github-mcp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stdin_open: true
+    tty: true
+    ports:
+      - "8787:8787"
+    environment:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
+
   github-agent:
     # image: docker.io/knucklessg1/github:latest
     build:
@@ -10,6 +26,8 @@ services:
     command: [ "github-agent" ]
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - github-mcp
     logging:
       driver: json-file
       options:
@@ -20,10 +38,9 @@ services:
       - .env
     environment:
       - "HOST=0.0.0.0"
-      - "PORT=9505"
-      - "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN}"
+      - "PORT=9016"
+      - "MCP_URL=http://github-mcp:8787/mcp"
       - "PROVIDER=openai"
-      - "TRANSPORT=stdio"
       - "LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:1234/v1}"
       - "LLM_API_KEY=${LLM_API_KEY:-llama}"
       - "MODEL_ID=${MODEL_ID:-qwen/qwen3-coder-next}"
@@ -33,9 +50,9 @@ services:
       - "SSL_VERIFY=True"
       - "MAX_TOKENS=16384"
     ports:
-      - "9505:9505"
+      - "9016:9016"
     healthcheck:
-      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9505/health')" ]
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9016/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
