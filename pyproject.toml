@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "github-agent"
-version = "0.2.44"
+version = "0.2.45"
 readme = "README.md"
 description = "GitHub Agent for MCP"
 requires-python = ">=3.10"
@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3"]
 dependencies = [
-    "agent-utilities[agent,logfire]>=0.2.29"]
+    "agent-utilities[agent,logfire]>=0.2.30"]
 
 [project.scripts]
 github-agent = "github_agent.agent_server:agent_server"
