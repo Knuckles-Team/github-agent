@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# coding: utf-8
+               
 import re
 import requests
 import urllib3
@@ -73,10 +73,10 @@ class Api(object):
         if token:
             self.headers["Authorization"] = f"Bearer {token}"
         else:
-            # GitHub typically requires a token for most operations
+                                                                   
             logger.warning("No token provided for GitHub API")
 
-        # Basic health check / auth test
+                                        
         try:
             response = self._session.get(
                 url=f"{self.url}/user",
@@ -89,7 +89,7 @@ class Api(object):
                 raise AuthError if response.status_code == 401 else UnauthorizedError
         except requests.exceptions.RequestException as e:
             logger.error(f"Connection Error: {str(e)}")
-            # Don't raise here, allow the client to be initialized but operations might fail
+                                                                                            
 
     def _fetch_next_page(
         self, endpoint: str, model: T, header: dict, page: int
@@ -113,7 +113,7 @@ class Api(object):
         link = response.headers.get("Link")
         if not link:
             return 1
-        # Example: <https://api.github.com/user/repos?page=2>; rel="next", <https://api.github.com/user/repos?page=10>; rel="last"
+                                                                                                                                  
         last_match = re.search(r'page=(\d+)>; rel="last"', link)
         if last_match:
             return int(last_match.group(1))
@@ -148,7 +148,7 @@ class Api(object):
             model.max_pages = total_pages
 
         if model.max_pages > 1:
-            # Parallel fetching if more than 1 page
+                                                   
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = []
                 for page in range(2, model.max_pages + 1):

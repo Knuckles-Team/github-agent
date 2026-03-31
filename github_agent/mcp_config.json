@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "github-mcp",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "GITHUB_URL": "${GITHUB_URL:-http://localhost:8080}",
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}

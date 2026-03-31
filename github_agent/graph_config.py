@@ -1,6 +1,6 @@
 """GitHub graph configuration — tag prompts and env var mappings."""
 
-# ── Tag → System Prompt Mapping ──────────────────────────────────────
+                                                                       
 TAG_PROMPTS: dict[str, str] = {
     "repos": (
         "You are a GitHub Repositories specialist. Help users manage and interact with Repository functionality using the available tools."
@@ -16,7 +16,7 @@ TAG_PROMPTS: dict[str, str] = {
     ),
 }
 
-# ── Tag → Environment Variable Mapping ────────────────────────────────
+                                                                        
 TAG_ENV_VARS: dict[str, str] = {
     "repos": "REPOSTOOL",
     "issues": "ISSUETOOL",

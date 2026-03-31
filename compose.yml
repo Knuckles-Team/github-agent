@@ -30,7 +30,7 @@ services:
       - "DEBUG=False"
       - "ENABLE_WEB_UI=True"
       - "ENABLE_OTEL=True"
-      - "SSL_VERIFY=True"
+      - "GITHUB_SSL_VERIFY=True"
       - "MAX_TOKENS=16384"
     ports:
       - "9505:9505"
