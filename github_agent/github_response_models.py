@@ -1,5 +1,5 @@
 #!/usr/bin/python
-               
+
 from typing import List, Dict, Optional, Any
 from pydantic import (
     BaseModel,

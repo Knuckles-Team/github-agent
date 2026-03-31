@@ -1,5 +1,5 @@
 #!/usr/bin/python
-               
+
 import os
 import sys
 from typing import Dict, Any

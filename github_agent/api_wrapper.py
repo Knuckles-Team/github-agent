@@ -1,5 +1,5 @@
 #!/usr/bin/python
-               
+
 import re
 import requests
 import urllib3
@@ -73,10 +73,9 @@ class Api(object):
         if token:
             self.headers["Authorization"] = f"Bearer {token}"
         else:
-                                                                   
+
             logger.warning("No token provided for GitHub API")
 
-                                        
         try:
             response = self._session.get(
                 url=f"{self.url}/user",
@@ -89,7 +88,6 @@ class Api(object):
                 raise AuthError if response.status_code == 401 else UnauthorizedError
         except requests.exceptions.RequestException as e:
             logger.error(f"Connection Error: {str(e)}")
-                                                                                            
 
     def _fetch_next_page(
         self, endpoint: str, model: T, header: dict, page: int
@@ -113,7 +111,7 @@ class Api(object):
         link = response.headers.get("Link")
         if not link:
             return 1
-                                                                                                                                  
+
         last_match = re.search(r'page=(\d+)>; rel="last"', link)
         if last_match:
             return int(last_match.group(1))
@@ -148,7 +146,7 @@ class Api(object):
             model.max_pages = total_pages
 
         if model.max_pages > 1:
-                                                   
+
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = []
                 for page in range(2, model.max_pages + 1):
