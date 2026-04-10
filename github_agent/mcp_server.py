@@ -1,4 +1,18 @@
 #!/usr/bin/python
+import warnings
+
+# Filter RequestsDependencyWarning early to prevent log spam
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    try:
+        from requests.exceptions import RequestsDependencyWarning
+        warnings.filterwarnings("ignore", category=RequestsDependencyWarning)
+    except ImportError:
+        pass
+
+# General urllib3/chardet mismatch warnings
+warnings.filterwarnings("ignore", message=".*urllib3.*or chardet.*")
+warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
 import os
 import sys
@@ -207,7 +221,7 @@ def register_content_tools(mcp: FastMCP):
             }
 
 
-def get_mcp_instance() -> tuple[Any, Any, Any, Any]:
+def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     args, mcp, middlewares = create_mcp_server(
         name="Github MCP",
         version=__version__,
@@ -234,12 +248,23 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any]:
         mcp.add_middleware(mw)
 
     registered_tags = []
-    return mcp, args, middlewares, registered_tags
+    # FastMCP typically stores tools in .get_tools() or ._tools
+    tools_dict = (
+        mcp._tools
+        if hasattr(mcp, "_tools")
+        else mcp.get_tools() if hasattr(mcp, "get_tools") else {}
+    )
+    for tool in tools_dict.values():
+        if hasattr(tool, "tags"):
+            registered_tags.extend(list(tool.tags))
+
+    imported_tools = list(tools_dict.keys())
+    return mcp, args, middlewares, registered_tags, imported_tools
 
 
 def mcp_server() -> None:
-    mcp, args, middlewares, registered_tags = get_mcp_instance()
-    print(f"Starting {args.name} MCP v{__version__}", file=sys.stderr)
+    mcp, args, middlewares, registered_tags, imported_tools = get_mcp_instance()
+    print(f"Starting GitHub Agent MCP v{__version__}", file=sys.stderr)
 
     if args.transport == "stdio":
         mcp.run(transport="stdio")

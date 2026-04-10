@@ -1,9 +1,17 @@
 {
   "mcpServers": {
-    "github": {
-      "serverUrl": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer ${GITHUB_TOKEN}"
+    "github-mcp": {
+      "command": "github-mcp",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "CONTENTSTOOL": "${ CONTENTSTOOL:-True }",
+        "ISSUETOOL": "${ ISSUETOOL:-True }",
+        "PULLSTOOL": "${ PULLSTOOL:-True }",
+        "REPOSTOOL": "${ REPOSTOOL:-True }"
       }
     }
   }
