@@ -150,7 +150,7 @@ The `github-agent` command starts the server.
 | `--port` | Port to bind the server to | `9000` |
 | `--mcp-config` | Path to MCP configuration file | `mcp_config.json` |
 | `--provider` | LLM Provider (openai, anthropic, google, etc.) | `openai` |
-| `--model-id` | LLM Model ID | `nvidia/nemotron-3-super` |
+| `--model-id` | LLM Model ID | `google/gemma-4-31b` |
 
 ### Running the Agent Server
 
