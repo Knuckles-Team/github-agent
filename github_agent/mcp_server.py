@@ -6,6 +6,7 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     try:
         from requests.exceptions import RequestsDependencyWarning
+
         warnings.filterwarnings("ignore", category=RequestsDependencyWarning)
     except ImportError:
         pass
@@ -46,7 +47,7 @@ def register_repo_tools(mcp: FastMCP):
     async def github_list_repos(
         visibility: str = Field(None, description="all, public, or private"),
         type: str = Field(None, description="all, owner, public, private, member"),
-        ctx: Context = Field(None, description="MCP context"),
+        _ctx: Context = Field(None, description="MCP context"),
     ) -> Dict[str, Any]:
         """List repositories for the authenticated user."""
         client = get_client()
@@ -80,7 +81,7 @@ def register_repo_tools(mcp: FastMCP):
     async def github_get_repo(
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
-        ctx: Context = Field(None, description="MCP context"),
+        _ctx: Context = Field(None, description="MCP context"),
     ) -> Dict[str, Any]:
         """Get details for a specific repository."""
         client = get_client()
@@ -118,7 +119,7 @@ def register_issue_tools(mcp: FastMCP):
         repo: str = Field(..., description="Repository name"),
         state: str = Field(None, description="open, closed, or all"),
         labels: str = Field(None, description="Comma-separated list of labels"),
-        ctx: Context = Field(None, description="MCP context"),
+        _ctx: Context = Field(None, description="MCP context"),
     ) -> Dict[str, Any]:
         """List issues for a repository."""
         client = get_client()
@@ -157,7 +158,7 @@ def register_pull_tools(mcp: FastMCP):
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
         state: str = Field(None, description="open, closed, or all"),
-        ctx: Context = Field(None, description="MCP context"),
+        _ctx: Context = Field(None, description="MCP context"),
     ) -> Dict[str, Any]:
         """List pull requests for a repository."""
         client = get_client()
@@ -195,7 +196,7 @@ def register_content_tools(mcp: FastMCP):
         repo: str = Field(..., description="Repository name"),
         path: str = Field(..., description="File or directory path"),
         ref: str = Field(None, description="Branch/Tag/Commit SHA"),
-        ctx: Context = Field(None, description="MCP context"),
+        _ctx: Context = Field(None, description="MCP context"),
     ) -> Dict[str, Any]:
         """Get contents of a file or directory."""
         client = get_client()
