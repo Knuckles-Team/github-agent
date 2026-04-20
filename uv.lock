@@ -902,7 +902,7 @@ wheels = [
 
 [[package]]
 name = "github-agent"
-version = "0.2.54"
+version = "0.2.55"
 source = { editable = "." }
 dependencies = [
     { name = "agent-utilities", extra = ["agent", "logfire"] },
