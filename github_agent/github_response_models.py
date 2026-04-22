@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
-from typing import List, Dict, Optional, Any
+from datetime import datetime
+from typing import Any
+
+import requests
 from pydantic import (
     BaseModel,
     ConfigDict,
     HttpUrl,
 )
-from datetime import datetime
-import requests
 
 
 class Response(BaseModel):
@@ -17,7 +18,7 @@ class Response(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
     response: requests.Response
-    data: Any = None
+    data: Any | None = None
 
 
 class User(BaseModel):
@@ -41,7 +42,7 @@ class Repository(BaseModel):
     private: bool
     owner: User
     html_url: HttpUrl
-    description: Optional[str] = None
+    description: str | None = None
     fork: bool
     url: HttpUrl
     created_at: datetime
@@ -51,25 +52,25 @@ class Repository(BaseModel):
     ssh_url: str
     clone_url: HttpUrl
     svn_url: HttpUrl
-    homepage: Optional[str] = None
+    homepage: str | None = None
     size: int
     stargazers_count: int
     watchers_count: int
-    language: Optional[str] = None
+    language: str | None = None
     has_issues: bool
     has_projects: bool
     has_downloads: bool
     has_wiki: bool
     has_pages: bool
     forks_count: int
-    mirror_url: Optional[HttpUrl] = None
+    mirror_url: HttpUrl | None = None
     archived: bool
     disabled: bool
     open_issues_count: int
-    license: Optional[Dict] = None
+    license: dict | None = None
     allow_forking: bool
     is_template: bool
-    topics: List[str]
+    topics: list[str]
     visibility: str
     forks: int
     open_issues: int
@@ -90,23 +91,23 @@ class Issue(BaseModel):
     number: int
     title: str
     user: User
-    labels: List[Dict]
+    labels: list[dict]
     state: str
     locked: bool
-    assignee: Optional[User] = None
-    assignees: List[User]
-    milestone: Optional[Dict] = None
+    assignee: User | None = None
+    assignees: list[User]
+    milestone: dict | None = None
     comments: int
     created_at: datetime
     updated_at: datetime
-    closed_at: Optional[datetime] = None
+    closed_at: datetime | None = None
     author_association: str
-    active_lock_reason: Optional[str] = None
-    body: Optional[str] = None
-    reactions: Optional[Dict] = None
+    active_lock_reason: str | None = None
+    body: str | None = None
+    reactions: dict | None = None
     timeline_url: HttpUrl
-    performed_via_github_app: Optional[Dict] = None
-    state_reason: Optional[str] = None
+    performed_via_github_app: dict | None = None
+    state_reason: str | None = None
 
 
 class PullRequest(BaseModel):
@@ -123,30 +124,30 @@ class PullRequest(BaseModel):
     locked: bool
     title: str
     user: User
-    body: Optional[str] = None
+    body: str | None = None
     created_at: datetime
     updated_at: datetime
-    closed_at: Optional[datetime] = None
-    merged_at: Optional[datetime] = None
-    merge_commit_sha: Optional[str] = None
-    assignee: Optional[User] = None
-    assignees: List[User]
-    requested_reviewers: List[User]
-    requested_teams: List[Dict]
-    labels: List[Dict]
-    milestone: Optional[Dict] = None
+    closed_at: datetime | None = None
+    merged_at: datetime | None = None
+    merge_commit_sha: str | None = None
+    assignee: User | None = None
+    assignees: list[User]
+    requested_reviewers: list[User]
+    requested_teams: list[dict]
+    labels: list[dict]
+    milestone: dict | None = None
     draft: bool
     commits_url: HttpUrl
     review_comments_url: HttpUrl
     review_comment_url: str
     comments_url: HttpUrl
     statuses_url: HttpUrl
-    head: Dict
-    base: Dict
-    _links: Dict
+    head: dict
+    base: dict
+    _links: dict
     author_association: str
-    auto_merge: Optional[Dict] = None
-    active_lock_reason: Optional[str] = None
+    auto_merge: dict | None = None
+    active_lock_reason: str | None = None
 
 
 class Content(BaseModel):
@@ -158,17 +159,17 @@ class Content(BaseModel):
     url: HttpUrl
     html_url: HttpUrl
     git_url: HttpUrl
-    download_url: Optional[HttpUrl] = None
+    download_url: HttpUrl | None = None
     type: str
-    content: Optional[str] = None
-    encoding: Optional[str] = None
-    _links: Dict
+    content: str | None = None
+    encoding: str | None = None
+    _links: dict
 
 
 class Branch(BaseModel):
     model_config = ConfigDict(extra="allow")
     name: str
-    commit: Dict
+    commit: dict
     protected: bool
 
 
@@ -176,10 +177,10 @@ class Commit(BaseModel):
     model_config = ConfigDict(extra="allow")
     sha: str
     node_id: str
-    commit: Dict
+    commit: dict
     url: HttpUrl
     html_url: HttpUrl
     comments_url: HttpUrl
-    author: Optional[User] = None
-    committer: Optional[User] = None
-    parents: List[Dict]
+    author: User | None = None
+    committer: User | None = None
+    parents: list[dict]

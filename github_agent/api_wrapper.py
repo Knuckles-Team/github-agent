@@ -1,51 +1,52 @@
 #!/usr/bin/python
 
+import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TypeVar
+
 import requests
 import urllib3
-import logging
-from typing import List, TypeVar, Tuple
-from pydantic import ValidationError
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from agent_utilities.base_utilities import get_logger
+from pydantic import ValidationError
 
 logger = get_logger(__name__)
 
-from github_agent.github_input_models import (
-    RepoModel,
-    IssueModel,
-    PullRequestModel,
-    ContentModel,
-    BranchModel,
-    CommitModel,
-)
-from github_agent.github_response_models import (
-    Repository,
-    Issue,
-    PullRequest,
-    Content,
-    Branch,
-    Commit,
-    Response,
-)
 from agent_utilities.decorators import require_auth
 from agent_utilities.exceptions import (
     AuthError,
-    UnauthorizedError,
-    ParameterError,
     MissingParameterError,
+    ParameterError,
+    UnauthorizedError,
 )
 
-T = TypeVar("T")
+from github_agent.github_input_models import (
+    BranchModel,
+    CommitModel,
+    ContentModel,
+    IssueModel,
+    PullRequestModel,
+    RepoModel,
+)
+from github_agent.github_response_models import (
+    Branch,
+    Commit,
+    Content,
+    Issue,
+    PullRequest,
+    Repository,
+    Response,
+)
+
+T = TypeVar("T", bound="BaseModelWrapper")
 
 
-class Api(object):
-
+class Api:
     def __init__(
         self,
         url: str = "https://api.github.com",
-        token: str = None,
-        proxies: dict = None,
+        token: str | None = None,
+        proxies: dict | None = None,
         verify: bool = True,
         debug: bool = False,
     ):
@@ -73,7 +74,6 @@ class Api(object):
         if token:
             self.headers["Authorization"] = f"Bearer {token}"
         else:
-
             logger.warning("No token provided for GitHub API")
 
         try:
@@ -84,14 +84,14 @@ class Api(object):
                 proxies=self.proxies,
             )
             if response.status_code in (401, 403):
-                logger.error(f"Authentication Error: {response.content}")
+                logger.error(f"Authentication Error: {response.text}")
                 raise AuthError if response.status_code == 401 else UnauthorizedError
         except requests.exceptions.RequestException as e:
             logger.error(f"Connection Error: {str(e)}")
 
     def _fetch_next_page(
         self, endpoint: str, model: T, header: dict, page: int
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Fetch a single page of data from the specified endpoint"""
         model.page = page
         model.model_post_init(None)
@@ -119,7 +119,7 @@ class Api(object):
 
     def _fetch_all_pages(
         self, endpoint: str, model: T
-    ) -> Tuple[requests.Response, List[dict]]:
+    ) -> tuple[requests.Response, list[dict]]:
         """Generic method to fetch all pages with parallelization if possible"""
         all_data = []
 
@@ -146,7 +146,6 @@ class Api(object):
             model.max_pages = total_pages
 
         if model.max_pages > 1:
-
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = []
                 for page in range(2, model.max_pages + 1):

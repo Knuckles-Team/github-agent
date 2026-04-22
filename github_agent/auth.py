@@ -2,12 +2,12 @@
 
 import os
 import threading
-from typing import Optional
 
 import requests
-from agent_utilities.base_utilities import to_boolean, get_logger
-from github_agent.api_wrapper import Api
+from agent_utilities.base_utilities import get_logger, to_boolean
 from agent_utilities.exceptions import AuthError, UnauthorizedError
+
+from github_agent.api_wrapper import Api
 
 local = threading.local()
 logger = get_logger(__name__)
@@ -15,9 +15,9 @@ logger = get_logger(__name__)
 
 def get_client(
     instance: str = os.getenv("GITHUB_URL", "https://api.github.com"),
-    token: Optional[str] = os.getenv("GITHUB_TOKEN", None),
+    token: str | None = os.getenv("GITHUB_TOKEN", None),
     verify: bool = to_boolean(string=os.getenv("GITHUB_VERIFY", "True")),
-    config: Optional[dict] = None,
+    config: dict | None = None,
 ) -> Api:
     """
     Factory function to create the GitHub Api client.

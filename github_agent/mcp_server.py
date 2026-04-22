@@ -17,15 +17,15 @@ warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
 import os
 import sys
-from typing import Dict, Any
+from typing import Any
 
-from fastmcp import FastMCP, Context
-from pydantic import Field
-
-from agent_utilities.base_utilities import to_boolean, get_logger
+from agent_utilities.base_utilities import get_logger, to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
 )
+from fastmcp import Context, FastMCP
+from pydantic import Field
+
 from github_agent.auth import get_client
 
 __version__ = "1.0.0"
@@ -45,10 +45,12 @@ def register_repo_tools(mcp: FastMCP):
         tags={"repos"},
     )
     async def github_list_repos(
-        visibility: str = Field(None, description="all, public, or private"),
-        type: str = Field(None, description="all, owner, public, private, member"),
-        _ctx: Context = Field(None, description="MCP context"),
-    ) -> Dict[str, Any]:
+        visibility: str | None = Field(None, description="all, public, or private"),
+        type: str | None = Field(
+            None, description="all, owner, public, private, member"
+        ),
+        _ctx: Context | None = Field(None, description="MCP context"),
+    ) -> dict[str, Any]:
         """List repositories for the authenticated user."""
         client = get_client()
         try:
@@ -81,8 +83,8 @@ def register_repo_tools(mcp: FastMCP):
     async def github_get_repo(
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
-        _ctx: Context = Field(None, description="MCP context"),
-    ) -> Dict[str, Any]:
+        _ctx: Context | None = Field(None, description="MCP context"),
+    ) -> dict[str, Any]:
         """Get details for a specific repository."""
         client = get_client()
         try:
@@ -117,10 +119,10 @@ def register_issue_tools(mcp: FastMCP):
     async def github_list_issues(
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
-        state: str = Field(None, description="open, closed, or all"),
-        labels: str = Field(None, description="Comma-separated list of labels"),
-        _ctx: Context = Field(None, description="MCP context"),
-    ) -> Dict[str, Any]:
+        state: str | None = Field(None, description="open, closed, or all"),
+        labels: str | None = Field(None, description="Comma-separated list of labels"),
+        _ctx: Context | None = Field(None, description="MCP context"),
+    ) -> dict[str, Any]:
         """List issues for a repository."""
         client = get_client()
         try:
@@ -157,9 +159,9 @@ def register_pull_tools(mcp: FastMCP):
     async def github_list_pull_requests(
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
-        state: str = Field(None, description="open, closed, or all"),
-        _ctx: Context = Field(None, description="MCP context"),
-    ) -> Dict[str, Any]:
+        state: str | None = Field(None, description="open, closed, or all"),
+        _ctx: Context | None = Field(None, description="MCP context"),
+    ) -> dict[str, Any]:
         """List pull requests for a repository."""
         client = get_client()
         try:
@@ -195,9 +197,9 @@ def register_content_tools(mcp: FastMCP):
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
         path: str = Field(..., description="File or directory path"),
-        ref: str = Field(None, description="Branch/Tag/Commit SHA"),
-        _ctx: Context = Field(None, description="MCP context"),
-    ) -> Dict[str, Any]:
+        ref: str | None = Field(None, description="Branch/Tag/Commit SHA"),
+        _ctx: Context | None = Field(None, description="MCP context"),
+    ) -> dict[str, Any]:
         """Get contents of a file or directory."""
         client = get_client()
         try:
@@ -253,7 +255,9 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     tools_dict = (
         mcp._tools
         if hasattr(mcp, "_tools")
-        else mcp.get_tools() if hasattr(mcp, "get_tools") else {}
+        else mcp.get_tools()
+        if hasattr(mcp, "get_tools")
+        else {}
     )
     for tool in tools_dict.values():
         if hasattr(tool, "tags"):

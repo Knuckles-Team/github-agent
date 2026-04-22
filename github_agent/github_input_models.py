@@ -1,6 +1,6 @@
-#!/usr/bin/python
+from typing import Any
 
-from typing import Union, List, Dict, Optional
+#!/usr/bin/python
 from pydantic import (
     BaseModel,
     Field,
@@ -12,12 +12,14 @@ class BaseModelWrapper(BaseModel):
     Base Model wrapping common functionalities.
     """
 
-    max_pages: Optional[int] = Field(
+    max_pages: int | None = Field(
         description="Max amount of pages to retrieve", default=None
     )
-    page: Optional[int] = Field(description="Pagination page", default=1)
-    per_page: Optional[int] = Field(description="Results per page", default=100)
-    api_parameters: Optional[Dict] = Field(description="API Parameters", default=None)
+    page: int | None = Field(description="Pagination page", default=1)
+    per_page: int | None = Field(description="Results per page", default=100)
+    api_parameters: dict[str, Any] = Field(
+        description="API Parameters", default_factory=dict
+    )
 
     def model_post_init(self, __context):
         self.api_parameters = {}
@@ -32,15 +34,13 @@ class RepoModel(BaseModelWrapper):
     Pydantic model for Repository requests.
     """
 
-    owner: Optional[str] = Field(
-        None, description="The account owner of the repository."
-    )
-    repo: Optional[str] = Field(None, description="The name of the repository.")
-    visibility: Optional[str] = Field(
+    owner: str | None = Field(None, description="The account owner of the repository.")
+    repo: str | None = Field(None, description="The name of the repository.")
+    visibility: str | None = Field(
         None, description="Can be one of all, public, or private."
     )
-    affiliation: Optional[str] = Field(None, description="Affiliation filter.")
-    type: Optional[str] = Field(
+    affiliation: str | None = Field(None, description="Affiliation filter.")
+    type: str | None = Field(
         None, description="Can be one of all, owner, public, private, member."
     )
 
@@ -61,25 +61,25 @@ class IssueModel(BaseModelWrapper):
 
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
-    issue_number: Optional[int] = Field(
+    issue_number: int | None = Field(
         None, description="The number that identifies the issue."
     )
-    state: Optional[str] = Field(
+    state: str | None = Field(
         None,
         description="Indicates the state of the issues to return. Can be either open, closed, or all.",
     )
-    labels: Optional[Union[str, List[str]]] = Field(
+    labels: str | list[str] | None = Field(
         None, description="A list of comma separated label names."
     )
-    assignee: Optional[str] = Field(
+    assignee: str | None = Field(
         None,
         description="Can be the name of a user. Use none for issues with no assigned user, and * for assigned issues to any user.",
     )
-    creator: Optional[str] = Field(None, description="The user that created the issue.")
-    mentioned: Optional[str] = Field(
+    creator: str | None = Field(None, description="The user that created the issue.")
+    mentioned: str | None = Field(
         None, description="A user that is mentioned in the issue."
     )
-    since: Optional[str] = Field(
+    since: str | None = Field(
         None, description="Only show notifications updated after the given time."
     )
 
@@ -105,22 +105,22 @@ class PullRequestModel(BaseModelWrapper):
 
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
-    pull_number: Optional[int] = Field(
+    pull_number: int | None = Field(
         None, description="The number that identifies the pull request."
     )
-    state: Optional[str] = Field(
+    state: str | None = Field(
         None, description="State of the PR. (open, closed, or all)"
     )
-    head: Optional[str] = Field(
+    head: str | None = Field(
         None,
         description="Filter pulls by head user or head organization and branch name in the format of user:ref-name or organization:ref-name.",
     )
-    base: Optional[str] = Field(None, description="Filter pulls by base branch name.")
-    sort: Optional[str] = Field(
+    base: str | None = Field(None, description="Filter pulls by base branch name.")
+    sort: str | None = Field(
         None,
         description="What to sort results by. Can be created, updated, popularity, long-running.",
     )
-    direction: Optional[str] = Field(
+    direction: str | None = Field(
         None, description="The direction of the sort. Can be asc or desc."
     )
 
@@ -146,7 +146,7 @@ class ContentModel(BaseModelWrapper):
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
     path: str = Field(..., description="The content path.")
-    ref: Optional[str] = Field(
+    ref: str | None = Field(
         None,
         description="The name of the commit/branch/tag. Default: the repository's default branch.",
     )
@@ -164,7 +164,7 @@ class BranchModel(BaseModelWrapper):
 
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
-    branch: Optional[str] = Field(None, description="The name of the branch.")
+    branch: str | None = Field(None, description="The name of the branch.")
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -177,19 +177,19 @@ class CommitModel(BaseModelWrapper):
 
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
-    sha: Optional[str] = Field(
+    sha: str | None = Field(
         None, description="SHA or branch to start listing commits from."
     )
-    path: Optional[str] = Field(
+    path: str | None = Field(
         None, description="Only commits containing this file path will be returned."
     )
-    author: Optional[str] = Field(
+    author: str | None = Field(
         None, description="GitHub username or email address to filter by commit author."
     )
-    since: Optional[str] = Field(
+    since: str | None = Field(
         None, description="Only show notifications updated after the given time."
     )
-    until: Optional[str] = Field(
+    until: str | None = Field(
         None, description="Only show notifications updated before the given time."
     )
 
