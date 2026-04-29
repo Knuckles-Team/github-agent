@@ -7,7 +7,7 @@ import requests
 from agent_utilities.base_utilities import get_logger, to_boolean
 from agent_utilities.exceptions import AuthError, UnauthorizedError
 
-from github_agent.api_wrapper import Api
+from github_agent.api_client import Api
 
 local = threading.local()
 logger = get_logger(__name__)

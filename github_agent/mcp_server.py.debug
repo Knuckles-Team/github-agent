@@ -22,6 +22,7 @@ from typing import Any
 from agent_utilities.base_utilities import get_logger, to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
+    ctx_confirm_destructive,
     ctx_log,
     ctx_progress,
 )
@@ -51,7 +52,7 @@ def register_repo_tools(mcp: FastMCP):
         type: str | None = Field(
             None, description="all, owner, public, private, member"
         ),
-        ctx: Context | None = Field(None, description="MCP context"),
+        _ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """List repositories for the authenticated user."""
         client = get_client()
@@ -64,7 +65,7 @@ def register_repo_tools(mcp: FastMCP):
                 "error": None,
             }
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing repos: {str(e)}")
+            ctx_log(_ctx, logger, "error", f"Error listing repos: {str(e)}")
             return {
                 "status": 500,
                 "message": "Failed to list repos",
@@ -85,7 +86,7 @@ def register_repo_tools(mcp: FastMCP):
     async def github_get_repo(
         owner: str = Field(..., description="Repository owner"),
         repo: str = Field(..., description="Repository name"),
-        ctx: Context | None = Field(None, description="MCP context"),
+        _ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """Get details for a specific repository."""
         client = get_client()
@@ -98,7 +99,7 @@ def register_repo_tools(mcp: FastMCP):
                 "error": None,
             }
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error getting repo: {str(e)}")
+            ctx_log(_ctx, logger, "error", f"Error getting repo: {str(e)}")
             return {
                 "status": 500,
                 "message": "Failed to get repo",
@@ -123,7 +124,7 @@ def register_issue_tools(mcp: FastMCP):
         repo: str = Field(..., description="Repository name"),
         state: str | None = Field(None, description="open, closed, or all"),
         labels: str | None = Field(None, description="Comma-separated list of labels"),
-        ctx: Context | None = Field(None, description="MCP context"),
+        _ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """List issues for a repository."""
         client = get_client()
@@ -138,7 +139,7 @@ def register_issue_tools(mcp: FastMCP):
                 "error": None,
             }
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing issues: {str(e)}")
+            ctx_log(_ctx, logger, "error", f"Error listing issues: {str(e)}")
             return {
                 "status": 500,
                 "message": "Failed to list issues",
@@ -148,7 +149,6 @@ def register_issue_tools(mcp: FastMCP):
 
 
 def register_pull_tools(mcp: FastMCP):
-
     @mcp.tool(
         annotations={
             "title": "List Pull Requests",
@@ -161,9 +161,10 @@ def register_pull_tools(mcp: FastMCP):
     )
     async def github_list_pull_requests(
         owner: str = Field(..., description="Repository owner"),
+        await ctx_progress(_ctx, 0, 100)
         repo: str = Field(..., description="Repository name"),
         state: str | None = Field(None, description="open, closed, or all"),
-        ctx: Context | None = Field(None, description="MCP context"),
+        _ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """List pull requests for a repository."""
         client = get_client()
@@ -176,8 +177,8 @@ def register_pull_tools(mcp: FastMCP):
                 "error": None,
             }
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing PRs: {str(e)}")
-            await ctx_progress(ctx, 100, 100)
+            ctx_log(_ctx, logger, "error", f"Error listing PRs: {str(e)}")
+            await ctx_progress(_ctx, 100, 100)
             return {
                 "status": 500,
                 "message": "Failed to list PRs",
@@ -202,7 +203,7 @@ def register_content_tools(mcp: FastMCP):
         repo: str = Field(..., description="Repository name"),
         path: str = Field(..., description="File or directory path"),
         ref: str | None = Field(None, description="Branch/Tag/Commit SHA"),
-        ctx: Context | None = Field(None, description="MCP context"),
+        _ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """Get contents of a file or directory."""
         client = get_client()
@@ -219,7 +220,7 @@ def register_content_tools(mcp: FastMCP):
                 "error": None,
             }
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error getting contents: {str(e)}")
+            ctx_log(_ctx, logger, "error", f"Error getting contents: {str(e)}")
             return {
                 "status": 500,
                 "message": "Failed to get contents",

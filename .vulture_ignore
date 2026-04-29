@@ -1,0 +1,16 @@
+DEFAULT_AGENT_DESCRIPTION
+DEFAULT_AGENT_SYSTEM_PROMPT
+committer
+parents
+github_list_repos
+github_get_repo
+github_list_issues
+github_list_pull_requests
+github_get_contents
+get_branches
+get_commits
+issue_number
+creator
+mentioned
+pull_number
+branch
