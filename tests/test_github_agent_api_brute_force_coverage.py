@@ -1,13 +1,13 @@
-import pytest
-from unittest.mock import patch, MagicMock
-import inspect
-import requests
 import asyncio
-import os
-from pathlib import Path
+import inspect
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 
 @pytest.fixture
-def mock_session():
+def mock_session():  # vulture: ignore
     with patch("requests.Session") as mock_s:
         session = mock_s.return_value
         response = MagicMock()
@@ -22,7 +22,9 @@ def mock_session():
         session.patch.return_value = response
         yield session
 
-def test_github_brute_force(mock_session):
+
+@pytest.mark.usefixtures("mock_session")
+def test_github_brute_force():
     from github_agent.api_client import Api
 
     api_instance = Api(url="http://test", token="test")
@@ -34,25 +36,35 @@ def test_github_brute_force(mock_session):
 
         print(f"Calling {name}...")
         sig = inspect.signature(method)
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         for p_name, p in sig.parameters.items():
             if p.default == inspect.Parameter.empty:
-                if p_name == "owner" or p_name == "repo": kwargs[p_name] = "test"
-                elif "id" in p_name: kwargs[p_name] = 1
-                elif p.annotation == int: kwargs[p_name] = 1
-                elif p.annotation == bool: kwargs[p_name] = True
-                elif p.annotation == dict: kwargs[p_name] = {}
-                elif p.annotation == list: kwargs[p_name] = []
-                else: kwargs[p_name] = "test"
+                if p_name == "owner" or p_name == "repo":
+                    kwargs[p_name] = "test"
+                elif "id" in p_name:
+                    kwargs[p_name] = 1
+                elif p.annotation == int:
+                    kwargs[p_name] = 1
+                elif p.annotation == bool:
+                    kwargs[p_name] = True
+                elif p.annotation == dict:
+                    kwargs[p_name] = {}
+                elif p.annotation == list:
+                    kwargs[p_name] = []
+                else:
+                    kwargs[p_name] = "test"
 
         try:
             method(**kwargs)
         except Exception as e:
             print(f"Failed calling {name}: {e}")
 
-def test_mcp_server_coverage(mock_session):
-    from github_agent.mcp_server import get_mcp_instance
+
+@pytest.mark.usefixtures("mock_session")
+def test_mcp_server_coverage():
     from fastmcp.server.middleware.rate_limiting import RateLimitingMiddleware
+
+    from github_agent.mcp_server import get_mcp_instance
 
     async def mock_on_request(self, context, call_next):
         return await call_next(context)
@@ -67,16 +79,24 @@ def test_mcp_server_coverage(mock_session):
             mcp = mcp_data[0] if isinstance(mcp_data, tuple) else mcp_data
 
             async def run_tools():
-                tool_objs = await mcp.list_tools() if inspect.iscoroutinefunction(mcp.list_tools) else mcp.list_tools()
+                tool_objs = (
+                    await mcp.list_tools()
+                    if inspect.iscoroutinefunction(mcp.list_tools)
+                    else mcp.list_tools()
+                )
                 for tool in tool_objs:
                     tool_name = tool.name
                     print(f"Testing MCP tool: {tool_name}")
                     try:
                         target_params = {}
-                        if hasattr(tool, "parameters") and hasattr(tool.parameters, "properties"):
+                        if hasattr(tool, "parameters") and hasattr(
+                            tool.parameters, "properties"
+                        ):
                             for p in tool.parameters.properties:
-                                if "id" in p or "name" in p: target_params[p] = "test"
-                                else: target_params[p] = "test"
+                                if "id" in p or "name" in p:
+                                    target_params[p] = "test"
+                                else:
+                                    target_params[p] = "test"
 
                         await mcp.call_tool(tool_name, target_params)
                     except Exception as e:

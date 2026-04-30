@@ -8,12 +8,12 @@ from typing import TypeVar
 import requests
 import urllib3
 from agent_utilities.base_utilities import get_logger
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 logger = get_logger(__name__)
 
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     AuthError,
     MissingParameterError,
     ParameterError,
@@ -38,7 +38,7 @@ from github_agent.github_response_models import (
     Response,
 )
 
-T = TypeVar("T", bound="BaseModelWrapper")
+T = TypeVar("T", bound=BaseModel)
 
 
 class Api:
@@ -93,11 +93,11 @@ class Api:
         self, endpoint: str, model: T, header: dict, page: int
     ) -> list[dict]:
         """Fetch a single page of data from the specified endpoint"""
-        model.page = page
+        model.page = page  # type: ignore[attr-defined]
         model.model_post_init(None)
         response = self._session.get(
             url=f"{self.url}{endpoint}" if endpoint.startswith("/") else endpoint,
-            params=model.api_parameters,
+            params=model.api_parameters,  # type: ignore[attr-defined]
             headers=header,
             verify=self.verify,
             proxies=self.proxies,
@@ -127,7 +127,7 @@ class Api:
 
         response = self._session.get(
             url=initial_url,
-            params=model.api_parameters,
+            params=model.api_parameters,  # type: ignore[attr-defined]
             headers=self.headers,
             verify=self.verify,
             proxies=self.proxies,
@@ -142,13 +142,15 @@ class Api:
 
         total_pages = self._get_total_pages(response)
 
-        if not model.max_pages or model.max_pages == 0 or model.max_pages > total_pages:
-            model.max_pages = total_pages
+        max_pages = getattr(model, "max_pages", total_pages)
+        if not max_pages or max_pages == 0 or max_pages > total_pages:
+            max_pages = total_pages
+            model.max_pages = total_pages  # type: ignore[attr-defined]
 
-        if model.max_pages > 1:
+        if max_pages > 1:
             with ThreadPoolExecutor(max_workers=5) as executor:
                 futures = []
-                for page in range(2, model.max_pages + 1):
+                for page in range(2, max_pages + 1):
                     futures.append(
                         executor.submit(
                             self._fetch_next_page,
@@ -176,7 +178,7 @@ class Api:
             parsed_data = [Repository(**item) for item in data]
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
 
     @require_auth
     def get_repository(self, owner: str, repo: str) -> Response:
@@ -193,8 +195,8 @@ class Api:
             return Response(response=response, data=parsed_data)
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
-                raise ParameterError(f"Repository {owner}/{repo} not found")
-            raise e
+                raise ParameterError(f"Repository {owner}/{repo} not found") from e
+            raise
 
     @require_auth
     def get_issues(self, **kwargs) -> Response:
@@ -209,7 +211,7 @@ class Api:
             parsed_data = [Issue(**item) for item in data]
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
 
     @require_auth
     def get_pull_requests(self, **kwargs) -> Response:
@@ -224,7 +226,7 @@ class Api:
             parsed_data = [PullRequest(**item) for item in data]
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
 
     @require_auth
     def get_contents(self, **kwargs) -> Response:
@@ -240,13 +242,14 @@ class Api:
             )
             response.raise_for_status()
             data = response.json()
+            parsed_data: list[Content] | Content
             if isinstance(data, list):
                 parsed_data = [Content(**item) for item in data]
             else:
                 parsed_data = Content(**data)
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
 
     @require_auth
     def get_branches(self, **kwargs) -> Response:
@@ -259,7 +262,7 @@ class Api:
             parsed_data = [Branch(**item) for item in data]
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
 
     @require_auth
     def get_commits(self, **kwargs) -> Response:
@@ -272,4 +275,4 @@ class Api:
             parsed_data = [Commit(**item) for item in data]
             return Response(response=response, data=parsed_data)
         except ValidationError as e:
-            raise ParameterError(f"Invalid parameters: {e.errors()}")
+            raise ParameterError(f"Invalid parameters: {e.errors()}") from e
