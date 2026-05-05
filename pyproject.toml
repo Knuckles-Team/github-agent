@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "github-agent"
-version = "0.4.0"
+version = "0.5.0"
 readme = "README.md"
 description = "GitHub Agent for MCP"
 requires-python = ">=3.11, <3.14"
@@ -35,6 +35,11 @@ target-version = "py310"
 python_version = "3.10"
 ignore_missing_imports = true
 check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "pytest-timeout>=2.4.0",
+]
 
 [tool.setuptools.package-data]
 github_agent = [ "mcp_config.json", "agent_data/**",]
