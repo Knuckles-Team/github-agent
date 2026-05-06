@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "github-agent": {
+      "command": "uv",
+      "args": [
+        "run",
+        "github-mcp"
+      ],
+      "env": {
+        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
+        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
+        "CONTENTSTOOL": "True",
+        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
+        "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
+        "GITHUB_URL": "<YOUR_GITHUB_URL>",
+        "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
+        "ISSUETOOL": "True",
+        "PULLSTOOL": "True",
+        "REPOSTOOL": "True"
+      }
+    }
+  }
+}

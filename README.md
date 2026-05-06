@@ -21,7 +21,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 0.5.0*
+*Version: 0.6.0*
 
 ## Overview
 
@@ -205,3 +205,68 @@ docker-compose up -d
 
 ![GitHub followers](https://img.shields.io/github/followers/Knucklessg1)
 ![GitHub User's stars](https://img.shields.io/github/stars/Knucklessg1)
+
+
+## MCP Configuration Examples
+
+### 1. Standard IO (stdio) Deployment
+
+```json
+{
+  "mcpServers": {
+    "github-agent": {
+      "command": "uv",
+      "args": [
+        "run",
+        "github-mcp"
+      ],
+      "env": {
+        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
+        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
+        "CONTENTSTOOL": "True",
+        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
+        "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
+        "GITHUB_URL": "<YOUR_GITHUB_URL>",
+        "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
+        "ISSUETOOL": "True",
+        "PULLSTOOL": "True",
+        "REPOSTOOL": "True"
+      }
+    }
+  }
+}
+```
+
+### 2. Streamable HTTP (SSE) Deployment
+
+```json
+{
+  "mcpServers": {
+    "github-agent": {
+      "command": "uv",
+      "args": [
+        "run",
+        "github-mcp",
+        "--transport",
+        "http",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ],
+      "env": {
+        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
+        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
+        "CONTENTSTOOL": "True",
+        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
+        "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
+        "GITHUB_URL": "<YOUR_GITHUB_URL>",
+        "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
+        "ISSUETOOL": "True",
+        "PULLSTOOL": "True",
+        "REPOSTOOL": "True"
+      }
+    }
+  }
+}
+```
