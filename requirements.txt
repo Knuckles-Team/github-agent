@@ -1,6 +1,1 @@
-pydantic-ai-slim[fastmcp,openai,anthropic,groq,mistral,google,huggingface,a2a,ag-ui,web,cli]>=1.58.0
-pydantic-ai-skills>=v0.4.0
-fastapi>=0.128.0
-fastmcp
-uvicorn
-fastapi
+agent-utilities[agent,logfire]>=0.6.2
