@@ -47,9 +47,11 @@ def register_repo_tools(mcp: FastMCP):
         tags={"repos"},
     )
     async def github_list_repos(
-        visibility: str | None = Field(None, description="all, public, or private"),
+        visibility: str | None = Field(
+            default=None, description="all, public, or private"
+        ),
         type: str | None = Field(
-            None, description="all, owner, public, private, member"
+            default=None, description="all, owner, public, private, member"
         ),
         ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
@@ -83,8 +85,8 @@ def register_repo_tools(mcp: FastMCP):
         tags={"repos"},
     )
     async def github_get_repo(
-        owner: str = Field(..., description="Repository owner"),
-        repo: str = Field(..., description="Repository name"),
+        owner: str = Field(description="Repository owner"),
+        repo: str = Field(description="Repository name"),
         ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """Get details for a specific repository."""
@@ -119,10 +121,12 @@ def register_issue_tools(mcp: FastMCP):
         tags={"issues"},
     )
     async def github_list_issues(
-        owner: str = Field(..., description="Repository owner"),
-        repo: str = Field(..., description="Repository name"),
-        state: str | None = Field(None, description="open, closed, or all"),
-        labels: str | None = Field(None, description="Comma-separated list of labels"),
+        owner: str = Field(description="Repository owner"),
+        repo: str = Field(description="Repository name"),
+        state: str | None = Field(default=None, description="open, closed, or all"),
+        labels: str | None = Field(
+            default=None, description="Comma-separated list of labels"
+        ),
         ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """List issues for a repository."""
@@ -160,9 +164,9 @@ def register_pull_tools(mcp: FastMCP):
         tags={"pulls"},
     )
     async def github_list_pull_requests(
-        owner: str = Field(..., description="Repository owner"),
-        repo: str = Field(..., description="Repository name"),
-        state: str | None = Field(None, description="open, closed, or all"),
+        owner: str = Field(description="Repository owner"),
+        repo: str = Field(description="Repository name"),
+        state: str | None = Field(default=None, description="open, closed, or all"),
         ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """List pull requests for a repository."""
@@ -198,10 +202,10 @@ def register_content_tools(mcp: FastMCP):
         tags={"contents"},
     )
     async def github_get_contents(
-        owner: str = Field(..., description="Repository owner"),
-        repo: str = Field(..., description="Repository name"),
-        path: str = Field(..., description="File or directory path"),
-        ref: str | None = Field(None, description="Branch/Tag/Commit SHA"),
+        owner: str = Field(description="Repository owner"),
+        repo: str = Field(description="Repository name"),
+        path: str = Field(description="File or directory path"),
+        ref: str | None = Field(default=None, description="Branch/Tag/Commit SHA"),
         ctx: Context | None = Field(None, description="MCP context"),
     ) -> dict[str, Any]:
         """Get contents of a file or directory."""
