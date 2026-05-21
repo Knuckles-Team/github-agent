@@ -117,9 +117,9 @@ def test_mcp_server_coverage():
 
 def test_agent_server_coverage():
     import github_agent.agent_server as mod
-    from github_agent import agent_server
+    from github_agent.agent_server import agent_server
 
-    with patch("github_agent.agent_server.create_graph_agent_server") as mock_s:
+    with patch("agent_utilities.create_agent_server") as mock_s:
         with patch("sys.argv", ["agent_server.py"]):
             if inspect.isfunction(agent_server):
                 agent_server()

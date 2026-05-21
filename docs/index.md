@@ -221,10 +221,7 @@ docker-compose up -d
         "github-mcp"
       ],
       "env": {
-        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
-        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
         "CONTENTSTOOL": "True",
-        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
         "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
         "GITHUB_URL": "<YOUR_GITHUB_URL>",
         "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
@@ -255,10 +252,7 @@ docker-compose up -d
         "8000"
       ],
       "env": {
-        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
-        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
         "CONTENTSTOOL": "True",
-        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
         "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
         "GITHUB_URL": "<YOUR_GITHUB_URL>",
         "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",

@@ -1,6 +1,11 @@
 #!/usr/bin/python
 import warnings
 
+from fastmcp import Context, FastMCP
+from fastmcp.dependencies import Depends
+from fastmcp.utilities.logging import get_logger
+from pydantic import Field
+
 # Filter RequestsDependencyWarning early to prevent log spam
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -15,221 +20,607 @@ with warnings.catch_warnings():
 warnings.filterwarnings("ignore", message=".*urllib3.*or chardet.*")
 warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
+import logging
 import os
 import sys
 from typing import Any
 
-from agent_utilities.base_utilities import get_logger, to_boolean
+from agent_utilities.base_utilities import to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
-    ctx_log,
-    ctx_progress,
 )
-from fastmcp import Context, FastMCP
-from pydantic import Field
 
 from github_agent.auth import get_client
 
 __version__ = "1.0.0"
-
 logger = get_logger("GithubMCPServer")
+logger.setLevel(logging.INFO)
 
 
 def register_repo_tools(mcp: FastMCP):
-    @mcp.tool(
-        annotations={
-            "title": "List Repositories",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-        tags={"repos"},
-    )
-    async def github_list_repos(
-        visibility: str | None = Field(
-            default=None, description="all, public, or private"
+    @mcp.tool(tags={"repos"})
+    async def github_repos(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'delete', 'update'"
         ),
-        type: str | None = Field(
-            default=None, description="all, owner, public, private, member"
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
         ),
-        ctx: Context | None = Field(None, description="MCP context"),
-    ) -> dict[str, Any]:
-        """List repositories for the authenticated user."""
-        client = get_client()
-        try:
-            response = client.get_repositories(visibility=visibility, type=type)
-            return {
-                "status": 200,
-                "message": "Repositories retrieved successfully",
-                "data": [repo.model_dump() for repo in response.data],
-                "error": None,
-            }
-        except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing repos: {str(e)}")
-            return {
-                "status": 500,
-                "message": "Failed to list repos",
-                "data": None,
-                "error": str(e),
-            }
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub repositories."""
+        if ctx:
+            await ctx.info("Executing github_repos action...")
+        import json
 
-    @mcp.tool(
-        annotations={
-            "title": "Get Repository",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-        tags={"repos"},
-    )
-    async def github_get_repo(
-        owner: str = Field(description="Repository owner"),
-        repo: str = Field(description="Repository name"),
-        ctx: Context | None = Field(None, description="MCP context"),
-    ) -> dict[str, Any]:
-        """Get details for a specific repository."""
-        client = get_client()
         try:
-            response = client.get_repository(owner=owner, repo=repo)
-            return {
-                "status": 200,
-                "message": "Repository retrieved successfully",
-                "data": response.data.model_dump(),
-                "error": None,
-            }
+            kwargs = json.loads(params_json)
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error getting repo: {str(e)}")
-            return {
-                "status": 500,
-                "message": "Failed to get repo",
-                "data": None,
-                "error": str(e),
-            }
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_repositories(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Repositories retrieved successfully",
+                    "data": [repo.model_dump() for repo in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = client.get_repository(owner=owner, repo=repo)
+                return {
+                    "status": 200,
+                    "message": "Repository retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "create":
+                name = kwargs.pop("name", None)
+                if not name:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'name' parameter",
+                        "data": None,
+                    }
+                response = client.create_repository(name=name, **kwargs)
+                return {
+                    "status": 201,
+                    "message": "Repository created successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = client.delete_repository(owner=owner, repo=repo)
+                return {
+                    "status": 200,
+                    "message": "Repository deleted successfully",
+                    "data": response.data,
+                }
+            elif action == "update":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = client.update_repository(owner=owner, repo=repo, **kwargs)
+                return {
+                    "status": 200,
+                    "message": "Repository updated successfully",
+                    "data": response.data.model_dump(),
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
 
 
 def register_issue_tools(mcp: FastMCP):
-    @mcp.tool(
-        annotations={
-            "title": "List Issues",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-        tags={"issues"},
-    )
-    async def github_list_issues(
-        owner: str = Field(description="Repository owner"),
-        repo: str = Field(description="Repository name"),
-        state: str | None = Field(default=None, description="open, closed, or all"),
-        labels: str | None = Field(
-            default=None, description="Comma-separated list of labels"
+    @mcp.tool(tags={"issues"})
+    async def github_issues(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'update'"
         ),
-        ctx: Context | None = Field(None, description="MCP context"),
-    ) -> dict[str, Any]:
-        """List issues for a repository."""
-        client = get_client()
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub issues."""
+        if ctx:
+            await ctx.info("Executing github_issues action...")
+        import json
+
         try:
-            response = client.get_issues(
-                owner=owner, repo=repo, state=state, labels=labels
-            )
-            return {
-                "status": 200,
-                "message": "Issues retrieved successfully",
-                "data": [issue.model_dump() for issue in response.data],
-                "error": None,
-            }
+            kwargs = json.loads(params_json)
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing issues: {str(e)}")
-            return {
-                "status": 500,
-                "message": "Failed to list issues",
-                "data": None,
-                "error": str(e),
-            }
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_issues(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Issues retrieved successfully",
+                    "data": [issue.model_dump() for issue in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = client.get_issue(owner=owner, repo=repo, number=int(number))
+                return {
+                    "status": 200,
+                    "message": "Issue retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "create":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                title = kwargs.pop("title", None)
+                if not owner or not repo or not title:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'title' parameter",
+                        "data": None,
+                    }
+                response = client.create_issue(
+                    owner=owner, repo=repo, title=title, **kwargs
+                )
+                return {
+                    "status": 201,
+                    "message": "Issue created successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "update":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                number = kwargs.pop("number", None)
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = client.update_issue(
+                    owner=owner, repo=repo, number=int(number), **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Issue updated successfully",
+                    "data": response.data.model_dump(),
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
 
 
 def register_pull_tools(mcp: FastMCP):
+    @mcp.tool(tags={"pulls"})
+    async def github_pulls(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'update'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub pull requests."""
+        if ctx:
+            await ctx.info("Executing github_pulls action...")
+        import json
 
-    @mcp.tool(
-        annotations={
-            "title": "List Pull Requests",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-        tags={"pulls"},
-    )
-    async def github_list_pull_requests(
-        owner: str = Field(description="Repository owner"),
-        repo: str = Field(description="Repository name"),
-        state: str | None = Field(default=None, description="open, closed, or all"),
-        ctx: Context | None = Field(None, description="MCP context"),
-    ) -> dict[str, Any]:
-        """List pull requests for a repository."""
-        client = get_client()
         try:
-            response = client.get_pull_requests(owner=owner, repo=repo, state=state)
-            return {
-                "status": 200,
-                "message": "Pull requests retrieved successfully",
-                "data": [pr.model_dump() for pr in response.data],
-                "error": None,
-            }
+            kwargs = json.loads(params_json)
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error listing PRs: {str(e)}")
-            await ctx_progress(ctx, 100, 100)
-            return {
-                "status": 500,
-                "message": "Failed to list PRs",
-                "data": None,
-                "error": str(e),
-            }
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_pull_requests(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Pull requests retrieved successfully",
+                    "data": [pr.model_dump() for pr in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = client.get_pull_request(
+                    owner=owner, repo=repo, number=int(number)
+                )
+                return {
+                    "status": 200,
+                    "message": "Pull request retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "create":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                title = kwargs.pop("title", None)
+                head = kwargs.pop("head", None)
+                base = kwargs.pop("base", None)
+                if not owner or not repo or not title or not head or not base:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
+                        "data": None,
+                    }
+                response = client.create_pull_request(
+                    owner=owner, repo=repo, title=title, head=head, base=base, **kwargs
+                )
+                return {
+                    "status": 201,
+                    "message": "Pull request created successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "update":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                number = kwargs.pop("number", None)
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = client.update_pull_request(
+                    owner=owner, repo=repo, number=int(number), **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Pull request updated successfully",
+                    "data": response.data.model_dump(),
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
 
 
 def register_content_tools(mcp: FastMCP):
-    @mcp.tool(
-        annotations={
-            "title": "Get Contents",
-            "readOnlyHint": True,
-            "destructiveHint": False,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-        tags={"contents"},
-    )
-    async def github_get_contents(
-        owner: str = Field(description="Repository owner"),
-        repo: str = Field(description="Repository name"),
-        path: str = Field(description="File or directory path"),
-        ref: str | None = Field(default=None, description="Branch/Tag/Commit SHA"),
-        ctx: Context | None = Field(None, description="MCP context"),
-    ) -> dict[str, Any]:
-        """Get contents of a file or directory."""
-        client = get_client()
+    @mcp.tool(tags={"contents"})
+    async def github_contents(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'get', 'create', 'update', 'delete'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub contents."""
+        if ctx:
+            await ctx.info("Executing github_contents action...")
+        import json
+
         try:
-            response = client.get_contents(owner=owner, repo=repo, path=path, ref=ref)
-            if isinstance(response.data, list):
-                data = [item.model_dump() for item in response.data]
-            else:
-                data = response.data.model_dump()
-            return {
-                "status": 200,
-                "message": "Contents retrieved successfully",
-                "data": data,
-                "error": None,
-            }
+            kwargs = json.loads(params_json)
         except Exception as e:
-            ctx_log(ctx, logger, "error", f"Error getting contents: {str(e)}")
-            return {
-                "status": 500,
-                "message": "Failed to get contents",
-                "data": None,
-                "error": str(e),
-            }
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "get":
+                response = client.get_contents(**kwargs)
+                if isinstance(response.data, list):
+                    data = [item.model_dump() for item in response.data]
+                else:
+                    data = response.data.model_dump()
+                return {
+                    "status": 200,
+                    "message": "Contents retrieved successfully",
+                    "data": data,
+                }
+            elif action == "create":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                path = kwargs.pop("path", None)
+                message = kwargs.pop("message", None)
+                content = kwargs.pop("content", None)
+                if not owner or not repo or not path or not message or not content:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
+                        "data": None,
+                    }
+                response = client.create_content(
+                    owner=owner,
+                    repo=repo,
+                    path=path,
+                    message=message,
+                    content=content,
+                    **kwargs,
+                )
+                return {
+                    "status": 201,
+                    "message": "Content created successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "update":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                path = kwargs.pop("path", None)
+                message = kwargs.pop("message", None)
+                content = kwargs.pop("content", None)
+                sha = kwargs.pop("sha", None)
+                if (
+                    not owner
+                    or not repo
+                    or not path
+                    or not message
+                    or not content
+                    or not sha
+                ):
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
+                        "data": None,
+                    }
+                response = client.update_content(
+                    owner=owner,
+                    repo=repo,
+                    path=path,
+                    message=message,
+                    content=content,
+                    sha=sha,
+                    **kwargs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Content updated successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "delete":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                path = kwargs.pop("path", None)
+                message = kwargs.pop("message", None)
+                sha = kwargs.pop("sha", None)
+                if not owner or not repo or not path or not message or not sha:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
+                        "data": None,
+                    }
+                response = client.delete_content(
+                    owner=owner,
+                    repo=repo,
+                    path=path,
+                    message=message,
+                    sha=sha,
+                    **kwargs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Content deleted successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+
+def register_branch_tools(mcp: FastMCP):
+    @mcp.tool(tags={"branches"})
+    async def github_branches(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'delete'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub branches."""
+        if ctx:
+            await ctx.info("Executing github_branches action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_branches(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Branches retrieved successfully",
+                    "data": [branch.model_dump() for branch in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                if not owner or not repo or not branch:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
+                        "data": None,
+                    }
+                response = client.get_branch(owner=owner, repo=repo, branch=branch)
+                return {
+                    "status": 200,
+                    "message": "Branch retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "create":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                ref = kwargs.get("ref")
+                if not owner or not repo or not branch or not ref:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
+                        "data": None,
+                    }
+                response = client.create_branch(
+                    owner=owner, repo=repo, branch=branch, ref=ref
+                )
+                return {
+                    "status": 201,
+                    "message": "Branch created successfully",
+                    "data": response.data,
+                }
+            elif action == "delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                if not owner or not repo or not branch:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
+                        "data": None,
+                    }
+                response = client.delete_branch(owner=owner, repo=repo, branch=branch)
+                return {
+                    "status": 200,
+                    "message": "Branch deleted successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+
+def register_commit_tools(mcp: FastMCP):
+    @mcp.tool(tags={"commits"})
+    async def github_commits(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub commits."""
+        if ctx:
+            await ctx.info("Executing github_commits action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_commits(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Commits retrieved successfully",
+                    "data": [commit.model_dump() for commit in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                sha = kwargs.get("sha")
+                if not owner or not repo or not sha:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'sha' parameter",
+                        "data": None,
+                    }
+                response = client.get_commit(owner=owner, repo=repo, sha=sha)
+                return {
+                    "status": 200,
+                    "message": "Commit retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
 
 
 def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
@@ -255,11 +646,18 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     if CONTENTSTOOL:
         register_content_tools(mcp)
 
+    BRANCHESTOOL = to_boolean(os.getenv("BRANCHESTOOL", "True"))
+    if BRANCHESTOOL:
+        register_branch_tools(mcp)
+
+    COMMITSTOOL = to_boolean(os.getenv("COMMITSTOOL", "True"))
+    if COMMITSTOOL:
+        register_commit_tools(mcp)
+
     for mw in middlewares:
         mcp.add_middleware(mw)
 
     registered_tags = []
-    # FastMCP typically stores tools in .get_tools() or ._tools
     tools_dict = (
         mcp._tools
         if hasattr(mcp, "_tools")

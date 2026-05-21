@@ -3,8 +3,8 @@ services:
   github-agent:
     # image: docker.io/knucklessg1/github:latest
     build:
-      context: .. # Debug
-      dockerfile: docker/debug.Dockerfile
+      context: . # Debug
+      dockerfile: debug.Dockerfile
     container_name: github-agent
     hostname: github-agent
     command: [ "github-agent" ]
@@ -17,7 +17,7 @@ services:
         max-file: "3"
     restart: always
     env_file:
-      - ../.env
+      - .env
     environment:
       - "HOST=0.0.0.0"
       - "PORT=9505"
