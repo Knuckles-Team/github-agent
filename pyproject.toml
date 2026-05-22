@@ -22,7 +22,8 @@ github-mcp = "github_agent.mcp_server:mcp_server"
 github-agent = "github_agent.agent_server:agent_server"
 
 [project.optional-dependencies]
-test = [ "pytest", "pytest-asyncio",]
+test = [
+    "pytest-xdist>=3.6.0", "pytest", "pytest-asyncio",]
 
 [tool.setuptools]
 include-package-data = true

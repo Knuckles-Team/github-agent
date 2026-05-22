@@ -80,10 +80,10 @@ Configure your IDE's `mcp.json` to launch the MCP server via `uvx`:
       ],
       "env": {
         "GITHUB_URL": "your_github_url_here",
+        "GITHUB_TOKEN": "your_github_token_here",
         "GITHUB_VERIFY": "your_github_verify_here",
         "DEBUG": "your_debug_here",
-        "PYTHONUNBUFFERED": "your_pythonunbuffered_here",
-        "GITHUB_TOKEN": "your_github_token_here"
+        "PYTHONUNBUFFERED": "your_pythonunbuffered_here"
       }
     }
   }
@@ -91,34 +91,7 @@ Configure your IDE's `mcp.json` to launch the MCP server via `uvx`:
 ```
 
 #### Streamable-HTTP Transport (Recommended for production deployments)
-Configure your client's `mcp.json` to launch the Streamable-HTTP server via `uvx` with explicit host and port definition:
-
-```json
-{
-  "mcpServers": {
-    "github-agent": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "github-agent",
-        "github-mcp"
-      ],
-      "env": {
-        "TRANSPORT": "streamable-http",
-        "HOST": "0.0.0.0",
-        "PORT": "8000",
-        "GITHUB_URL": "your_github_url_here",
-        "GITHUB_VERIFY": "your_github_verify_here",
-        "DEBUG": "your_debug_here",
-        "PYTHONUNBUFFERED": "your_pythonunbuffered_here",
-        "GITHUB_TOKEN": "your_github_token_here"
-      }
-    }
-  }
-}
-```
-
-Alternatively, connect to a pre-deployed remote or local Streamable-HTTP instance:
+To run the server as a long-running Streamable-HTTP service:
 
 ```json
 {
@@ -139,10 +112,10 @@ docker run -d \
   -e TRANSPORT=streamable-http \
   -e PORT=8000 \
   -e GITHUB_URL="your_value" \
+  -e GITHUB_TOKEN="your_value" \
   -e GITHUB_VERIFY="your_value" \
   -e DEBUG="your_value" \
   -e PYTHONUNBUFFERED="your_value" \
-  -e GITHUB_TOKEN="your_value" \
   knucklessg1/github-agent:latest
 ```
 
@@ -158,10 +131,10 @@ To start the interactive command-line agent:
 ```bash
 # Set credentials
 export GITHUB_URL="your_value"
+export GITHUB_TOKEN="your_value"
 export GITHUB_VERIFY="your_value"
 export DEBUG="your_value"
 export PYTHONUNBUFFERED="your_value"
-export GITHUB_TOKEN="your_value"
 
 # Run the agent server
 github-agent --provider openai --model-id gpt-4o
