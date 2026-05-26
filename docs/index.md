@@ -21,7 +21,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 0.8.0*
+*Version: 0.14.0*
 
 ## Overview
 
@@ -227,7 +227,12 @@ docker-compose up -d
         "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
         "ISSUETOOL": "True",
         "PULLSTOOL": "True",
-        "REPOSTOOL": "True"
+        "REPOSTOOL": "True",
+        "SEARCHTOOL": "True",
+        "ORGSTOOL": "True",
+        "COLLABORATORSTOOL": "True",
+        "ACTIONSTOOL": "True",
+        "RELEASESTOOL": "True"
       }
     }
   }
@@ -258,7 +263,12 @@ docker-compose up -d
         "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
         "ISSUETOOL": "True",
         "PULLSTOOL": "True",
-        "REPOSTOOL": "True"
+        "REPOSTOOL": "True",
+        "SEARCHTOOL": "True",
+        "ORGSTOOL": "True",
+        "COLLABORATORSTOOL": "True",
+        "ACTIONSTOOL": "True",
+        "RELEASESTOOL": "True"
       }
     }
   }

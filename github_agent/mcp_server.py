@@ -36,7 +36,6 @@ __version__ = "1.0.0"
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 
-
 def register_repo_tools(mcp: FastMCP):
     @mcp.tool(tags={"repos"})
     async def github_repos(
@@ -139,7 +138,6 @@ def register_repo_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
-
 def register_issue_tools(mcp: FastMCP):
     @mcp.tool(tags={"issues"})
     async def github_issues(
@@ -234,7 +232,6 @@ def register_issue_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
-
 
 def register_pull_tools(mcp: FastMCP):
     @mcp.tool(tags={"pulls"})
@@ -334,7 +331,6 @@ def register_pull_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
-
 
 def register_content_tools(mcp: FastMCP):
     @mcp.tool(tags={"contents"})
@@ -467,12 +463,11 @@ def register_content_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
-
 def register_branch_tools(mcp: FastMCP):
     @mcp.tool(tags={"branches"})
     async def github_branches(
         action: str = Field(
-            description="Action to perform. Must be one of: 'list', 'get', 'create', 'delete'"
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'delete', 'get_protection', 'update_protection', 'delete_protection'"
         ),
         params_json: str = Field(
             default="{}", description="JSON string of parameters to pass to the action."
@@ -553,6 +548,64 @@ def register_branch_tools(mcp: FastMCP):
                     "message": "Branch deleted successfully",
                     "data": response.data,
                 }
+            elif action == "get_protection":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                if not owner or not repo or not branch:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
+                        "data": None,
+                    }
+                response = client.get_branch_protection(
+                    owner=owner, repo=repo, branch=branch
+                )
+                return {
+                    "status": 200,
+                    "message": "Branch protection retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "update_protection":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                protection_config = kwargs.get("protection_config")
+                if not owner or not repo or not branch or protection_config is None:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
+                        "data": None,
+                    }
+                response = client.update_branch_protection(
+                    owner=owner,
+                    repo=repo,
+                    branch=branch,
+                    protection_config=protection_config,
+                )
+                return {
+                    "status": 200,
+                    "message": "Branch protection updated successfully",
+                    "data": response.data,
+                }
+            elif action == "delete_protection":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                branch = kwargs.get("branch")
+                if not owner or not repo or not branch:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
+                        "data": None,
+                    }
+                response = client.delete_branch_protection(
+                    owner=owner, repo=repo, branch=branch
+                )
+                return {
+                    "status": 200,
+                    "message": "Branch protection deleted successfully",
+                    "data": response.data,
+                }
             else:
                 return {
                     "status": 400,
@@ -561,7 +614,6 @@ def register_branch_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
-
 
 def register_commit_tools(mcp: FastMCP):
     @mcp.tool(tags={"commits"})
@@ -622,6 +674,483 @@ def register_commit_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+def register_search_tools(mcp: FastMCP):
+    @mcp.tool(tags={"search"})
+    async def github_search(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'repositories', 'issues', 'code'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Search GitHub repositories, issues, or code."""
+        if ctx:
+            await ctx.info("Executing github_search action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "repositories":
+                response = client.search_repositories(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Repositories searched successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "issues":
+                response = client.search_issues(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Issues searched successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "code":
+                response = client.search_code(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Code searched successfully",
+                    "data": response.data.model_dump(),
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+def register_org_tools(mcp: FastMCP):
+    @mcp.tool(tags={"orgs"})
+    async def github_orgs(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'repos', 'members', 'teams'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub organizations."""
+        if ctx:
+            await ctx.info("Executing github_orgs action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "repos":
+                response = client.get_org_repos(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Organization repositories retrieved successfully",
+                    "data": [repo.model_dump() for repo in response.data],
+                }
+            elif action == "members":
+                response = client.get_org_members(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Organization members retrieved successfully",
+                    "data": [member.model_dump() for member in response.data],
+                }
+            elif action == "teams":
+                org = kwargs.get("org")
+                if not org:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'org' parameter",
+                        "data": None,
+                    }
+                response = client.get_org_teams(org=org)
+                return {
+                    "status": 200,
+                    "message": "Organization teams retrieved successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+def register_collaborator_tools(mcp: FastMCP):
+    @mcp.tool(tags={"collaborators"})
+    async def github_collaborators(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'add', 'remove'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage repository collaborators."""
+        if ctx:
+            await ctx.info("Executing github_collaborators action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                response = client.get_collaborators(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Collaborators retrieved successfully",
+                    "data": [c.model_dump() for c in response.data],
+                }
+            elif action == "add":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                username = kwargs.get("username")
+                permission = kwargs.get("permission")
+                if not owner or not repo or not username:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'username' parameter",
+                        "data": None,
+                    }
+                response = client.add_collaborator(
+                    owner=owner, repo=repo, username=username, permission=permission
+                )
+                return {
+                    "status": 200,
+                    "message": "Collaborator added successfully",
+                    "data": response.data,
+                }
+            elif action == "remove":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                username = kwargs.get("username")
+                if not owner or not repo or not username:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'username' parameter",
+                        "data": None,
+                    }
+                response = client.remove_collaborator(
+                    owner=owner, repo=repo, username=username
+                )
+                return {
+                    "status": 200,
+                    "message": "Collaborator removed successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+def register_action_tools(mcp: FastMCP):
+    @mcp.tool(tags={"actions"})
+    async def github_actions(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list_workflows', 'list_runs', 'get_run', 'trigger_dispatch', 'rerun', 'cancel', 'delete_run'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub actions workflows and runs."""
+        if ctx:
+            await ctx.info("Executing github_actions action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list_workflows":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = client.get_workflows(owner=owner, repo=repo)
+                return {
+                    "status": 200,
+                    "message": "Workflows retrieved successfully",
+                    "data": [w.model_dump() for w in response.data],
+                }
+            elif action == "list_runs":
+                response = client.get_workflow_runs(**kwargs)
+                return {
+                    "status": 200,
+                    "message": "Workflow runs retrieved successfully",
+                    "data": [r.model_dump() for r in response.data],
+                }
+            elif action == "get_run":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                response = client.get_workflow_run(
+                    owner=owner, repo=repo, run_id=int(run_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow run retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "trigger_dispatch":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                workflow_id = kwargs.get("workflow_id")
+                ref = kwargs.get("ref")
+                inputs = kwargs.get("inputs")
+                if not owner or not repo or not workflow_id or not ref:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
+                        "data": None,
+                    }
+                response = client.trigger_workflow_dispatch(
+                    owner=owner,
+                    repo=repo,
+                    workflow_id=workflow_id,
+                    ref=ref,
+                    inputs=inputs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow dispatch triggered successfully",
+                    "data": response.data,
+                }
+            elif action == "rerun":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                response = client.rerun_workflow_run(
+                    owner=owner, repo=repo, run_id=int(run_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow run rerun triggered",
+                    "data": response.data,
+                }
+            elif action == "cancel":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                response = client.cancel_workflow_run(
+                    owner=owner, repo=repo, run_id=int(run_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow run cancellation triggered",
+                    "data": response.data,
+                }
+            elif action == "delete_run":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                response = client.delete_workflow_run(
+                    owner=owner, repo=repo, run_id=int(run_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow run deleted successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
+
+def register_release_tools(mcp: FastMCP):
+    @mcp.tool(tags={"releases"})
+    async def github_releases(
+        action: str = Field(
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'update', 'delete'"
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage repository releases."""
+        if ctx:
+            await ctx.info("Executing github_releases action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        try:
+            if action == "list":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = client.get_releases(owner=owner, repo=repo)
+                return {
+                    "status": 200,
+                    "message": "Releases retrieved successfully",
+                    "data": [r.model_dump() for r in response.data],
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                release_id = kwargs.get("release_id")
+                if not owner or not repo or not release_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+                        "data": None,
+                    }
+                response = client.get_release(
+                    owner=owner, repo=repo, release_id=int(release_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Release retrieved successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "create":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                tag_name = kwargs.pop("tag_name", None)
+                if not owner or not repo or not tag_name:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
+                        "data": None,
+                    }
+                response = client.create_release(
+                    owner=owner, repo=repo, tag_name=tag_name, **kwargs
+                )
+                return {
+                    "status": 201,
+                    "message": "Release created successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "update":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                release_id = kwargs.pop("release_id", None)
+                if not owner or not repo or not release_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+                        "data": None,
+                    }
+                response = client.update_release(
+                    owner=owner, repo=repo, release_id=int(release_id), **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Release updated successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                release_id = kwargs.get("release_id")
+                if not owner or not repo or not release_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+                        "data": None,
+                    }
+                response = client.delete_release(
+                    owner=owner, repo=repo, release_id=int(release_id)
+                )
+                return {
+                    "status": 200,
+                    "message": "Release deleted successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception as e:
+            return {"status": 500, "error": str(e), "data": None}
 
 def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     args, mcp, middlewares = create_mcp_server(
@@ -654,6 +1183,26 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     if COMMITSTOOL:
         register_commit_tools(mcp)
 
+    SEARCHTOOL = to_boolean(os.getenv("SEARCHTOOL", "True"))
+    if SEARCHTOOL:
+        register_search_tools(mcp)
+
+    ORGSTOOL = to_boolean(os.getenv("ORGSTOOL", "True"))
+    if ORGSTOOL:
+        register_org_tools(mcp)
+
+    COLLABORATORSTOOL = to_boolean(os.getenv("COLLABORATORSTOOL", "True"))
+    if COLLABORATORSTOOL:
+        register_collaborator_tools(mcp)
+
+    ACTIONSTOOL = to_boolean(os.getenv("ACTIONSTOOL", "True"))
+    if ACTIONSTOOL:
+        register_action_tools(mcp)
+
+    RELEASESTOOL = to_boolean(os.getenv("RELEASESTOOL", "True"))
+    if RELEASESTOOL:
+        register_release_tools(mcp)
+
     for mw in middlewares:
         mcp.add_middleware(mw)
 
@@ -672,7 +1221,6 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     imported_tools = list(tools_dict.keys())
     return mcp, args, middlewares, registered_tags, imported_tools
 
-
 def mcp_server() -> None:
     mcp, args, middlewares, registered_tags, imported_tools = get_mcp_instance()
     print(f"Starting GitHub Agent MCP v{__version__}", file=sys.stderr)
@@ -684,7 +1232,6 @@ def mcp_server() -> None:
     else:
         logger.error(f"Unsupported transport: {args.transport}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     mcp_server()

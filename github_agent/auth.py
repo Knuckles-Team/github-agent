@@ -5,7 +5,7 @@ import threading
 
 import requests
 from agent_utilities.base_utilities import get_logger, to_boolean
-from agent_utilities.core.exceptions import AuthError, UnauthorizedError
+from agent_utilities.exceptions import AuthError, UnauthorizedError
 
 local = threading.local()
 from github_agent.api_client import Api
@@ -13,16 +13,17 @@ from github_agent.api_client import Api
 logger = get_logger(__name__)
 
 
-def get_client(
-    instance: str = os.getenv("GITHUB_URL", "https://api.github.com"),
-    token: str | None = os.getenv("GITHUB_TOKEN", None),
-    verify: bool = to_boolean(string=os.getenv("GITHUB_VERIFY", "True")),
-    config: dict | None = None,
-) -> Api:
+def get_client(config: dict | None = None) -> Api:
     """
     Factory function to create the GitHub Api client.
     Supports fixed credentials (token) and delegation (OAuth exchange).
     """
+    instance = os.getenv("GITHUB_URL", "https://api.github.com")
+    token = os.getenv("GITHUB_TOKEN", None)
+    verify = to_boolean(
+        string=os.getenv("GITHUB_SSL_VERIFY") or os.getenv("GITHUB_VERIFY", "True")
+    )
+
     if config is None:
         from agent_utilities.mcp_utilities import config as default_config
 
@@ -34,11 +35,26 @@ def get_client(
             logger.error("No user token available for delegation")
             raise ValueError("No user token available for delegation")
 
+        token_endpoint = config.get("token_endpoint")
+        client_id = config.get("oidc_client_id")
+        client_secret = config.get("oidc_client_secret")
+        audience = config.get("audience")
+        delegated_scopes = config.get("delegated_scopes")
+
+        if (
+            not isinstance(token_endpoint, str)
+            or not isinstance(client_id, str)
+            or not isinstance(client_secret, str)
+            or not isinstance(audience, str)
+            or not isinstance(delegated_scopes, str)
+        ):
+            raise ValueError("Invalid OAuth configuration parameters")
+
         logger.info(
             "Initiating OAuth token exchange for GitHub",
             extra={
-                "audience": config["audience"],
-                "scopes": config["delegated_scopes"],
+                "audience": audience,
+                "scopes": delegated_scopes,
             },
         )
 
@@ -47,13 +63,13 @@ def get_client(
             "subject_token": user_token,
             "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
             "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
-            "audience": config["audience"],
-            "scope": config["delegated_scopes"],
+            "audience": audience,
+            "scope": delegated_scopes,
         }
-        auth = (config["oidc_client_id"], config["oidc_client_secret"])
+        auth = (client_id, client_secret)
         try:
             response = requests.post(
-                config["token_endpoint"], data=exchange_data, auth=auth, timeout=30
+                token_endpoint, data=exchange_data, auth=auth, timeout=30
             )
             response.raise_for_status()
             new_token = response.json()["access_token"]

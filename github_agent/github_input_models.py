@@ -34,14 +34,16 @@ class RepoModel(BaseModelWrapper):
     Pydantic model for Repository requests.
     """
 
-    owner: str | None = Field(None, description="The account owner of the repository.")
-    repo: str | None = Field(None, description="The name of the repository.")
-    visibility: str | None = Field(
-        None, description="Can be one of all, public, or private."
+    owner: str | None = Field(
+        default=None, description="The account owner of the repository."
     )
-    affiliation: str | None = Field(None, description="Affiliation filter.")
+    repo: str | None = Field(default=None, description="The name of the repository.")
+    visibility: str | None = Field(
+        default=None, description="Can be one of all, public, or private."
+    )
+    affiliation: str | None = Field(default=None, description="Affiliation filter.")
     type: str | None = Field(
-        None, description="Can be one of all, owner, public, private, member."
+        default=None, description="Can be one of all, owner, public, private, member."
     )
 
     def model_post_init(self, __context):
@@ -62,25 +64,28 @@ class IssueModel(BaseModelWrapper):
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
     issue_number: int | None = Field(
-        None, description="The number that identifies the issue."
+        default=None, description="The number that identifies the issue."
     )
     state: str | None = Field(
-        None,
+        default=None,
         description="Indicates the state of the issues to return. Can be either open, closed, or all.",
     )
     labels: str | list[str] | None = Field(
-        None, description="A list of comma separated label names."
+        default=None, description="A list of comma separated label names."
     )
     assignee: str | None = Field(
-        None,
+        default=None,
         description="Can be the name of a user. Use none for issues with no assigned user, and * for assigned issues to any user.",
     )
-    creator: str | None = Field(None, description="The user that created the issue.")
+    creator: str | None = Field(
+        default=None, description="The user that created the issue."
+    )
     mentioned: str | None = Field(
-        None, description="A user that is mentioned in the issue."
+        default=None, description="A user that is mentioned in the issue."
     )
     since: str | None = Field(
-        None, description="Only show notifications updated after the given time."
+        default=None,
+        description="Only show notifications updated after the given time.",
     )
 
     def model_post_init(self, __context):
@@ -106,22 +111,24 @@ class PullRequestModel(BaseModelWrapper):
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
     pull_number: int | None = Field(
-        None, description="The number that identifies the pull request."
+        default=None, description="The number that identifies the pull request."
     )
     state: str | None = Field(
-        None, description="State of the PR. (open, closed, or all)"
+        default=None, description="State of the PR. (open, closed, or all)"
     )
     head: str | None = Field(
-        None,
+        default=None,
         description="Filter pulls by head user or head organization and branch name in the format of user:ref-name or organization:ref-name.",
     )
-    base: str | None = Field(None, description="Filter pulls by base branch name.")
+    base: str | None = Field(
+        default=None, description="Filter pulls by base branch name."
+    )
     sort: str | None = Field(
-        None,
+        default=None,
         description="What to sort results by. Can be created, updated, popularity, long-running.",
     )
     direction: str | None = Field(
-        None, description="The direction of the sort. Can be asc or desc."
+        default=None, description="The direction of the sort. Can be asc or desc."
     )
 
     def model_post_init(self, __context):
@@ -147,7 +154,7 @@ class ContentModel(BaseModelWrapper):
     repo: str = Field(..., description="The name of the repository.")
     path: str = Field(..., description="The content path.")
     ref: str | None = Field(
-        None,
+        default=None,
         description="The name of the commit/branch/tag. Default: the repository's default branch.",
     )
 
@@ -164,7 +171,7 @@ class BranchModel(BaseModelWrapper):
 
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
-    branch: str | None = Field(None, description="The name of the branch.")
+    branch: str | None = Field(default=None, description="The name of the branch.")
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -178,19 +185,23 @@ class CommitModel(BaseModelWrapper):
     owner: str = Field(..., description="The account owner of the repository.")
     repo: str = Field(..., description="The name of the repository.")
     sha: str | None = Field(
-        None, description="SHA or branch to start listing commits from."
+        default=None, description="SHA or branch to start listing commits from."
     )
     path: str | None = Field(
-        None, description="Only commits containing this file path will be returned."
+        default=None,
+        description="Only commits containing this file path will be returned.",
     )
     author: str | None = Field(
-        None, description="GitHub username or email address to filter by commit author."
+        default=None,
+        description="GitHub username or email address to filter by commit author.",
     )
     since: str | None = Field(
-        None, description="Only show notifications updated after the given time."
+        default=None,
+        description="Only show notifications updated after the given time.",
     )
     until: str | None = Field(
-        None, description="Only show notifications updated before the given time."
+        default=None,
+        description="Only show notifications updated before the given time.",
     )
 
     def model_post_init(self, __context):
@@ -205,3 +216,90 @@ class CommitModel(BaseModelWrapper):
             self.api_parameters["since"] = self.since
         if self.until:
             self.api_parameters["until"] = self.until
+
+
+class SearchModel(BaseModelWrapper):
+    """Input model for GitHub Search queries."""
+
+    q: str = Field(
+        ...,
+        description="The query contains one or more search keywords and qualifiers.",
+    )
+    sort: str | None = Field(
+        default=None, description="Sorts the results of your query."
+    )
+    order: str | None = Field(default=None, description="The sort order (asc or desc).")
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self.api_parameters["q"] = self.q
+        if self.sort:
+            self.api_parameters["sort"] = self.sort
+        if self.order:
+            self.api_parameters["order"] = self.order
+
+
+class OrgRepoModel(BaseModelWrapper):
+    """Input model for Organization repository listing."""
+
+    org: str = Field(..., description="The organization name.")
+    type: str | None = Field(
+        default=None,
+        description="Specifies the types of repositories to return. (all, public, private, forks, sources, member)",
+    )
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.type:
+            self.api_parameters["type"] = self.type
+
+
+class OrgMemberModel(BaseModelWrapper):
+    """Input model for Organization member listing."""
+
+    org: str = Field(..., description="The organization name.")
+    role: str | None = Field(
+        default=None, description="Filter members by role. (all, admin, member)"
+    )
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.role:
+            self.api_parameters["role"] = self.role
+
+
+class CollaboratorModel(BaseModelWrapper):
+    """Input model for Repository collaborator listing."""
+
+    owner: str = Field(..., description="The repository owner.")
+    repo: str = Field(..., description="The repository name.")
+    affiliation: str | None = Field(
+        default=None,
+        description="Filter collaborators by affiliation (outside, direct, all).",
+    )
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.affiliation:
+            self.api_parameters["affiliation"] = self.affiliation
+
+
+class WorkflowRunModel(BaseModelWrapper):
+    """Input model for Repository workflow runs listing."""
+
+    owner: str = Field(..., description="The repository owner.")
+    repo: str = Field(..., description="The repository name.")
+    status: str | None = Field(
+        default=None,
+        description="Returns runs associated with the status (completed, status, etc.).",
+    )
+    branch: str | None = Field(
+        default=None, description="Returns runs associated with the branch."
+    )
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.status:
+            self.api_parameters["status"] = self.status
+        if self.branch:
+            self.api_parameters["branch"] = self.branch

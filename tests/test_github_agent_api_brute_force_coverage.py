@@ -10,16 +10,65 @@ import pytest
 def mock_session():  # vulture: ignore
     with patch("requests.Session") as mock_s:
         session = mock_s.return_value
-        response = MagicMock()
-        response.status_code = 200
-        response.headers = {"Link": '<http://test?page=2>; rel="last"'}
-        response.json.return_value = [{"id": 1, "name": "test"}]
-        response.text = '{"id": 1}'
-        session.get.return_value = response
-        session.post.return_value = response
-        session.put.return_value = response
-        session.delete.return_value = response
-        session.patch.return_value = response
+
+        def build_response(url, *args, **kwargs):
+            response = MagicMock()
+            response.status_code = 200
+            response.headers = {"Link": '<http://test?page=2>; rel="last"'}
+
+            url_str = str(url)
+            if "/search/" in url_str:
+                response.json.return_value = {
+                    "total_count": 1,
+                    "incomplete_results": False,
+                    "items": [{"id": 1, "name": "test", "path": "test", "sha": "test"}],
+                }
+            elif any(x in url_str for x in ["/releases/", "/actions/runs/"]) or (
+                "/repos/" in url_str
+                and not url_str.endswith(
+                    (
+                        "/issues",
+                        "/pulls",
+                        "/commits",
+                        "/branches",
+                        "/releases",
+                        "/keys",
+                        "/collaborators",
+                        "/members",
+                        "/teams",
+                        "/repos",
+                    )
+                )
+            ):
+                response.json.return_value = {
+                    "id": 1,
+                    "name": "test",
+                    "sha": "abc123sha",
+                    "tag_name": "v1.0.0",
+                    "head_branch": "main",
+                    "head_sha": "abc123sha",
+                    "status": "completed",
+                    "conclusion": "success",
+                }
+            else:
+                response.json.return_value = [
+                    {
+                        "id": 1,
+                        "name": "test",
+                        "sha": "abc123sha",
+                        "login": "test",
+                        "workflows": [],
+                    }
+                ]
+
+            response.text = '{"id": 1}'
+            return response
+
+        session.get.side_effect = build_response
+        session.post.side_effect = build_response
+        session.put.side_effect = build_response
+        session.delete.side_effect = build_response
+        session.patch.side_effect = build_response
         yield session
 
 
@@ -36,12 +85,21 @@ def test_github_brute_force():
 
         print(f"Calling {name}...")
         sig = inspect.signature(method)
+        has_var_keyword = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+
         kwargs: dict[str, Any] = {}
         for p_name, p in sig.parameters.items():
             if p.default == inspect.Parameter.empty:
                 if p_name == "owner" or p_name == "repo":
                     kwargs[p_name] = "test"
-                elif "id" in p_name:
+                elif (
+                    "id" in p_name
+                    or p_name == "number"
+                    or p_name == "run_id"
+                    or p_name == "release_id"
+                ):
                     kwargs[p_name] = 1
                 elif p.annotation == int:
                     kwargs[p_name] = 1
@@ -51,8 +109,36 @@ def test_github_brute_force():
                     kwargs[p_name] = {}
                 elif p.annotation == list:
                     kwargs[p_name] = []
+                elif p_name == "branch":
+                    kwargs[p_name] = "main"
+                elif p_name == "sha" or p_name == "ref":
+                    kwargs[p_name] = "abc123sha"
+                elif p_name == "username":
+                    kwargs[p_name] = "test-user"
+                elif p_name == "org":
+                    kwargs[p_name] = "test-org"
                 else:
                     kwargs[p_name] = "test"
+
+        if has_var_keyword:
+            kwargs.update(
+                {
+                    "q": "test",
+                    "org": "test-org",
+                    "path": "test.txt",
+                    "message": "test-message",
+                    "content": "test-content",
+                    "workflows": ["test"],
+                    "ref": "abc123sha",
+                    "branch": "main",
+                    "username": "test-user",
+                    "state": "open",
+                    "title": "test-title",
+                    "head": "main",
+                    "base": "main",
+                    "tag_name": "v1.0.0",
+                }
+            )
 
         try:
             method(**kwargs)

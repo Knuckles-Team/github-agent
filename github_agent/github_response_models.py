@@ -184,3 +184,60 @@ class Commit(BaseModel):
     author: User | None = None
     committer: User | None = None
     parents: list[dict]
+
+
+class SearchResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    total_count: int
+    incomplete_results: bool
+    items: list[dict]
+
+
+class Collaborator(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    login: str
+    id: int
+    permissions: dict | None = None
+
+
+class Workflow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: int
+    node_id: str
+    name: str
+    path: str
+    state: str
+
+
+class WorkflowRun(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: int
+    name: str | None = None
+    head_branch: str
+    head_sha: str
+    status: str
+    conclusion: str | None = None
+    event: str
+
+
+class Release(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: int
+    tag_name: str
+    target_commitish: str
+    name: str | None = None
+    draft: bool
+    prerelease: bool
+    body: str | None = None
+
+
+class CollaboratorInvitation(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    id: int
+    repository: Repository | None = None
+    invitee: User | None = None
+    inviter: User | None = None
+    permissions: str | None = None
+    created_at: datetime | str | None = None
+    url: HttpUrl | str | None = None
+    html_url: HttpUrl | str | None = None

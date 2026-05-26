@@ -43,7 +43,7 @@
 
 This agent wraps the GitHub Agent for MCP API. You can interact with it programmatically or via its integrated execution entrypoints.
 
-Detailed instructions on how to use the underlying API wrappers, extended schema bindings, and developer SDK references are maintained in [docs/index.md](file:///home/apps/workspace/agent-packages/agents/github-agent/docs/index.md).
+Detailed instructions on how to use the underlying API wrappers, extended schema bindings, and developer SDK references are maintained in [docs/index.md](docs/index.md).
 
 ---
 
@@ -54,14 +54,40 @@ This server utilizes dynamic Action-Routed tools to optimize token overhead and 
 ### Available MCP Tools
 | Tool Module | Toggle Env Var | Enabled by Default | Description & Nested Methods |
 |-------------|----------------|--------------------|------------------------------|
-| **Repo** | `REPOSTOOL` | `True` | Manage GitHub repositories. Action-routed methods: `list`, `get`, `create`, `delete`, `update`. |
-| **Issue** | `ISSUETOOL` | `True` | Manage GitHub issues. Action-routed methods: `list`, `get`, `create`, `update`. |
-| **Pull** | `PULLSTOOL` | `True` | Manage GitHub pull requests. Action-routed methods: `list`, `get`, `create`, `update`. |
-| **Content** | `CONTENTSTOOL` | `True` | Manage GitHub contents. Action-routed methods: `get`, `create`, `update`, `delete`. |
-| **Branch** | `BRANCHESTOOL` | `True` | Manage GitHub branches. Action-routed methods: `list`, `get`, `create`, `delete`. |
-| **Commit** | `COMMITSTOOL` | `True` | Manage GitHub commits. Action-routed methods: `list`, `get`. |
+| **Repo** | `REPO_TOOL` | `True` | Manage GitHub repositories. Action-routed methods: `create`, `delete`, `get`, `list`, `update`. |
+| **Issue** | `ISSUE_TOOL` | `True` | Manage GitHub issues. Action-routed methods: `create`, `get`, `list`, `update`. |
+| **Pull** | `PULL_TOOL` | `True` | Manage GitHub pull requests. Action-routed methods: `create`, `get`, `list`, `update`. |
+| **Content** | `CONTENT_TOOL` | `True` | Manage GitHub contents. Action-routed methods: `create`, `delete`, `get`, `update`. |
+| **Branch** | `BRANCH_TOOL` | `True` | Manage GitHub branches. Action-routed methods: `create`, `delete`, `get`, `list`. |
+| **Commit** | `COMMIT_TOOL` | `True` | Manage GitHub commits. Action-routed methods: `get`, `list`. |
+| **Search** | `SEARCH_TOOL` | `True` | Search GitHub repositories, issues, or code. Action-routed methods: `code`, `issues`, `repositories`. |
+| **Org** | `ORG_TOOL` | `True` | Manage GitHub organizations. Action-routed methods: `members`, `repos`, `teams`. |
+| **Collaborator** | `COLLABORATOR_TOOL` | `True` | Manage repository collaborators. Action-routed methods: `add`, `list`, `remove`. |
+| **Action** | `ACTION_TOOL` | `True` | Manage GitHub actions workflows and runs. Action-routed methods: `cancel`, `delete_run`, `get_run`, `list_runs`, `list_workflows`, `rerun`, `trigger_dispatch`. |
+| **Release** | `RELEASE_TOOL` | `True` | Manage repository releases. Action-routed methods: `create`, `delete`, `get`, `list`, `update`. |
 
-Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](file:///home/apps/workspace/agent-packages/agents/github-agent/docs/mcp.md).
+Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
+
+### Dynamic Tool Selection & Visibility
+
+This MCP server supports dynamic toolset selection and visibility filtering at runtime. This allows you to restrict the set of exposed tools in order to prevent blowing up the LLM's context window.
+
+You can configure tool filtering via multiple input channels:
+
+- **CLI Arguments:** Pass `--tools` or `--toolsets` (or their disabled counterparts `--disabled-tools` and `--disabled-toolsets`) during startup.
+- **Environment Variables:** Define standard environment variables:
+  - `MCP_ENABLED_TOOLS` / `MCP_DISABLED_TOOLS`
+  - `MCP_ENABLED_TAGS` / `MCP_DISABLED_TAGS`
+- **HTTP SSE Request Headers:** Pass custom headers during transport initialization:
+  - `x-mcp-enabled-tools` / `x-mcp-disabled-tools`
+  - `x-mcp-enabled-tags` / `x-mcp-disabled-tags`
+- **HTTP SSE Request Query Parameters:** Append query parameters directly to your transport connection URL:
+  - `?tools=tool1,tool2`
+  - `?tags=tag1`
+
+When query strings or parameters are supplied, an LLM-free **Knowledge Graph resolution layer** (using `DynamicToolOrchestrator`) matches query intents against known tool tags, names, or descriptions, with safe fallback and automated 24-hour background cache refreshing.
+
+---
 
 ### MCP Configuration Examples
 
@@ -235,7 +261,7 @@ services:
 
 ```
 
-Detailed graph node architecture explanations, custom skill configurations, and agentic trace guides are available in [docs/agent.md](file:///home/apps/workspace/agent-packages/agents/github-agent/docs/agent.md).
+Detailed graph node architecture explanations, custom skill configurations, and agentic trace guides are available in [docs/agent.md](docs/agent.md).
 
 ---
 
