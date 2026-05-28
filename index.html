@@ -893,7 +893,7 @@
 <img alt="GitHub repo file count (file type)" src="https://img.shields.io/github/directory-file-count/Knuckles-Team/github-agent" />
 <img alt="PyPI - Wheel" src="https://img.shields.io/pypi/wheel/github-agent" />
 <img alt="PyPI - Implementation" src="https://img.shields.io/pypi/implementation/github-agent" /></p>
-<p><em>Version: 0.8.0</em></p>
+<p><em>Version: 0.14.0</em></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><strong>GitHub Agent</strong> is a powerful <strong>Model Context Protocol (MCP)</strong> server and <strong>Agent-to-Agent (A2A)</strong> system designed to interact with GitHub.</p>
 <p>It acts as a <strong>Supervisor Agent</strong>, delegating tasks to a suite of specialized <strong>Child Agents</strong>, each focused on a specific domain of the GitHub API (e.g., Issues, Pull Requests, Repositories, Actions). This architecture allows for precise and efficient handling of complex GitHub operations.</p>
@@ -1150,11 +1150,16 @@ Or using UV:
 <a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">        </span><span class="nt">&quot;GITHUB_VERIFY&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;YOUR_GITHUB_VERIFY&gt;&quot;</span><span class="p">,</span>
 <a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">        </span><span class="nt">&quot;ISSUETOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
 <a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">        </span><span class="nt">&quot;PULLSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">        </span><span class="nt">&quot;REPOSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="p">}</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">        </span><span class="nt">&quot;REPOSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">        </span><span class="nt">&quot;SEARCHTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">        </span><span class="nt">&quot;ORGSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">        </span><span class="nt">&quot;COLLABORATORSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">        </span><span class="nt">&quot;ACTIONSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">        </span><span class="nt">&quot;RELEASESTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="2-streamable-http-sse-deployment">2. Streamable HTTP (SSE) Deployment<a class="headerlink" href="#2-streamable-http-sse-deployment" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
@@ -1178,11 +1183,16 @@ Or using UV:
 <a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">        </span><span class="nt">&quot;GITHUB_VERIFY&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;YOUR_GITHUB_VERIFY&gt;&quot;</span><span class="p">,</span>
 <a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="w">        </span><span class="nt">&quot;ISSUETOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
 <a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">        </span><span class="nt">&quot;PULLSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
-<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="w">        </span><span class="nt">&quot;REPOSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="p">}</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="w">        </span><span class="nt">&quot;REPOSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="w">        </span><span class="nt">&quot;SEARCHTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="w">        </span><span class="nt">&quot;ORGSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="w">        </span><span class="nt">&quot;COLLABORATORSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="w">        </span><span class="nt">&quot;ACTIONSTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="w">        </span><span class="nt">&quot;RELEASESTOOL&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="p">}</span>
 </code></pre></div>
 
 
