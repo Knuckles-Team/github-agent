@@ -36,6 +36,7 @@ __version__ = "1.0.0"
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 
+
 def register_repo_tools(mcp: FastMCP):
     @mcp.tool(tags={"repos"})
     async def github_repos(
@@ -138,6 +139,7 @@ def register_repo_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+
 def register_issue_tools(mcp: FastMCP):
     @mcp.tool(tags={"issues"})
     async def github_issues(
@@ -232,6 +234,7 @@ def register_issue_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_pull_tools(mcp: FastMCP):
     @mcp.tool(tags={"pulls"})
@@ -331,6 +334,7 @@ def register_pull_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_content_tools(mcp: FastMCP):
     @mcp.tool(tags={"contents"})
@@ -462,6 +466,7 @@ def register_content_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_branch_tools(mcp: FastMCP):
     @mcp.tool(tags={"branches"})
@@ -615,6 +620,7 @@ def register_branch_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+
 def register_commit_tools(mcp: FastMCP):
     @mcp.tool(tags={"commits"})
     async def github_commits(
@@ -674,6 +680,7 @@ def register_commit_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+
 def register_search_tools(mcp: FastMCP):
     @mcp.tool(tags={"search"})
     async def github_search(
@@ -730,6 +737,7 @@ def register_search_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_org_tools(mcp: FastMCP):
     @mcp.tool(tags={"orgs"})
@@ -794,6 +802,7 @@ def register_org_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_collaborator_tools(mcp: FastMCP):
     @mcp.tool(tags={"collaborators"})
@@ -874,6 +883,7 @@ def register_collaborator_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
 
 def register_action_tools(mcp: FastMCP):
     @mcp.tool(tags={"actions"})
@@ -1029,6 +1039,7 @@ def register_action_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+
 def register_release_tools(mcp: FastMCP):
     @mcp.tool(tags={"releases"})
     async def github_releases(
@@ -1152,6 +1163,7 @@ def register_release_tools(mcp: FastMCP):
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
+
 def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     args, mcp, middlewares = create_mcp_server(
         name="Github MCP",
@@ -1221,6 +1233,7 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
     imported_tools = list(tools_dict.keys())
     return mcp, args, middlewares, registered_tags, imported_tools
 
+
 def mcp_server() -> None:
     mcp, args, middlewares, registered_tags, imported_tools = get_mcp_instance()
     print(f"Starting GitHub Agent MCP v{__version__}", file=sys.stderr)
@@ -1232,6 +1245,7 @@ def mcp_server() -> None:
     else:
         logger.error(f"Unsupported transport: {args.transport}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     mcp_server()
