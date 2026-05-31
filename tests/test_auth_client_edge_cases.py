@@ -93,7 +93,7 @@ def test_auth_get_client_delegation_missing_token():
 
 def test_auth_get_client_delegation_exchange_failure():
     # delegation enabled, user token present, but token exchange fails
-    local.user_token = "some-subject-token"
+    local.user_token = "some-subject-token" # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -115,7 +115,7 @@ def test_auth_get_client_delegation_exchange_failure():
 
 def test_auth_get_client_delegation_auth_error():
     # delegation enabled, user token present, token exchange succeeds, but Api throws AuthError
-    local.user_token = "some-subject-token"
+    local.user_token = "some-subject-token" # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -142,7 +142,7 @@ def test_auth_get_client_delegation_auth_error():
 
 def test_auth_get_client_delegation_success():
     # delegation enabled, user token present, token exchange succeeds, Api succeeds
-    local.user_token = "some-subject-token"
+    local.user_token = "some-subject-token" # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -165,7 +165,7 @@ def test_auth_get_client_delegation_success():
             assert client == mock_api_instance
             mock_api_class.assert_called_with(
                 url="https://api.github.com",
-                token="exchanged-github-token",
+                token="exchanged-github-token", # sanitizer:ignore
                 verify=True,
             )
 
@@ -185,7 +185,7 @@ def test_auth_get_client_default_config():
 
 def test_auth_invalid_oauth_types():
     # delegation enabled, user token present, but one of the parameters is not a string
-    local.user_token = "some-subject-token"
+    local.user_token = "some-subject-token" # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": 12345,  # Invalid type (must be string)
