@@ -1,1 +1,1 @@
-agent-utilities[agent,logfire]>=0.40.0
+agent-utilities[agent,logfire]>=0.41.0
