@@ -22,6 +22,10 @@
 
 *Version: 0.28.0*
 
+> **Documentation** — Installation, deployment, and usage across the MCP, API, and
+> CLI interfaces, including the integrated A2A agent server, are maintained in the
+> [official documentation](https://knuckles-team.github.io/github-agent/).
+
 ---
 
 ## Overview
@@ -294,6 +298,22 @@ uv pip install github-agent[all]
 # Using standard pip
 python -m pip install github-agent[all]
 ```
+
+---
+
+## Documentation
+
+The complete documentation is published as the
+[official documentation site](https://knuckles-team.github.io/github-agent/) and is the
+recommended reference for installation, deployment, and day-to-day operation.
+
+| Page | Contents |
+|---|---|
+| [Installation](https://knuckles-team.github.io/github-agent/installation/) | pip, source, extras, prebuilt Docker image |
+| [Deployment](https://knuckles-team.github.io/github-agent/deployment/) | run the MCP and agent servers, Compose, Caddy + Technitium, env config |
+| [Usage](https://knuckles-team.github.io/github-agent/usage/) | the MCP tools, the `Api` client, the CLI |
+| [Overview](https://knuckles-team.github.io/github-agent/overview/) | supervisor architecture and specialized agents |
+| [Concepts](https://knuckles-team.github.io/github-agent/concepts/) | concept registry (`CONCEPT:GH-*`) |
 
 ---
 
