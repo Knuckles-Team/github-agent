@@ -78,6 +78,55 @@ class Repository(BaseModel):
     default_branch: str
 
 
+class OrganizationSummary(BaseModel):
+    """Organization record as returned by the list endpoints
+    (GET /user/orgs and GET /organizations)."""
+
+    model_config = ConfigDict(extra="allow")
+    login: str
+    id: int
+    node_id: str | None = None
+    url: HttpUrl | None = None
+    avatar_url: HttpUrl | None = None
+    description: str | None = None
+
+
+class Organization(OrganizationSummary):
+    """Full organization profile as returned by GET /orgs/{org} and
+    PATCH /orgs/{org} (which echoes the updated organization)."""
+
+    name: str | None = None
+    company: str | None = None
+    blog: str | None = None
+    location: str | None = None
+    email: str | None = None
+    twitter_username: str | None = None
+    billing_email: str | None = None
+    html_url: HttpUrl | None = None
+    public_repos: int | None = None
+    followers: int | None = None
+    following: int | None = None
+    has_organization_projects: bool | None = None
+    has_repository_projects: bool | None = None
+    default_repository_permission: str | None = None
+    members_can_create_repositories: bool | None = None
+    web_commit_signoff_required: bool | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class OrganizationMembership(BaseModel):
+    """Membership record returned by /orgs/{org}/memberships/{username}."""
+
+    model_config = ConfigDict(extra="allow")
+    url: HttpUrl | None = None
+    state: str
+    role: str
+    organization_url: HttpUrl | None = None
+    organization: OrganizationSummary | None = None
+    user: User | None = None
+
+
 class Issue(BaseModel):
     model_config = ConfigDict(extra="allow")
     url: HttpUrl

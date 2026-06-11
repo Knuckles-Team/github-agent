@@ -13,6 +13,16 @@ from github_agent.api_client import Api
 logger = get_logger(__name__)
 
 
+def allow_destructive_default() -> bool:
+    """Fleet-wide default for the destructive-action gate.
+
+    Destructive MCP actions (e.g. organization delete, member removal) are
+    blocked unless the caller passes allow_destructive=true or the
+    GITHUB_ALLOW_DESTRUCTIVE environment variable is set truthy.
+    """
+    return to_boolean(string=os.getenv("GITHUB_ALLOW_DESTRUCTIVE", "False"))
+
+
 def get_client(config: dict | None = None) -> Api:
     """
     Factory function to create the GitHub Api client.
