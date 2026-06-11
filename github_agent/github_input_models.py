@@ -348,6 +348,45 @@ class OrgUpdateModel(BaseModel):
     )
 
 
+class PagesUpdateModel(BaseModel):
+    """Mutable GitHub Pages fields accepted by PUT /repos/{owner}/{repo}/pages.
+
+    https://docs.github.com/en/rest/pages/pages#update-information-about-a-apiname-pages-site
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    build_type: Literal["legacy", "workflow"] | None = Field(
+        default=None,
+        description=(
+            "The process by which the site is built: 'workflow' (GitHub "
+            "Actions) or 'legacy' (publish from a branch)."
+        ),
+    )
+    source: dict | str | None = Field(
+        default=None,
+        description=(
+            "Publishing source for 'legacy' builds: a branch name string or "
+            "a {'branch': ..., 'path': '/'|'/docs'} mapping."
+        ),
+    )
+    cname: str | None = Field(
+        default=None,
+        description="Custom domain for the Pages site (omitted = unchanged).",
+    )
+    https_enforced: bool | None = Field(
+        default=None,
+        description="Whether HTTPS is enforced for the Pages site.",
+    )
+
+
+class PagesBuildsModel(BaseModelWrapper):
+    """Input model for GitHub Pages build listing."""
+
+    owner: str = Field(..., description="The repository owner.")
+    repo: str = Field(..., description="The repository name.")
+
+
 class OrgMemberModel(BaseModelWrapper):
     """Input model for Organization member listing."""
 
