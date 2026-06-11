@@ -5,6 +5,7 @@ from github_agent.api.api_client_commits import Api as CommitsApi
 from github_agent.api.api_client_contents import Api as ContentsApi
 from github_agent.api.api_client_issues import Api as IssuesApi
 from github_agent.api.api_client_orgs import Api as OrgsApi
+from github_agent.api.api_client_pages import Api as PagesApi
 from github_agent.api.api_client_pulls import Api as PullsApi
 from github_agent.api.api_client_releases import Api as ReleasesApi
 from github_agent.api.api_client_repos import Api as ReposApi
@@ -19,6 +20,11 @@ from github_agent.github_response_models import (  # noqa: F401
     Organization,
     OrganizationMembership,
     OrganizationSummary,
+    PagesAlreadyEnabled,
+    PagesBuild,
+    PagesBuildRequest,
+    PagesNotEnabled,
+    PagesSite,
     PullRequest,
     Release,
     Repository,
@@ -35,6 +41,7 @@ class Api(
     ContentsApi,
     IssuesApi,
     OrgsApi,
+    PagesApi,
     PullsApi,
     ReleasesApi,
     ReposApi,

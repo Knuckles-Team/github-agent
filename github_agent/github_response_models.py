@@ -280,6 +280,74 @@ class Release(BaseModel):
     body: str | None = None
 
 
+class PagesSource(BaseModel):
+    """Publishing source of a legacy-built GitHub Pages site."""
+
+    model_config = ConfigDict(extra="allow")
+    branch: str
+    path: str = "/"
+
+
+class PagesSite(BaseModel):
+    """GitHub Pages site configuration as returned by
+    GET/POST /repos/{owner}/{repo}/pages."""
+
+    model_config = ConfigDict(extra="allow")
+    url: HttpUrl | None = None
+    status: str | None = None
+    cname: str | None = None
+    custom_404: bool | None = None
+    html_url: HttpUrl | None = None
+    build_type: str | None = None
+    source: PagesSource | None = None
+    public: bool | None = None
+    https_enforced: bool | None = None
+
+
+class PagesNotEnabled(BaseModel):
+    """Typed result for GET /repos/{owner}/{repo}/pages responding 404 —
+    the repository has no GitHub Pages site."""
+
+    enabled: bool = False
+    message: str = (
+        "GitHub Pages is not enabled for this repository — enable it with "
+        "create_pages / the 'pages_create' action."
+    )
+
+
+class PagesAlreadyEnabled(BaseModel):
+    """Typed result for POST /repos/{owner}/{repo}/pages responding
+    409 Conflict — a GitHub Pages site already exists."""
+
+    already_enabled: bool = True
+    message: str = (
+        "GitHub Pages is already enabled for this repository — change its "
+        "configuration with update_pages / the 'pages_update' action."
+    )
+
+
+class PagesBuild(BaseModel):
+    """A GitHub Pages build record from /repos/{owner}/{repo}/pages/builds."""
+
+    model_config = ConfigDict(extra="allow")
+    url: HttpUrl | None = None
+    status: str | None = None
+    error: dict | None = None
+    pusher: User | None = None
+    commit: str | None = None
+    duration: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class PagesBuildRequest(BaseModel):
+    """Acknowledgement returned by POST /repos/{owner}/{repo}/pages/builds."""
+
+    model_config = ConfigDict(extra="allow")
+    url: HttpUrl | None = None
+    status: str | None = None
+
+
 class CollaboratorInvitation(BaseModel):
     model_config = ConfigDict(extra="allow")
     id: int
