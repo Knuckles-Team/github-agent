@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, Literal
 
 #!/usr/bin/python
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
 )
 
@@ -252,6 +253,99 @@ class OrgRepoModel(BaseModelWrapper):
         super().model_post_init(__context)
         if self.type:
             self.api_parameters["type"] = self.type
+
+
+class OrgListModel(BaseModelWrapper):
+    """Input model for organization listing."""
+
+    scope: Literal["member", "all"] = Field(
+        default="member",
+        description=(
+            "'member' lists the authenticated user's organizations "
+            "(GET /user/orgs); 'all' lists every organization "
+            "(GET /organizations, paginated with the 'since' ID cursor)."
+        ),
+    )
+    since: int | None = Field(
+        default=None,
+        description=(
+            "Organization ID cursor for scope='all' — only organizations "
+            "with an ID greater than this are returned."
+        ),
+    )
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.since is not None:
+            self.api_parameters["since"] = self.since
+
+
+class OrgUpdateModel(BaseModel):
+    """Mutable organization fields accepted by PATCH /orgs/{org}.
+
+    https://docs.github.com/en/rest/orgs/orgs#update-an-organization
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    billing_email: str | None = Field(
+        default=None, description="Billing email address, not publicized."
+    )
+    company: str | None = Field(default=None, description="The company name.")
+    email: str | None = Field(
+        default=None, description="Publicly visible email address."
+    )
+    twitter_username: str | None = Field(
+        default=None, description="The Twitter username of the company."
+    )
+    location: str | None = Field(default=None, description="The location.")
+    name: str | None = Field(
+        default=None, description="The shorthand name of the company."
+    )
+    description: str | None = Field(
+        default=None, description="The description of the company."
+    )
+    blog: str | None = Field(default=None, description="The blog URL.")
+    has_organization_projects: bool | None = Field(
+        default=None,
+        description="Whether an organization can use organization projects.",
+    )
+    has_repository_projects: bool | None = Field(
+        default=None,
+        description="Whether repositories that belong to the organization can use repository projects.",
+    )
+    default_repository_permission: str | None = Field(
+        default=None,
+        description="Default permission level members have for organization repositories (read, write, admin, none).",
+    )
+    members_can_create_repositories: bool | None = Field(
+        default=None,
+        description="Whether non-admin organization members can create repositories.",
+    )
+    members_can_create_public_repositories: bool | None = Field(
+        default=None,
+        description="Whether organization members can create public repositories.",
+    )
+    members_can_create_private_repositories: bool | None = Field(
+        default=None,
+        description="Whether organization members can create private repositories.",
+    )
+    members_can_create_internal_repositories: bool | None = Field(
+        default=None,
+        description="Whether organization members can create internal repositories (Enterprise Cloud/Server).",
+    )
+    members_can_create_pages: bool | None = Field(
+        default=None,
+        description="Whether organization members can create GitHub Pages sites.",
+    )
+    members_can_fork_private_repositories: bool | None = Field(
+        default=None,
+        description="Whether organization members can fork private organization repositories.",
+    )
+    web_commit_signoff_required: bool | None = Field(
+        default=None,
+        description="Whether contributors to organization repositories must sign off on web-based commits.",
+    )
 
 
 class OrgMemberModel(BaseModelWrapper):
