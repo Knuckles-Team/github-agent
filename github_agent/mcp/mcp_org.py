@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -125,14 +125,14 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.get_organization(org=org)
+                response = await run_blocking(client.get_organization, org=org)
                 return {
                     "status": 200,
                     "message": "Organization retrieved successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "list":
-                response = client.list_organizations(**kwargs)
+                response = await run_blocking(client.list_organizations, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organizations retrieved successfully",
@@ -146,7 +146,9 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.update_organization(org=org, **kwargs)
+                response = await run_blocking(
+                    client.update_organization, org=org, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Organization updated successfully",
@@ -160,7 +162,7 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.delete_organization(org=org)
+                response = await run_blocking(client.delete_organization, org=org)
                 return {
                     "status": 202,
                     "message": "Organization deletion scheduled (irreversible)",
@@ -176,7 +178,8 @@ def register_org_tools(mcp: FastMCP):
                         "data": None,
                     }
                 try:
-                    response = client.create_organization(
+                    response = await run_blocking(
+                        client.create_organization,
                         login=login,
                         admin=admin,
                         profile_name=kwargs.get("profile_name"),
@@ -197,8 +200,8 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'name' parameter",
                         "data": None,
                     }
-                response = client.create_organization_repository(
-                    org=org, name=name, **kwargs
+                response = await run_blocking(
+                    client.create_organization_repository, org=org, name=name, **kwargs
                 )
                 return {
                     "status": 201,
@@ -206,14 +209,14 @@ def register_org_tools(mcp: FastMCP):
                     "data": response.data.model_dump(),
                 }
             elif action == "repos":
-                response = client.get_org_repos(**kwargs)
+                response = await run_blocking(client.get_org_repos, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organization repositories retrieved successfully",
                     "data": [repo.model_dump() for repo in response.data],
                 }
             elif action == "members":
-                response = client.get_org_members(**kwargs)
+                response = await run_blocking(client.get_org_members, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organization members retrieved successfully",
@@ -228,8 +231,8 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.get_organization_membership(
-                    org=org, username=username
+                response = await run_blocking(
+                    client.get_organization_membership, org=org, username=username
                 )
                 return {
                     "status": 200,
@@ -245,8 +248,11 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.set_organization_membership(
-                    org=org, username=username, role=kwargs.get("role", "member")
+                response = await run_blocking(
+                    client.set_organization_membership,
+                    org=org,
+                    username=username,
+                    role=kwargs.get("role", "member"),
                 )
                 return {
                     "status": 200,
@@ -262,7 +268,9 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.remove_organization_member(org=org, username=username)
+                response = await run_blocking(
+                    client.remove_organization_member, org=org, username=username
+                )
                 return {
                     "status": 200,
                     "message": "Organization member removed successfully",
@@ -276,7 +284,7 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.get_org_teams(org=org)
+                response = await run_blocking(client.get_org_teams, org=org)
                 return {
                     "status": 200,
                     "message": "Organization teams retrieved successfully",

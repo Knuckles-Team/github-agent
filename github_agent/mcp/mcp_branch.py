@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -55,7 +55,7 @@ def register_branch_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_branches(**kwargs)
+                response = await run_blocking(client.get_branches, **kwargs)
                 return {
                     "status": 200,
                     "message": "Branches retrieved successfully",
@@ -71,7 +71,9 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.get_branch(owner=owner, repo=repo, branch=branch)
+                response = await run_blocking(
+                    client.get_branch, owner=owner, repo=repo, branch=branch
+                )
                 return {
                     "status": 200,
                     "message": "Branch retrieved successfully",
@@ -88,8 +90,8 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
                         "data": None,
                     }
-                response = client.create_branch(
-                    owner=owner, repo=repo, branch=branch, ref=ref
+                response = await run_blocking(
+                    client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
                 )
                 return {
                     "status": 201,
@@ -106,7 +108,9 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.delete_branch(owner=owner, repo=repo, branch=branch)
+                response = await run_blocking(
+                    client.delete_branch, owner=owner, repo=repo, branch=branch
+                )
                 return {
                     "status": 200,
                     "message": "Branch deleted successfully",

@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -92,14 +92,16 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing required 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_workflows(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_workflows, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Workflows retrieved successfully",
                     "data": [w.model_dump() for w in response.data],
                 }
             elif action == "list_runs":
-                response = client.get_workflow_runs(**kwargs)
+                response = await run_blocking(client.get_workflow_runs, **kwargs)
                 data = [r.model_dump() for r in response.data]
                 return {
                     "status": 200,
@@ -116,8 +118,8 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.get_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
                 )
                 return {
                     "status": 200,
@@ -136,7 +138,8 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
                         "data": None,
                     }
-                response = client.trigger_workflow_dispatch(
+                response = await run_blocking(
+                    client.trigger_workflow_dispatch,
                     owner=owner,
                     repo=repo,
                     workflow_id=workflow_id,
@@ -158,8 +161,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.rerun_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.rerun_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,
@@ -176,8 +182,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.cancel_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.cancel_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,
@@ -194,8 +203,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.delete_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.delete_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,

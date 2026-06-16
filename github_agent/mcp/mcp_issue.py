@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -54,7 +54,7 @@ def register_issue_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_issues(**kwargs)
+                response = await run_blocking(client.get_issues, **kwargs)
                 return {
                     "status": 200,
                     "message": "Issues retrieved successfully",
@@ -70,7 +70,9 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.get_issue(owner=owner, repo=repo, number=int(number))
+                response = await run_blocking(
+                    client.get_issue, owner=owner, repo=repo, number=int(number)
+                )
                 return {
                     "status": 200,
                     "message": "Issue retrieved successfully",
@@ -86,8 +88,8 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'title' parameter",
                         "data": None,
                     }
-                response = client.create_issue(
-                    owner=owner, repo=repo, title=title, **kwargs
+                response = await run_blocking(
+                    client.create_issue, owner=owner, repo=repo, title=title, **kwargs
                 )
                 return {
                     "status": 201,
@@ -104,8 +106,12 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.update_issue(
-                    owner=owner, repo=repo, number=int(number), **kwargs
+                response = await run_blocking(
+                    client.update_issue,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    **kwargs,
                 )
                 return {
                     "status": 200,

@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -47,7 +47,7 @@ def register_content_tools(mcp: FastMCP):
 
         try:
             if action == "get":
-                response = client.get_contents(**kwargs)
+                response = await run_blocking(client.get_contents, **kwargs)
                 if isinstance(response.data, list):
                     data = [item.model_dump() for item in response.data]
                 else:
@@ -69,7 +69,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
                         "data": None,
                     }
-                response = client.create_content(
+                response = await run_blocking(
+                    client.create_content,
                     owner=owner,
                     repo=repo,
                     path=path,
@@ -102,7 +103,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.update_content(
+                response = await run_blocking(
+                    client.update_content,
                     owner=owner,
                     repo=repo,
                     path=path,
@@ -128,7 +130,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.delete_content(
+                response = await run_blocking(
+                    client.delete_content,
                     owner=owner,
                     repo=repo,
                     path=path,

@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -47,7 +47,7 @@ def register_collaborator_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_collaborators(**kwargs)
+                response = await run_blocking(client.get_collaborators, **kwargs)
                 return {
                     "status": 200,
                     "message": "Collaborators retrieved successfully",
@@ -64,8 +64,12 @@ def register_collaborator_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'username' parameter",
                         "data": None,
                     }
-                response = client.add_collaborator(
-                    owner=owner, repo=repo, username=username, permission=permission
+                response = await run_blocking(
+                    client.add_collaborator,
+                    owner=owner,
+                    repo=repo,
+                    username=username,
+                    permission=permission,
                 )
                 return {
                     "status": 200,
@@ -82,8 +86,11 @@ def register_collaborator_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'username' parameter",
                         "data": None,
                     }
-                response = client.remove_collaborator(
-                    owner=owner, repo=repo, username=username
+                response = await run_blocking(
+                    client.remove_collaborator,
+                    owner=owner,
+                    repo=repo,
+                    username=username,
                 )
                 return {
                     "status": 200,

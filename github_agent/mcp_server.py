@@ -29,6 +29,7 @@ from agent_utilities.base_utilities import to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
     resolve_action,
+    run_blocking,
 )
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
@@ -216,7 +217,7 @@ def register_repo_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_repositories(**kwargs)
+                response = await run_blocking(client.get_repositories, **kwargs)
                 data = [repo.model_dump() for repo in response.data]
                 return {
                     "status": 200,
@@ -232,7 +233,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_repository(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_repository, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Repository retrieved successfully",
@@ -246,7 +249,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing required 'name' parameter",
                         "data": None,
                     }
-                response = client.create_repository(name=name, **kwargs)
+                response = await run_blocking(
+                    client.create_repository, name=name, **kwargs
+                )
                 return {
                     "status": 201,
                     "message": "Repository created successfully",
@@ -261,7 +266,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.delete_repository(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.delete_repository, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Repository deleted successfully",
@@ -276,7 +283,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.update_repository(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.update_repository, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Repository updated successfully",
@@ -291,7 +300,7 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_pages(owner=owner, repo=repo)
+                response = await run_blocking(client.get_pages, owner=owner, repo=repo)
                 if isinstance(response.data, PagesNotEnabled):
                     return {
                         "status": 404,
@@ -312,7 +321,8 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.create_pages(
+                response = await run_blocking(
+                    client.create_pages,
                     owner=owner,
                     repo=repo,
                     build_type=kwargs.get("build_type", "workflow"),
@@ -338,7 +348,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.update_pages(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.update_pages, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Pages site updated successfully",
@@ -353,7 +365,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.delete_pages(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.delete_pages, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Pages site deleted successfully",
@@ -369,13 +383,17 @@ def register_repo_tools(mcp: FastMCP):
                         "data": None,
                     }
                 if kwargs.pop("latest", False):
-                    response = client.get_pages_build_latest(owner=owner, repo=repo)
+                    response = await run_blocking(
+                        client.get_pages_build_latest, owner=owner, repo=repo
+                    )
                     return {
                         "status": 200,
                         "message": "Latest Pages build retrieved successfully",
                         "data": response.data.model_dump(),
                     }
-                response = client.list_pages_builds(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.list_pages_builds, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Pages builds retrieved successfully",
@@ -390,7 +408,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.request_pages_build(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.request_pages_build, owner=owner, repo=repo
+                )
                 return {
                     "status": 201,
                     "message": "Pages build requested successfully",
@@ -446,7 +466,7 @@ def register_issue_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_issues(**kwargs)
+                response = await run_blocking(client.get_issues, **kwargs)
                 return {
                     "status": 200,
                     "message": "Issues retrieved successfully",
@@ -462,7 +482,9 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.get_issue(owner=owner, repo=repo, number=int(number))
+                response = await run_blocking(
+                    client.get_issue, owner=owner, repo=repo, number=int(number)
+                )
                 return {
                     "status": 200,
                     "message": "Issue retrieved successfully",
@@ -478,8 +500,8 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'title' parameter",
                         "data": None,
                     }
-                response = client.create_issue(
-                    owner=owner, repo=repo, title=title, **kwargs
+                response = await run_blocking(
+                    client.create_issue, owner=owner, repo=repo, title=title, **kwargs
                 )
                 return {
                     "status": 201,
@@ -496,8 +518,12 @@ def register_issue_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.update_issue(
-                    owner=owner, repo=repo, number=int(number), **kwargs
+                response = await run_blocking(
+                    client.update_issue,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    **kwargs,
                 )
                 return {
                     "status": 200,
@@ -553,7 +579,7 @@ def register_pull_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_pull_requests(**kwargs)
+                response = await run_blocking(client.get_pull_requests, **kwargs)
                 return {
                     "status": 200,
                     "message": "Pull requests retrieved successfully",
@@ -569,8 +595,8 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.get_pull_request(
-                    owner=owner, repo=repo, number=int(number)
+                response = await run_blocking(
+                    client.get_pull_request, owner=owner, repo=repo, number=int(number)
                 )
                 return {
                     "status": 200,
@@ -589,8 +615,14 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
                         "data": None,
                     }
-                response = client.create_pull_request(
-                    owner=owner, repo=repo, title=title, head=head, base=base, **kwargs
+                response = await run_blocking(
+                    client.create_pull_request,
+                    owner=owner,
+                    repo=repo,
+                    title=title,
+                    head=head,
+                    base=base,
+                    **kwargs,
                 )
                 return {
                     "status": 201,
@@ -607,8 +639,12 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.update_pull_request(
-                    owner=owner, repo=repo, number=int(number), **kwargs
+                response = await run_blocking(
+                    client.update_pull_request,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    **kwargs,
                 )
                 return {
                     "status": 200,
@@ -658,7 +694,7 @@ def register_content_tools(mcp: FastMCP):
 
         try:
             if action == "get":
-                response = client.get_contents(**kwargs)
+                response = await run_blocking(client.get_contents, **kwargs)
                 if isinstance(response.data, list):
                     data = [item.model_dump() for item in response.data]
                 else:
@@ -680,7 +716,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
                         "data": None,
                     }
-                response = client.create_content(
+                response = await run_blocking(
+                    client.create_content,
                     owner=owner,
                     repo=repo,
                     path=path,
@@ -713,7 +750,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.update_content(
+                response = await run_blocking(
+                    client.update_content,
                     owner=owner,
                     repo=repo,
                     path=path,
@@ -739,7 +777,8 @@ def register_content_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.delete_content(
+                response = await run_blocking(
+                    client.delete_content,
                     owner=owner,
                     repo=repo,
                     path=path,
@@ -795,7 +834,7 @@ def register_branch_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_branches(**kwargs)
+                response = await run_blocking(client.get_branches, **kwargs)
                 return {
                     "status": 200,
                     "message": "Branches retrieved successfully",
@@ -811,7 +850,9 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.get_branch(owner=owner, repo=repo, branch=branch)
+                response = await run_blocking(
+                    client.get_branch, owner=owner, repo=repo, branch=branch
+                )
                 return {
                     "status": 200,
                     "message": "Branch retrieved successfully",
@@ -828,8 +869,8 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
                         "data": None,
                     }
-                response = client.create_branch(
-                    owner=owner, repo=repo, branch=branch, ref=ref
+                response = await run_blocking(
+                    client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
                 )
                 return {
                     "status": 201,
@@ -846,7 +887,9 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.delete_branch(owner=owner, repo=repo, branch=branch)
+                response = await run_blocking(
+                    client.delete_branch, owner=owner, repo=repo, branch=branch
+                )
                 return {
                     "status": 200,
                     "message": "Branch deleted successfully",
@@ -862,8 +905,8 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.get_branch_protection(
-                    owner=owner, repo=repo, branch=branch
+                response = await run_blocking(
+                    client.get_branch_protection, owner=owner, repo=repo, branch=branch
                 )
                 return {
                     "status": 200,
@@ -881,7 +924,8 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
                         "data": None,
                     }
-                response = client.update_branch_protection(
+                response = await run_blocking(
+                    client.update_branch_protection,
                     owner=owner,
                     repo=repo,
                     branch=branch,
@@ -902,8 +946,11 @@ def register_branch_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'branch' parameter",
                         "data": None,
                     }
-                response = client.delete_branch_protection(
-                    owner=owner, repo=repo, branch=branch
+                response = await run_blocking(
+                    client.delete_branch_protection,
+                    owner=owner,
+                    repo=repo,
+                    branch=branch,
                 )
                 return {
                     "status": 200,
@@ -953,7 +1000,7 @@ def register_commit_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_commits(**kwargs)
+                response = await run_blocking(client.get_commits, **kwargs)
                 return {
                     "status": 200,
                     "message": "Commits retrieved successfully",
@@ -969,7 +1016,9 @@ def register_commit_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.get_commit(owner=owner, repo=repo, sha=sha)
+                response = await run_blocking(
+                    client.get_commit, owner=owner, repo=repo, sha=sha
+                )
                 return {
                     "status": 200,
                     "message": "Commit retrieved successfully",
@@ -1018,21 +1067,21 @@ def register_search_tools(mcp: FastMCP):
 
         try:
             if action == "repositories":
-                response = client.search_repositories(**kwargs)
+                response = await run_blocking(client.search_repositories, **kwargs)
                 return {
                     "status": 200,
                     "message": "Repositories searched successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "issues":
-                response = client.search_issues(**kwargs)
+                response = await run_blocking(client.search_issues, **kwargs)
                 return {
                     "status": 200,
                     "message": "Issues searched successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "code":
-                response = client.search_code(**kwargs)
+                response = await run_blocking(client.search_code, **kwargs)
                 return {
                     "status": 200,
                     "message": "Code searched successfully",
@@ -1142,14 +1191,14 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.get_organization(org=org)
+                response = await run_blocking(client.get_organization, org=org)
                 return {
                     "status": 200,
                     "message": "Organization retrieved successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "list":
-                response = client.list_organizations(**kwargs)
+                response = await run_blocking(client.list_organizations, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organizations retrieved successfully",
@@ -1163,7 +1212,9 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.update_organization(org=org, **kwargs)
+                response = await run_blocking(
+                    client.update_organization, org=org, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Organization updated successfully",
@@ -1177,7 +1228,7 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.delete_organization(org=org)
+                response = await run_blocking(client.delete_organization, org=org)
                 return {
                     "status": 202,
                     "message": "Organization deletion scheduled (irreversible)",
@@ -1193,7 +1244,8 @@ def register_org_tools(mcp: FastMCP):
                         "data": None,
                     }
                 try:
-                    response = client.create_organization(
+                    response = await run_blocking(
+                        client.create_organization,
                         login=login,
                         admin=admin,
                         profile_name=kwargs.get("profile_name"),
@@ -1214,8 +1266,8 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'name' parameter",
                         "data": None,
                     }
-                response = client.create_organization_repository(
-                    org=org, name=name, **kwargs
+                response = await run_blocking(
+                    client.create_organization_repository, org=org, name=name, **kwargs
                 )
                 return {
                     "status": 201,
@@ -1223,14 +1275,14 @@ def register_org_tools(mcp: FastMCP):
                     "data": response.data.model_dump(),
                 }
             elif action == "repos":
-                response = client.get_org_repos(**kwargs)
+                response = await run_blocking(client.get_org_repos, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organization repositories retrieved successfully",
                     "data": [repo.model_dump() for repo in response.data],
                 }
             elif action == "members":
-                response = client.get_org_members(**kwargs)
+                response = await run_blocking(client.get_org_members, **kwargs)
                 return {
                     "status": 200,
                     "message": "Organization members retrieved successfully",
@@ -1245,8 +1297,8 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.get_organization_membership(
-                    org=org, username=username
+                response = await run_blocking(
+                    client.get_organization_membership, org=org, username=username
                 )
                 return {
                     "status": 200,
@@ -1262,8 +1314,11 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.set_organization_membership(
-                    org=org, username=username, role=kwargs.get("role", "member")
+                response = await run_blocking(
+                    client.set_organization_membership,
+                    org=org,
+                    username=username,
+                    role=kwargs.get("role", "member"),
                 )
                 return {
                     "status": 200,
@@ -1279,7 +1334,9 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing 'org' or 'username' parameter",
                         "data": None,
                     }
-                response = client.remove_organization_member(org=org, username=username)
+                response = await run_blocking(
+                    client.remove_organization_member, org=org, username=username
+                )
                 return {
                     "status": 200,
                     "message": "Organization member removed successfully",
@@ -1293,7 +1350,7 @@ def register_org_tools(mcp: FastMCP):
                         "error": "Missing required 'org' parameter",
                         "data": None,
                     }
-                response = client.get_org_teams(org=org)
+                response = await run_blocking(client.get_org_teams, org=org)
                 return {
                     "status": 200,
                     "message": "Organization teams retrieved successfully",
@@ -1342,7 +1399,7 @@ def register_collaborator_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_collaborators(**kwargs)
+                response = await run_blocking(client.get_collaborators, **kwargs)
                 return {
                     "status": 200,
                     "message": "Collaborators retrieved successfully",
@@ -1359,8 +1416,12 @@ def register_collaborator_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'username' parameter",
                         "data": None,
                     }
-                response = client.add_collaborator(
-                    owner=owner, repo=repo, username=username, permission=permission
+                response = await run_blocking(
+                    client.add_collaborator,
+                    owner=owner,
+                    repo=repo,
+                    username=username,
+                    permission=permission,
                 )
                 return {
                     "status": 200,
@@ -1377,8 +1438,11 @@ def register_collaborator_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'username' parameter",
                         "data": None,
                     }
-                response = client.remove_collaborator(
-                    owner=owner, repo=repo, username=username
+                response = await run_blocking(
+                    client.remove_collaborator,
+                    owner=owner,
+                    repo=repo,
+                    username=username,
                 )
                 return {
                     "status": 200,
@@ -1445,14 +1509,16 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing required 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_workflows(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_workflows, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Workflows retrieved successfully",
                     "data": [w.model_dump() for w in response.data],
                 }
             elif action == "list_runs":
-                response = client.get_workflow_runs(**kwargs)
+                response = await run_blocking(client.get_workflow_runs, **kwargs)
                 data = [r.model_dump() for r in response.data]
                 return {
                     "status": 200,
@@ -1469,8 +1535,8 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.get_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
                 )
                 return {
                     "status": 200,
@@ -1489,7 +1555,8 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
                         "data": None,
                     }
-                response = client.trigger_workflow_dispatch(
+                response = await run_blocking(
+                    client.trigger_workflow_dispatch,
                     owner=owner,
                     repo=repo,
                     workflow_id=workflow_id,
@@ -1511,8 +1578,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.rerun_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.rerun_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,
@@ -1529,8 +1599,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.cancel_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.cancel_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,
@@ -1547,8 +1620,11 @@ def register_action_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'run_id' parameter",
                         "data": None,
                     }
-                response = client.delete_workflow_run(
-                    owner=owner, repo=repo, run_id=int(run_id)
+                response = await run_blocking(
+                    client.delete_workflow_run,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
                 )
                 return {
                     "status": 200,
@@ -1606,7 +1682,9 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_releases(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_releases, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Releases retrieved successfully",
@@ -1622,8 +1700,11 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.get_release(
-                    owner=owner, repo=repo, release_id=int(release_id)
+                response = await run_blocking(
+                    client.get_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
                 )
                 return {
                     "status": 200,
@@ -1640,8 +1721,12 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
                         "data": None,
                     }
-                response = client.create_release(
-                    owner=owner, repo=repo, tag_name=tag_name, **kwargs
+                response = await run_blocking(
+                    client.create_release,
+                    owner=owner,
+                    repo=repo,
+                    tag_name=tag_name,
+                    **kwargs,
                 )
                 return {
                     "status": 201,
@@ -1658,8 +1743,12 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.update_release(
-                    owner=owner, repo=repo, release_id=int(release_id), **kwargs
+                response = await run_blocking(
+                    client.update_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
+                    **kwargs,
                 )
                 return {
                     "status": 200,
@@ -1676,8 +1765,11 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.delete_release(
-                    owner=owner, repo=repo, release_id=int(release_id)
+                response = await run_blocking(
+                    client.delete_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
                 )
                 return {
                     "status": 200,

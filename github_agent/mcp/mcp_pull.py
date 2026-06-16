@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -53,7 +53,7 @@ def register_pull_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_pull_requests(**kwargs)
+                response = await run_blocking(client.get_pull_requests, **kwargs)
                 return {
                     "status": 200,
                     "message": "Pull requests retrieved successfully",
@@ -69,8 +69,8 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.get_pull_request(
-                    owner=owner, repo=repo, number=int(number)
+                response = await run_blocking(
+                    client.get_pull_request, owner=owner, repo=repo, number=int(number)
                 )
                 return {
                     "status": 200,
@@ -89,8 +89,14 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
                         "data": None,
                     }
-                response = client.create_pull_request(
-                    owner=owner, repo=repo, title=title, head=head, base=base, **kwargs
+                response = await run_blocking(
+                    client.create_pull_request,
+                    owner=owner,
+                    repo=repo,
+                    title=title,
+                    head=head,
+                    base=base,
+                    **kwargs,
                 )
                 return {
                     "status": 201,
@@ -107,8 +113,12 @@ def register_pull_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'number' parameter",
                         "data": None,
                     }
-                response = client.update_pull_request(
-                    owner=owner, repo=repo, number=int(number), **kwargs
+                response = await run_blocking(
+                    client.update_pull_request,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    **kwargs,
                 )
                 return {
                     "status": 200,
