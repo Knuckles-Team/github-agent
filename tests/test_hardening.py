@@ -1,12 +1,45 @@
-"""Hardening: bounded-by-default pagination + slim list payloads."""
+"""Hardening: bounded-by-default pagination + slim payloads + outbound timeout."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from github_agent.api.api_client_base import BaseApiClient
+from github_agent.api.api_client_base import (
+    BaseApiClient,
+    _default_timeout,
+    _TimeoutAdapter,
+)
 from github_agent.mcp_server import _slim
+
+
+def test_default_timeout_env_override(monkeypatch):
+    monkeypatch.setenv("GITHUB_HTTP_CONNECT_TIMEOUT", "2")
+    monkeypatch.setenv("GITHUB_HTTP_READ_TIMEOUT", "5")
+    assert _default_timeout() == (2.0, 5.0)
+
+
+def test_timeout_adapter_injects_default_only_when_unset():
+    adapter = _TimeoutAdapter((3, 7))
+    captured = {}
+
+    class _Base:
+        def send(self, request, **kwargs):
+            captured.update(kwargs)
+            return "ok"
+
+    # Bind the parent send so super().send() in the adapter hits our stub.
+    import requests
+
+    orig = requests.adapters.HTTPAdapter.send
+    requests.adapters.HTTPAdapter.send = _Base.send
+    try:
+        adapter.send("req")  # no timeout -> default injected
+        assert captured["timeout"] == (3, 7)
+        adapter.send("req", timeout=99)  # explicit -> preserved
+        assert captured["timeout"] == 99
+    finally:
+        requests.adapters.HTTPAdapter.send = orig
 
 
 class _FakeResponse:

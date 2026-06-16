@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeVar
@@ -16,6 +17,37 @@ from pydantic import BaseModel
 
 logger = get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)
+
+
+def _default_timeout() -> tuple[float, float]:
+    """(connect, read) timeout for every outbound request, env-overridable.
+
+    A bounded timeout stops a single slow GitHub response from hanging an async
+    handler up to the gateway's 300s and wedging the whole server for every
+    concurrent caller (the failure mode behind stuck in-flight calls and child
+    restarts). Override with GITHUB_HTTP_CONNECT_TIMEOUT / GITHUB_HTTP_READ_TIMEOUT.
+    """
+    connect = float(os.getenv("GITHUB_HTTP_CONNECT_TIMEOUT", "10"))
+    read = float(os.getenv("GITHUB_HTTP_READ_TIMEOUT", "30"))
+    return (connect, read)
+
+
+class _TimeoutAdapter(requests.adapters.HTTPAdapter):
+    """HTTPAdapter that applies a default timeout when a request sets none.
+
+    Mounted on the session rather than subclassing Session, so test suites that
+    replace ``requests.Session`` with a mock are unaffected (``mount`` is a no-op
+    on a mock) while real requests still get a bounded timeout.
+    """
+
+    def __init__(self, timeout: tuple[float, float], *args, **kwargs):
+        self._timeout = timeout
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        if kwargs.get("timeout") is None:
+            kwargs["timeout"] = self._timeout
+        return super().send(request, **kwargs)
 
 
 class BaseApiClient:
@@ -36,6 +68,9 @@ class BaseApiClient:
             raise MissingParameterError
 
         self._session = requests.Session()
+        _adapter = _TimeoutAdapter(_default_timeout())
+        self._session.mount("https://", _adapter)
+        self._session.mount("http://", _adapter)
         self.url = url.rstrip("/")
         self.headers = {
             "Accept": "application/vnd.github+json",
