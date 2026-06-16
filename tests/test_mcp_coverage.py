@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from unittest.mock import MagicMock, patch, AsyncMock
+
 from github_agent.api_client import Api
 from github_agent.github_response_models import Release, WorkflowRun
 
@@ -401,9 +403,9 @@ async def test_mcp_repos():
     res = await github_repos(action="update", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 400
 
-    # invalid action
-    res = await github_repos(action="invalid", params_json="{}", client=client, ctx=ctx)
-    assert res["status"] == 400
+    # invalid action -> rich did-you-mean ValueError from the shared helper
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_repos(action="invalid", params_json="{}", client=client, ctx=ctx)
 
     # invalid json
     res = await github_repos(
@@ -460,10 +462,8 @@ async def test_mcp_issues():
     res = await github_issues(action="update", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 400
 
-    res = await github_issues(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_issues(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -509,8 +509,8 @@ async def test_mcp_pulls():
     res = await github_pulls(action="update", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 400
 
-    res = await github_pulls(action="invalid", params_json="{}", client=client, ctx=ctx)
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_pulls(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -570,10 +570,10 @@ async def test_mcp_contents():
     )
     assert res["status"] == 400
 
-    res = await github_contents(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_contents(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -623,10 +623,10 @@ async def test_mcp_branches():
     )
     assert res["status"] == 400
 
-    res = await github_branches(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_branches(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -650,10 +650,8 @@ async def test_mcp_commits():
     res = await github_commits(action="get", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 400
 
-    res = await github_commits(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_commits(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -674,10 +672,8 @@ async def test_mcp_search():
     res = await github_search(action="code", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 200
 
-    res = await github_search(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_search(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -701,8 +697,8 @@ async def test_mcp_orgs():
     res = await github_orgs(action="teams", params_json="{}", client=client, ctx=ctx)
     assert res["status"] == 400
 
-    res = await github_orgs(action="invalid", params_json="{}", client=client, ctx=ctx)
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_orgs(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -743,10 +739,10 @@ async def test_mcp_collaborators():
     )
     assert res["status"] == 400
 
-    res = await github_collaborators(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_collaborators(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -837,10 +833,8 @@ async def test_mcp_actions():
     )
     assert res["status"] == 400
 
-    res = await github_actions(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_actions(action="invalid", params_json="{}", client=client, ctx=ctx)
 
 
 @pytest.mark.anyio
@@ -908,10 +902,10 @@ async def test_mcp_releases():
     )
     assert res["status"] == 400
 
-    res = await github_releases(
-        action="invalid", params_json="{}", client=client, ctx=ctx
-    )
-    assert res["status"] == 400
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_releases(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -921,7 +915,7 @@ async def test_all_tools_invalid_json():
     ctx = AsyncMockContext()
 
     # We test every tool in the registry with invalid JSON
-    for tool_name, tool_fn in tools.items():
+    for tool_fn in tools.values():
         res = await tool_fn(
             action="invalid_action", params_json="{", client=client, ctx=ctx
         )
@@ -971,7 +965,6 @@ def test_mcp_server_entrypoint():
 
 
 def test_requests_dependency_warning_import_error():
-    import sys
     import importlib
 
     original_import = __import__

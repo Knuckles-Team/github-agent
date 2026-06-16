@@ -28,6 +28,7 @@ from typing import Any
 from agent_utilities.base_utilities import to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
+    resolve_action,
 )
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
@@ -46,6 +47,61 @@ DESTRUCTIVE_REPO_ACTIONS = {"pages_delete"}
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
+
+#: Valid actions per tool — the single source the action Field text and the
+#: shared ``resolve_action`` discovery/did-you-mean helper both read from.
+REPO_ACTIONS = (
+    "list",
+    "get",
+    "create",
+    "delete",
+    "update",
+    "pages_get",
+    "pages_create",
+    "pages_update",
+    "pages_delete",
+    "pages_builds",
+    "pages_request_build",
+)
+ISSUE_ACTIONS = ("list", "get", "create", "update")
+PULL_ACTIONS = ("list", "get", "create", "update")
+CONTENT_ACTIONS = ("get", "create", "update", "delete")
+BRANCH_ACTIONS = (
+    "list",
+    "get",
+    "create",
+    "delete",
+    "get_protection",
+    "update_protection",
+    "delete_protection",
+)
+COMMIT_ACTIONS = ("list", "get")
+SEARCH_ACTIONS = ("repositories", "issues", "code")
+ORG_ACTIONS = (
+    "get",
+    "list",
+    "update",
+    "delete",
+    "create",
+    "create_repository",
+    "repos",
+    "members",
+    "get_membership",
+    "set_membership",
+    "remove_member",
+    "teams",
+)
+COLLABORATOR_ACTIONS = ("list", "add", "remove")
+WORKFLOW_ACTIONS = (
+    "list_workflows",
+    "list_runs",
+    "get_run",
+    "trigger_dispatch",
+    "rerun",
+    "cancel",
+    "delete_run",
+)
+RELEASE_ACTIONS = ("list", "get", "create", "update", "delete")
 
 
 def _slim(obj: Any) -> Any:
@@ -139,6 +195,11 @@ def register_repo_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         slim = kwargs.pop("slim", True)
+
+        resolved = resolve_action(action, REPO_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         if action in DESTRUCTIVE_REPO_ACTIONS and not (
             allow_destructive is True or allow_destructive_default()
@@ -378,6 +439,11 @@ def register_issue_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
+        resolved = resolve_action(action, ISSUE_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
+
         try:
             if action == "list":
                 response = client.get_issues(**kwargs)
@@ -480,6 +546,11 @@ def register_pull_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
+        resolved = resolve_action(action, PULL_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
+
         try:
             if action == "list":
                 response = client.get_pull_requests(**kwargs)
@@ -579,6 +650,11 @@ def register_content_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, CONTENT_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "get":
@@ -711,6 +787,11 @@ def register_branch_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, BRANCH_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "list":
@@ -865,6 +946,11 @@ def register_commit_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
+        resolved = resolve_action(action, COMMIT_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
+
         try:
             if action == "list":
                 response = client.get_commits(**kwargs)
@@ -924,6 +1010,11 @@ def register_search_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, SEARCH_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "repositories":
@@ -1023,6 +1114,11 @@ def register_org_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, ORG_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         if action in DESTRUCTIVE_ORG_ACTIONS and not (
             allow_destructive is True or allow_destructive_default()
@@ -1239,6 +1335,11 @@ def register_collaborator_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
+        resolved = resolve_action(action, COLLABORATOR_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
+
         try:
             if action == "list":
                 response = client.get_collaborators(**kwargs)
@@ -1328,6 +1429,11 @@ def register_action_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         slim = kwargs.pop("slim", True)
+
+        resolved = resolve_action(action, WORKFLOW_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "list_workflows":
@@ -1484,6 +1590,11 @@ def register_release_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, RELEASE_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "list":

@@ -3,6 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
+from agent_utilities.mcp_utilities import resolve_action
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -11,6 +12,17 @@ from github_agent.auth import get_client
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
+
+#: Valid workflow actions for the shared ``resolve_action`` discovery helper.
+WORKFLOW_ACTIONS = (
+    "list_workflows",
+    "list_runs",
+    "get_run",
+    "trigger_dispatch",
+    "rerun",
+    "cancel",
+    "delete_run",
+)
 
 
 def _slim(obj):
@@ -64,6 +76,11 @@ def register_action_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         slim = kwargs.pop("slim", True)
+
+        resolved = resolve_action(action, WORKFLOW_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "list_workflows":
