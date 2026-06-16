@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 0.31.0*
+*Version: 0.32.0*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > CLI interfaces, including the integrated A2A agent server, are maintained in the
