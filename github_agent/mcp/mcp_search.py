@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -47,21 +47,21 @@ def register_search_tools(mcp: FastMCP):
 
         try:
             if action == "repositories":
-                response = client.search_repositories(**kwargs)
+                response = await run_blocking(client.search_repositories, **kwargs)
                 return {
                     "status": 200,
                     "message": "Repositories searched successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "issues":
-                response = client.search_issues(**kwargs)
+                response = await run_blocking(client.search_issues, **kwargs)
                 return {
                     "status": 200,
                     "message": "Issues searched successfully",
                     "data": response.data.model_dump(),
                 }
             elif action == "code":
-                response = client.search_code(**kwargs)
+                response = await run_blocking(client.search_code, **kwargs)
                 return {
                     "status": 200,
                     "message": "Code searched successfully",

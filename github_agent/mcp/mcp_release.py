@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -55,7 +55,9 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_releases(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_releases, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Releases retrieved successfully",
@@ -71,8 +73,11 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.get_release(
-                    owner=owner, repo=repo, release_id=int(release_id)
+                response = await run_blocking(
+                    client.get_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
                 )
                 return {
                     "status": 200,
@@ -89,8 +94,12 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
                         "data": None,
                     }
-                response = client.create_release(
-                    owner=owner, repo=repo, tag_name=tag_name, **kwargs
+                response = await run_blocking(
+                    client.create_release,
+                    owner=owner,
+                    repo=repo,
+                    tag_name=tag_name,
+                    **kwargs,
                 )
                 return {
                     "status": 201,
@@ -107,8 +116,12 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.update_release(
-                    owner=owner, repo=repo, release_id=int(release_id), **kwargs
+                response = await run_blocking(
+                    client.update_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
+                    **kwargs,
                 )
                 return {
                     "status": 200,
@@ -125,8 +138,11 @@ def register_release_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'release_id' parameter",
                         "data": None,
                     }
-                response = client.delete_release(
-                    owner=owner, repo=repo, release_id=int(release_id)
+                response = await run_blocking(
+                    client.delete_release,
+                    owner=owner,
+                    repo=repo,
+                    release_id=int(release_id),
                 )
                 return {
                     "status": 200,

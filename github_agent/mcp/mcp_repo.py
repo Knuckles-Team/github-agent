@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -140,7 +140,7 @@ def register_repo_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_repositories(**kwargs)
+                response = await run_blocking(client.get_repositories, **kwargs)
                 data = [repo.model_dump() for repo in response.data]
                 return {
                     "status": 200,
@@ -156,7 +156,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_repository(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.get_repository, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Repository retrieved successfully",
@@ -170,7 +172,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing required 'name' parameter",
                         "data": None,
                     }
-                response = client.create_repository(name=name, **kwargs)
+                response = await run_blocking(
+                    client.create_repository, name=name, **kwargs
+                )
                 return {
                     "status": 201,
                     "message": "Repository created successfully",
@@ -185,7 +189,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.delete_repository(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.delete_repository, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Repository deleted successfully",
@@ -200,7 +206,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.update_repository(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.update_repository, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Repository updated successfully",
@@ -215,7 +223,7 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.get_pages(owner=owner, repo=repo)
+                response = await run_blocking(client.get_pages, owner=owner, repo=repo)
                 if isinstance(response.data, PagesNotEnabled):
                     return {
                         "status": 404,
@@ -236,7 +244,8 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.create_pages(
+                response = await run_blocking(
+                    client.create_pages,
                     owner=owner,
                     repo=repo,
                     build_type=kwargs.get("build_type", "workflow"),
@@ -262,7 +271,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.update_pages(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.update_pages, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Pages site updated successfully",
@@ -277,7 +288,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.delete_pages(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.delete_pages, owner=owner, repo=repo
+                )
                 return {
                     "status": 200,
                     "message": "Pages site deleted successfully",
@@ -293,13 +306,17 @@ def register_repo_tools(mcp: FastMCP):
                         "data": None,
                     }
                 if kwargs.pop("latest", False):
-                    response = client.get_pages_build_latest(owner=owner, repo=repo)
+                    response = await run_blocking(
+                        client.get_pages_build_latest, owner=owner, repo=repo
+                    )
                     return {
                         "status": 200,
                         "message": "Latest Pages build retrieved successfully",
                         "data": response.data.model_dump(),
                     }
-                response = client.list_pages_builds(owner=owner, repo=repo, **kwargs)
+                response = await run_blocking(
+                    client.list_pages_builds, owner=owner, repo=repo, **kwargs
+                )
                 return {
                     "status": 200,
                     "message": "Pages builds retrieved successfully",
@@ -314,7 +331,9 @@ def register_repo_tools(mcp: FastMCP):
                         "error": "Missing 'owner' or 'repo' parameter",
                         "data": None,
                     }
-                response = client.request_pages_build(owner=owner, repo=repo)
+                response = await run_blocking(
+                    client.request_pages_build, owner=owner, repo=repo
+                )
                 return {
                     "status": 201,
                     "message": "Pages build requested successfully",

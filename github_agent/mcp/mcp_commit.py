@@ -3,7 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action
+from agent_utilities.mcp_utilities import resolve_action, run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -47,7 +47,7 @@ def register_commit_tools(mcp: FastMCP):
 
         try:
             if action == "list":
-                response = client.get_commits(**kwargs)
+                response = await run_blocking(client.get_commits, **kwargs)
                 return {
                     "status": 200,
                     "message": "Commits retrieved successfully",
@@ -63,7 +63,9 @@ def register_commit_tools(mcp: FastMCP):
                         "error": "Missing 'owner', 'repo', or 'sha' parameter",
                         "data": None,
                     }
-                response = client.get_commit(owner=owner, repo=repo, sha=sha)
+                response = await run_blocking(
+                    client.get_commit, owner=owner, repo=repo, sha=sha
+                )
                 return {
                     "status": 200,
                     "message": "Commit retrieved successfully",
