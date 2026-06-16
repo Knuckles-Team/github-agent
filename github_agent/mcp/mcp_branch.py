@@ -3,11 +3,23 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
+from agent_utilities.mcp_utilities import resolve_action
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
 
 from github_agent.auth import get_client
+
+#: Valid branch actions for the shared ``resolve_action`` discovery helper.
+BRANCH_ACTIONS = (
+    "list",
+    "get",
+    "create",
+    "delete",
+    "get_protection",
+    "update_protection",
+    "delete_protection",
+)
 
 
 def register_branch_tools(mcp: FastMCP):
@@ -35,6 +47,11 @@ def register_branch_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, BRANCH_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         try:
             if action == "list":

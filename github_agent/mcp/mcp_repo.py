@@ -3,6 +3,7 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
+from agent_utilities.mcp_utilities import resolve_action
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -12,6 +13,21 @@ from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEna
 
 #: Repo actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
 DESTRUCTIVE_REPO_ACTIONS = {"pages_delete"}
+
+#: Valid repo actions for the shared ``resolve_action`` discovery helper.
+REPO_ACTIONS = (
+    "list",
+    "get",
+    "create",
+    "delete",
+    "update",
+    "pages_get",
+    "pages_create",
+    "pages_update",
+    "pages_delete",
+    "pages_builds",
+    "pages_request_build",
+)
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
@@ -103,6 +119,11 @@ def register_repo_tools(mcp: FastMCP):
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         slim = kwargs.pop("slim", True)
+
+        resolved = resolve_action(action, REPO_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
 
         if action in DESTRUCTIVE_REPO_ACTIONS and not (
             allow_destructive is True or allow_destructive_default()
