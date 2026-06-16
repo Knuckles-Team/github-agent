@@ -119,10 +119,16 @@ class BaseApiClient:
 
         total_pages = self._get_total_pages(response)
 
-        max_pages = getattr(model, "max_pages", total_pages)
-        if not max_pages or max_pages == 0 or max_pages > total_pages:
+        # Bounded by default: an unset max_pages fetches only the first page so a
+        # single list call can't pull an entire org/run-history (the cause of
+        # multi-hundred-KB responses and gateway timeouts). Callers opt into more
+        # by passing max_pages (use max_pages<=0 to mean "all pages").
+        max_pages = getattr(model, "max_pages", None)
+        if max_pages is None:
+            max_pages = 1
+        elif max_pages <= 0 or max_pages > total_pages:
             max_pages = total_pages
-            model.max_pages = total_pages  # type: ignore[attr-defined]
+        model.max_pages = max_pages  # type: ignore[attr-defined]
 
         if max_pages > 1:
             with ThreadPoolExecutor(max_workers=5) as executor:

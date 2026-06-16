@@ -14,10 +14,15 @@ class BaseModelWrapper(BaseModel):
     """
 
     max_pages: int | None = Field(
-        description="Max amount of pages to retrieve", default=None
+        description=(
+            "Max number of pages to retrieve. Unset (default) fetches only the "
+            "first page to keep responses small; pass a number for more, or "
+            "max_pages<=0 to fetch all pages."
+        ),
+        default=None,
     )
     page: int | None = Field(description="Pagination page", default=1)
-    per_page: int | None = Field(description="Results per page", default=100)
+    per_page: int | None = Field(description="Results per page (1-100)", default=30)
     api_parameters: dict[str, Any] = Field(
         description="API Parameters", default_factory=dict
     )

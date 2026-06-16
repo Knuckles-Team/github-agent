@@ -9,6 +9,26 @@ from pydantic import Field
 
 from github_agent.auth import get_client
 
+#: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
+_SLIM_DROP_EXACT = {"_links", "url", "node_id"}
+
+
+def _slim(obj):
+    """Recursively drop hypermedia ``*_url`` hrefs and ``_links`` noise.
+
+    Mirror of ``mcp_server._slim``; see that module for rationale.
+    """
+    if isinstance(obj, list):
+        return [_slim(item) for item in obj]
+    if isinstance(obj, dict):
+        return {
+            k: _slim(v)
+            for k, v in obj.items()
+            if k not in _SLIM_DROP_EXACT
+            and not (k.endswith("_url") and k != "html_url")
+        }
+    return obj
+
 
 def register_action_tools(mcp: FastMCP):
     @mcp.tool(tags={"actions"})
@@ -24,7 +44,15 @@ def register_action_tools(mcp: FastMCP):
             default=None, description="MCP context for progress reporting"
         ),
     ) -> dict:
-        """Manage GitHub actions workflows and runs."""
+        """Manage GitHub actions workflows and runs.
+
+        list_runs params (via params_json): owner, repo, and optional filters
+        applied server-side to keep results small — status (e.g. failure,
+        success, completed, in_progress), branch, per_page (1-100, default 30),
+        max_pages (default 1 page; max_pages<=0 = all pages), slim (default
+        true: drops hypermedia *_url/_links noise, keeps html_url and all data).
+        Prefer status=failure + branch=<default> for a CI-health sweep.
+        """
         if ctx:
             await ctx.info("Executing github_actions action...")
         import json
@@ -35,6 +63,7 @@ def register_action_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        slim = kwargs.pop("slim", True)
 
         try:
             if action == "list_workflows":
@@ -54,10 +83,11 @@ def register_action_tools(mcp: FastMCP):
                 }
             elif action == "list_runs":
                 response = client.get_workflow_runs(**kwargs)
+                data = [r.model_dump() for r in response.data]
                 return {
                     "status": 200,
                     "message": "Workflow runs retrieved successfully",
-                    "data": [r.model_dump() for r in response.data],
+                    "data": _slim(data) if slim else data,
                 }
             elif action == "get_run":
                 owner = kwargs.get("owner")

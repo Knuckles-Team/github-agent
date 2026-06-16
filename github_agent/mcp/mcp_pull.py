@@ -24,7 +24,13 @@ def register_pull_tools(mcp: FastMCP):
             default=None, description="MCP context for progress reporting"
         ),
     ) -> dict:
-        """Manage GitHub pull requests."""
+        """Manage GitHub pull requests.
+
+        list params (via params_json): owner, repo, and optional filters applied
+        server-side — state (open/closed/all), head, base, sort, direction,
+        per_page (1-100, default 30), max_pages (default 1 page; max_pages<=0 =
+        all pages).
+        """
         if ctx:
             await ctx.info("Executing github_pulls action...")
         import json
