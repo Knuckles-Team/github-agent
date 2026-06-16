@@ -24,7 +24,14 @@ def register_issue_tools(mcp: FastMCP):
             default=None, description="MCP context for progress reporting"
         ),
     ) -> dict:
-        """Manage GitHub issues."""
+        """Manage GitHub issues.
+
+        list params (via params_json): owner, repo, and optional filters applied
+        server-side — state (open/closed/all), labels, assignee, since, per_page
+        (1-100, default 30), max_pages (default 1 page; max_pages<=0 = all pages).
+        Note: the list/search APIs return PRs alongside issues — a returned item
+        with a 'pull_request' field is a PR, not an issue.
+        """
         if ctx:
             await ctx.info("Executing github_issues action...")
         import json

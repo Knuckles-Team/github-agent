@@ -13,6 +13,26 @@ from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEna
 #: Repo actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
 DESTRUCTIVE_REPO_ACTIONS = {"pages_delete"}
 
+#: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
+_SLIM_DROP_EXACT = {"_links", "url", "node_id"}
+
+
+def _slim(obj):
+    """Recursively drop hypermedia ``*_url`` hrefs and ``_links`` noise.
+
+    Mirror of ``mcp_server._slim``; see that module for rationale.
+    """
+    if isinstance(obj, list):
+        return [_slim(item) for item in obj]
+    if isinstance(obj, dict):
+        return {
+            k: _slim(v)
+            for k, v in obj.items()
+            if k not in _SLIM_DROP_EXACT
+            and not (k.endswith("_url") and k != "html_url")
+        }
+    return obj
+
 
 def register_repo_tools(mcp: FastMCP):
     @mcp.tool(tags={"repos"})
@@ -82,6 +102,7 @@ def register_repo_tools(mcp: FastMCP):
             return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        slim = kwargs.pop("slim", True)
 
         if action in DESTRUCTIVE_REPO_ACTIONS and not (
             allow_destructive is True or allow_destructive_default()
@@ -99,10 +120,11 @@ def register_repo_tools(mcp: FastMCP):
         try:
             if action == "list":
                 response = client.get_repositories(**kwargs)
+                data = [repo.model_dump() for repo in response.data]
                 return {
                     "status": 200,
                     "message": "Repositories retrieved successfully",
-                    "data": [repo.model_dump() for repo in response.data],
+                    "data": _slim(data) if slim else data,
                 }
             elif action == "get":
                 owner = kwargs.get("owner")
