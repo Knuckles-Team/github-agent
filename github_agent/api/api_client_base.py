@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeVar
 
@@ -44,10 +45,25 @@ class _TimeoutAdapter(requests.adapters.HTTPAdapter):
         self._timeout = timeout
         super().__init__(*args, **kwargs)
 
-    def send(self, request, **kwargs):
-        if kwargs.get("timeout") is None:
-            kwargs["timeout"] = self._timeout
-        return super().send(request, **kwargs)
+    def send(
+        self,
+        request: requests.PreparedRequest,
+        stream: bool = False,
+        timeout: None | float | tuple[float, float] | tuple[float, None] = None,
+        verify: bool | str = True,
+        cert: None | bytes | str | tuple[bytes | str, bytes | str] = None,
+        proxies: Mapping[str, str] | None = None,
+    ) -> requests.Response:
+        if timeout is None:
+            timeout = self._timeout
+        return super().send(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
 
 
 class BaseApiClient:

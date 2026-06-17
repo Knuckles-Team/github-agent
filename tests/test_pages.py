@@ -94,6 +94,7 @@ def test_get_pages(mock_session):
     assert isinstance(res.data, PagesSite)
     assert res.data.build_type == "workflow"
     assert res.data.cname == "docs.example.com"
+    assert res.data.source is not None
     assert res.data.source.branch == "main"
     mock_session.get.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/service/pages",

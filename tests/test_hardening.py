@@ -19,27 +19,28 @@ def test_default_timeout_env_override(monkeypatch):
     assert _default_timeout() == (2.0, 5.0)
 
 
-def test_timeout_adapter_injects_default_only_when_unset():
+def test_timeout_adapter_injects_default_only_when_unset(monkeypatch):
     adapter = _TimeoutAdapter((3, 7))
     captured = {}
 
-    class _Base:
-        def send(self, request, **kwargs):
-            captured.update(kwargs)
-            return "ok"
-
-    # Bind the parent send so super().send() in the adapter hits our stub.
     import requests
 
-    orig = requests.adapters.HTTPAdapter.send
-    requests.adapters.HTTPAdapter.send = _Base.send
-    try:
-        adapter.send("req")  # no timeout -> default injected
-        assert captured["timeout"] == (3, 7)
-        adapter.send("req", timeout=99)  # explicit -> preserved
-        assert captured["timeout"] == 99
-    finally:
-        requests.adapters.HTTPAdapter.send = orig
+    def fake_parent_send(self, request, **kwargs):
+        captured.update(kwargs)
+        return requests.Response()
+
+    # Replace the parent send so super().send() in the adapter records the
+    # timeout the adapter forwarded, without performing real network I/O.
+    monkeypatch.setattr(
+        requests.adapters.HTTPAdapter, "send", fake_parent_send
+    )
+
+    prepared = requests.Request("GET", "https://api.github.com/x").prepare()
+
+    adapter.send(prepared)  # no timeout -> default injected
+    assert captured["timeout"] == (3, 7)
+    adapter.send(prepared, timeout=99)  # explicit -> preserved
+    assert captured["timeout"] == 99
 
 
 class _FakeResponse:
