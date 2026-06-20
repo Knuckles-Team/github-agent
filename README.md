@@ -56,19 +56,27 @@ Detailed instructions on how to use the underlying API wrappers, extended schema
 This server utilizes dynamic Action-Routed tools to optimize token overhead and maximize IDE compatibility.
 
 ### Available MCP Tools
-| Tool Module | Toggle Env Var | Enabled by Default | Description & Nested Methods |
-|-------------|----------------|--------------------|------------------------------|
-| **Repo** | `REPO_TOOL` | `True` | Manage GitHub repositories. Action-routed methods: `create`, `delete`, `get`, `list`, `update`. |
-| **Issue** | `ISSUE_TOOL` | `True` | Manage GitHub issues. Action-routed methods: `create`, `get`, `list`, `update`. |
-| **Pull** | `PULL_TOOL` | `True` | Manage GitHub pull requests. Action-routed methods: `create`, `get`, `list`, `update`. |
-| **Content** | `CONTENT_TOOL` | `True` | Manage GitHub contents. Action-routed methods: `create`, `delete`, `get`, `update`. |
-| **Branch** | `BRANCH_TOOL` | `True` | Manage GitHub branches. Action-routed methods: `create`, `delete`, `get`, `list`. |
-| **Commit** | `COMMIT_TOOL` | `True` | Manage GitHub commits. Action-routed methods: `get`, `list`. |
-| **Search** | `SEARCH_TOOL` | `True` | Search GitHub repositories, issues, or code. Action-routed methods: `code`, `issues`, `repositories`. |
-| **Org** | `ORG_TOOL` | `True` | Manage GitHub organizations. Action-routed methods: `members`, `repos`, `teams`. |
-| **Collaborator** | `COLLABORATOR_TOOL` | `True` | Manage repository collaborators. Action-routed methods: `add`, `list`, `remove`. |
-| **Action** | `ACTION_TOOL` | `True` | Manage GitHub actions workflows and runs. Action-routed methods: `cancel`, `delete_run`, `get_run`, `list_runs`, `list_workflows`, `rerun`, `trigger_dispatch`. |
-| **Release** | `RELEASE_TOOL` | `True` | Manage repository releases. Action-routed methods: `create`, `delete`, `get`, `list`, `update`. |
+
+_Auto-generated from the live MCP server — do not edit by hand._
+
+<!-- MCP-TOOLS-TABLE:START -->
+
+| MCP Tool | Toggle Env Var | Description |
+|----------|----------------|-------------|
+| `github_actions` | `ACTIONSTOOL` | Manage GitHub actions workflows and runs. |
+| `github_branches` | `BRANCHESTOOL` | Manage GitHub branches. |
+| `github_collaborators` | `COLLABORATORSTOOL` | Manage repository collaborators. |
+| `github_commits` | `COMMITSTOOL` | Manage GitHub commits. |
+| `github_contents` | `CONTENTSTOOL` | Manage GitHub contents. |
+| `github_issues` | `ISSUESTOOL` | Manage GitHub issues. |
+| `github_orgs` | `ORGSTOOL` | Manage GitHub organizations. |
+| `github_pulls` | `PULLSTOOL` | Manage GitHub pull requests. |
+| `github_releases` | `RELEASESTOOL` | Manage repository releases. |
+| `github_repos` | `REPOSTOOL` | Manage GitHub repositories and their GitHub Pages sites. |
+| `github_search` | `SEARCHTOOL` | Search GitHub repositories, issues, or code. |
+
+_11 action-routed tools (default `MCP_TOOL_MODE=condensed`). Each is enabled unless its toggle is set false; set `MCP_TOOL_MODE=verbose` (or `both`) for the 1:1 per-operation surface. Auto-generated — do not edit._
+<!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
 
