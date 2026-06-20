@@ -68,7 +68,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_collaborators` | `COLLABORATORSTOOL` | Manage repository collaborators. |
 | `github_commits` | `COMMITSTOOL` | Manage GitHub commits. |
 | `github_contents` | `CONTENTSTOOL` | Manage GitHub contents. |
-| `github_issues` | `ISSUESTOOL` | Manage GitHub issues. |
+| `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
 | `github_orgs` | `ORGSTOOL` | Manage GitHub organizations. |
 | `github_pulls` | `PULLSTOOL` | Manage GitHub pull requests. |
 | `github_releases` | `RELEASESTOOL` | Manage repository releases. |
