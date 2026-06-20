@@ -21,18 +21,19 @@ warnings.filterwarnings("ignore", message=".*urllib3.*or chardet.*")
 warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
 import logging
-import os
 import sys
 from typing import Any
 
-from agent_utilities.base_utilities import to_boolean
 from agent_utilities.mcp_utilities import (
     create_mcp_server,
+    load_config,
+    register_tool_surface,
     resolve_action,
     run_blocking,
 )
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
+from github_agent.api_client import Api
 from github_agent.auth import allow_destructive_default, get_client
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
@@ -1786,61 +1787,43 @@ def register_release_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+#: (tag, env-toggle, registrar) — explicit so the historical env-var names
+#: (REPOSTOOL/PULLSTOOL/CONTENTSTOOL/… with trailing "S") are preserved rather
+#: than auto-derived from the function names.
+TOOL_REGISTRY = [
+    ("repos", "REPOSTOOL", register_repo_tools),
+    ("issue", "ISSUETOOL", register_issue_tools),
+    ("pulls", "PULLSTOOL", register_pull_tools),
+    ("contents", "CONTENTSTOOL", register_content_tools),
+    ("branches", "BRANCHESTOOL", register_branch_tools),
+    ("commits", "COMMITSTOOL", register_commit_tools),
+    ("search", "SEARCHTOOL", register_search_tools),
+    ("orgs", "ORGSTOOL", register_org_tools),
+    ("collaborators", "COLLABORATORSTOOL", register_collaborator_tools),
+    ("actions", "ACTIONSTOOL", register_action_tools),
+    ("releases", "RELEASESTOOL", register_release_tools),
+]
+
+
 def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
+    load_config()
     args, mcp, middlewares = create_mcp_server(
         name="Github MCP",
         version=__version__,
         instructions="Github MCP Server - Manage your repositories, issues, and pull requests.",
     )
 
-    REPOSTOOL = to_boolean(os.getenv("REPOSTOOL", "True"))
-    if REPOSTOOL:
-        register_repo_tools(mcp)
-
-    ISSUETOOL = to_boolean(os.getenv("ISSUETOOL", "True"))
-    if ISSUETOOL:
-        register_issue_tools(mcp)
-
-    PULLSTOOL = to_boolean(os.getenv("PULLSTOOL", "True"))
-    if PULLSTOOL:
-        register_pull_tools(mcp)
-
-    CONTENTSTOOL = to_boolean(os.getenv("CONTENTSTOOL", "True"))
-    if CONTENTSTOOL:
-        register_content_tools(mcp)
-
-    BRANCHESTOOL = to_boolean(os.getenv("BRANCHESTOOL", "True"))
-    if BRANCHESTOOL:
-        register_branch_tools(mcp)
-
-    COMMITSTOOL = to_boolean(os.getenv("COMMITSTOOL", "True"))
-    if COMMITSTOOL:
-        register_commit_tools(mcp)
-
-    SEARCHTOOL = to_boolean(os.getenv("SEARCHTOOL", "True"))
-    if SEARCHTOOL:
-        register_search_tools(mcp)
-
-    ORGSTOOL = to_boolean(os.getenv("ORGSTOOL", "True"))
-    if ORGSTOOL:
-        register_org_tools(mcp)
-
-    COLLABORATORSTOOL = to_boolean(os.getenv("COLLABORATORSTOOL", "True"))
-    if COLLABORATORSTOOL:
-        register_collaborator_tools(mcp)
-
-    ACTIONSTOOL = to_boolean(os.getenv("ACTIONSTOOL", "True"))
-    if ACTIONSTOOL:
-        register_action_tools(mcp)
-
-    RELEASESTOOL = to_boolean(os.getenv("RELEASESTOOL", "True"))
-    if RELEASESTOOL:
-        register_release_tools(mcp)
+    registered_tags = register_tool_surface(
+        mcp,
+        client_cls=Api,
+        get_client=get_client,
+        service="github-agent",
+        tool_registry=TOOL_REGISTRY,
+    )
 
     for mw in middlewares:
         mcp.add_middleware(mw)
 
-    registered_tags = []
     tools_dict = (
         mcp._tools
         if hasattr(mcp, "_tools")
@@ -1848,10 +1831,6 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
         if hasattr(mcp, "get_tools")
         else {}
     )
-    for tool in tools_dict.values():
-        if hasattr(tool, "tags"):
-            registered_tags.extend(list(tool.tags))
-
     imported_tools = list(tools_dict.keys())
     return mcp, args, middlewares, registered_tags, imported_tools
 

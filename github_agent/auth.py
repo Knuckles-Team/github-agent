@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-import os
 import threading
 
 import requests
-from agent_utilities.base_utilities import get_logger, to_boolean
+from agent_utilities.base_utilities import get_logger
+from agent_utilities.core.config import setting
 from agent_utilities.exceptions import AuthError, UnauthorizedError
 
 local = threading.local()
@@ -20,7 +20,7 @@ def allow_destructive_default() -> bool:
     blocked unless the caller passes allow_destructive=true or the
     GITHUB_ALLOW_DESTRUCTIVE environment variable is set truthy.
     """
-    return to_boolean(string=os.getenv("GITHUB_ALLOW_DESTRUCTIVE", "False"))
+    return setting("GITHUB_ALLOW_DESTRUCTIVE", False)
 
 
 def get_client(config: dict | None = None) -> Api:
@@ -28,11 +28,12 @@ def get_client(config: dict | None = None) -> Api:
     Factory function to create the GitHub Api client.
     Supports fixed credentials (token) and delegation (OAuth exchange).
     """
-    instance = os.getenv("GITHUB_URL", "https://api.github.com")
-    token = os.getenv("GITHUB_TOKEN", None)
-    verify = to_boolean(
-        string=os.getenv("GITHUB_SSL_VERIFY") or os.getenv("GITHUB_VERIFY", "True")
-    )
+    instance = setting("GITHUB_URL", "https://api.github.com")
+    token = setting("GITHUB_TOKEN", None)
+    if setting("GITHUB_SSL_VERIFY", None) is not None:
+        verify = setting("GITHUB_SSL_VERIFY", True)
+    else:
+        verify = setting("GITHUB_VERIFY", True)
 
     if config is None:
         from agent_utilities.mcp_utilities import config as default_config
