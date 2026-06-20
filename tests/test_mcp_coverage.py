@@ -467,6 +467,42 @@ async def test_mcp_issues():
 
 
 @pytest.mark.anyio
+async def test_mcp_issues_org_routes_to_search():
+    """Org-wide issues (org, no repo) take ONE /search/issues call (org:<org> is:issue),
+    not enumerate-repos + per-repo listing."""
+    tools = await get_registered_tools()
+    github_issues = tools["github_issues"]
+    client = create_mock_client()
+    client.search_issues.return_value.data.items = [{"number": 1, "title": "x"}]
+    ctx = AsyncMockContext()
+
+    res = await github_issues(
+        action="list",
+        params_json='{"org": "Knuckles-Team", "state": "open"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    assert res["data"] == [{"number": 1, "title": "x"}]  # search items, not per-repo
+    client.search_issues.assert_called_once()
+    client.get_issues.assert_not_called()
+    q = client.search_issues.call_args.kwargs["q"]
+    assert "org:Knuckles-Team" in q and "is:issue" in q and "state:open" in q
+
+    # repo-scoped list still uses the per-repo endpoint (regression guard)
+    client.reset_mock()
+    res = await github_issues(
+        action="list",
+        params_json='{"owner": "o", "repo": "r"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    client.get_issues.assert_called_once()
+    client.search_issues.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_mcp_pulls():
     tools = await get_registered_tools()
     github_pulls = tools["github_pulls"]
