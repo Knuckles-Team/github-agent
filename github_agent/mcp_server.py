@@ -443,11 +443,15 @@ def register_issue_tools(mcp: FastMCP):
     ) -> dict:
         """Manage GitHub issues.
 
-        list params (via params_json): owner, repo, and optional filters applied
-        server-side — state (open/closed/all), labels, assignee, since, per_page
-        (1-100, default 30), max_pages (default 1 page; max_pages<=0 = all pages).
-        Note: the list/search APIs return PRs alongside issues — a returned item
-        with a 'pull_request' field is a PR, not an issue.
+        list params (via params_json): EITHER repo-scoped (owner + repo) OR
+        org-wide (org, no repo). Pass ``org`` alone to fetch issues across EVERY
+        repo in the organization in a SINGLE search call (GitHub /search/issues
+        with ``org:<org> is:issue``) — far faster than listing repos and paging
+        issues per-repo. Optional filters applied server-side: state
+        (open/closed/all, default open), labels (comma-separated), assignee,
+        since, per_page (1-100, default 30), max_pages (default 1 page;
+        max_pages<=0 = all pages). Note: a returned item with a 'pull_request'
+        field is a PR, not an issue (the org path excludes PRs via is:issue).
         """
         if ctx:
             await ctx.info("Executing github_issues action...")
@@ -467,6 +471,33 @@ def register_issue_tools(mcp: FastMCP):
 
         try:
             if action == "list":
+                org = kwargs.get("org")
+                if org and not kwargs.get("repo"):
+                    # Org-wide: ONE /search/issues call (org:<org> is:issue) instead
+                    # of enumerate-repos + page-issues-per-repo (N+1 calls). Translate
+                    # the list filters into search qualifiers.
+                    state = str(kwargs.get("state", "open")).lower()
+                    qualifiers = [f"org:{org}", "is:issue"]
+                    if state in ("open", "closed"):
+                        qualifiers.append(f"state:{state}")
+                    if kwargs.get("assignee"):
+                        qualifiers.append(f"assignee:{kwargs['assignee']}")
+                    for label in str(kwargs.get("labels", "")).split(","):
+                        label = label.strip()
+                        if label:
+                            qualifiers.append(f'label:"{label}"')
+                    search_kwargs: dict = {"q": " ".join(qualifiers)}
+                    for k in ("sort", "order", "per_page", "max_pages"):
+                        if kwargs.get(k) is not None:
+                            search_kwargs[k] = kwargs[k]
+                    response = await run_blocking(
+                        client.search_issues, **search_kwargs
+                    )
+                    return {
+                        "status": 200,
+                        "message": f"Org-wide issues for '{org}' via search (1 call)",
+                        "data": response.data.items,
+                    }
                 response = await run_blocking(client.get_issues, **kwargs)
                 return {
                     "status": 200,
