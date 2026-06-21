@@ -26,10 +26,10 @@ test = [
     "pytest-xdist>=3.6.0", "pytest", "pytest-asyncio",]
 
 [project.entry-points."agent_utilities.skill_providers"]
-modular-contrib = "github_agent.skills"
+github-agent = "github_agent.skills"
 
 [project.entry-points."agent_utilities.prompt_providers"]
-modular-contrib = "github_agent.prompts"
+github-agent = "github_agent.prompts"
 
 [tool.setuptools]
 include-package-data = true
