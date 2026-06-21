@@ -25,6 +25,12 @@ github-agent = "github_agent.agent_server:agent_server"
 test = [
     "pytest-xdist>=3.6.0", "pytest", "pytest-asyncio",]
 
+[project.entry-points."agent_utilities.skill_providers"]
+modular-contrib = "github_agent.skills"
+
+[project.entry-points."agent_utilities.prompt_providers"]
+modular-contrib = "github_agent.prompts"
+
 [tool.setuptools]
 include-package-data = true
 
@@ -43,7 +49,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-github_agent = [ "mcp_config.json", "agent_data/**",]
+github_agent = [ "mcp_config.json", "agent_data/**", "prompts/**", "skills/**",]
 
 [tool.ruff.lint]
 select = [ "E", "F", "I", "UP", "B",]
