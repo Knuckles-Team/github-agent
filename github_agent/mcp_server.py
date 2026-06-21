@@ -490,7 +490,9 @@ def register_issue_tools(mcp: FastMCP):
                     for k in ("sort", "order", "per_page", "max_pages"):
                         if kwargs.get(k) is not None:
                             search_kwargs[k] = kwargs[k]
-                    response = await run_blocking(client.search_issues, **search_kwargs)
+                    response = await run_blocking(
+                        client.search_issues, **search_kwargs
+                    )
                     return {
                         "status": 200,
                         "message": f"Org-wide issues for '{org}' via search (1 call)",
