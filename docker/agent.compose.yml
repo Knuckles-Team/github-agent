@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   github-agent-mcp:
-    image: knucklessg1/github-agent:latest
+    image: knucklessg1/github-agent:mcp
     container_name: github-agent-mcp
     hostname: github-agent-mcp
     restart: always
