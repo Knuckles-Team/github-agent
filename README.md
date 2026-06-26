@@ -61,21 +61,99 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 <!-- MCP-TOOLS-TABLE:START -->
 
+#### Condensed action-routed tools (default — `MCP_TOOL_MODE=condensed`)
+
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
-| `github_actions` | `ACTIONSTOOL` | Manage GitHub actions workflows and runs. |
-| `github_branches` | `BRANCHESTOOL` | Manage GitHub branches. |
-| `github_collaborators` | `COLLABORATORSTOOL` | Manage repository collaborators. |
-| `github_commits` | `COMMITSTOOL` | Manage GitHub commits. |
-| `github_contents` | `CONTENTSTOOL` | Manage GitHub contents. |
+| `github_actions` | `ACTIONTOOL` | Manage GitHub actions workflows and runs. |
+| `github_branches` | `BRANCHTOOL` | Manage GitHub branches. |
+| `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
+| `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
+| `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
 | `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
-| `github_orgs` | `ORGSTOOL` | Manage GitHub organizations. |
-| `github_pulls` | `PULLSTOOL` | Manage GitHub pull requests. |
-| `github_releases` | `RELEASESTOOL` | Manage repository releases. |
-| `github_repos` | `REPOSTOOL` | Manage GitHub repositories and their GitHub Pages sites. |
+| `github_orgs` | `ORGTOOL` | Manage GitHub organizations. |
+| `github_pulls` | `PULLTOOL` | Manage GitHub pull requests. |
+| `github_releases` | `RELEASETOOL` | Manage repository releases. |
+| `github_repos` | `REPOTOOL` | Manage GitHub repositories and their GitHub Pages sites. |
 | `github_search` | `SEARCHTOOL` | Search GitHub repositories, issues, or code. |
 
-_11 action-routed tools (default `MCP_TOOL_MODE=condensed`). Each is enabled unless its toggle is set false; set `MCP_TOOL_MODE=verbose` (or `both`) for the 1:1 per-operation surface. Auto-generated — do not edit._
+#### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
+
+<details>
+<summary>66 per-operation tools — one per public API method (click to expand)</summary>
+
+| MCP Tool | Toggle Env Var | Description |
+|----------|----------------|-------------|
+| `github_add_collaborator` | `APITOOL` | Add a collaborator to a repository. |
+| `github_cancel_workflow_run` | `APITOOL` | Cancel a workflow run. |
+| `github_create_branch` | `APITOOL` | Create a new branch in a repository (using git ref creation). |
+| `github_create_content` | `APITOOL` | Create a file in a repository. |
+| `github_create_issue` | `APITOOL` | Create a new issue in a repository. |
+| `github_create_or_update_repo_secret` | `APITOOL` | Create or update a repository Actions secret. |
+| `github_create_organization` | `APITOOL` | Create an organization — GitHub Enterprise Server ONLY. |
+| `github_create_organization_repository` | `APITOOL` | Create a repository in an organization. |
+| `github_create_pages` | `APITOOL` | Enable GitHub Pages for a repository (HTTP 201). |
+| `github_create_pull_request` | `APITOOL` | Create a new pull request in a repository. |
+| `github_create_release` | `APITOOL` | Create a new repository release. |
+| `github_create_repository` | `APITOOL` | Create a new repository for the authenticated user. |
+| `github_delete_branch` | `APITOOL` | Delete a branch in a repository. |
+| `github_delete_branch_protection` | `APITOOL` | Delete branch protection configuration. |
+| `github_delete_content` | `APITOOL` | Delete a file in a repository. |
+| `github_delete_organization` | `APITOOL` | Schedule an organization for deletion. IRREVERSIBLE. |
+| `github_delete_pages` | `APITOOL` | Disable GitHub Pages for a repository and delete the site. |
+| `github_delete_release` | `APITOOL` | Delete a repository release. |
+| `github_delete_repo_secret` | `APITOOL` | Delete a repository Actions secret. |
+| `github_delete_repository` | `APITOOL` | Delete a repository. |
+| `github_delete_workflow_run` | `APITOOL` | Delete a workflow run. |
+| `github_get_branch` | `APITOOL` | Get a single branch in a repository. |
+| `github_get_branch_protection` | `APITOOL` | Get branch protection configuration. |
+| `github_get_branches` | `APITOOL` | List branches for a repository. |
+| `github_get_collaborators` | `APITOOL` | List collaborators for a repository. |
+| `github_get_commit` | `APITOOL` | Get a single commit in a repository. |
+| `github_get_commits` | `APITOOL` | List commits for a repository. |
+| `github_get_contents` | `APITOOL` | Get contents of a file or directory in a repository. |
+| `github_get_issue` | `APITOOL` | Get a single issue in a repository. |
+| `github_get_issues` | `APITOOL` | List issues for a repository. |
+| `github_get_org_members` | `APITOOL` | List members for an organization. |
+| `github_get_org_repos` | `APITOOL` | List repositories for an organization. |
+| `github_get_org_teams` | `APITOOL` | List teams for an organization. |
+| `github_get_organization` | `APITOOL` | Get an organization's full profile. |
+| `github_get_organization_membership` | `APITOOL` | Get a user's organization membership (state and role). |
+| `github_get_pages` | `APITOOL` | Get the GitHub Pages site configuration for a repository. |
+| `github_get_pages_build_latest` | `APITOOL` | Get the latest GitHub Pages build for a repository. |
+| `github_get_pull_request` | `APITOOL` | Get a single pull request. |
+| `github_get_pull_requests` | `APITOOL` | List pull requests for a repository. |
+| `github_get_release` | `APITOOL` | Get a single repository release. |
+| `github_get_releases` | `APITOOL` | List repository releases. |
+| `github_get_repo_secrets` | `APITOOL` | List repository Actions secrets names. |
+| `github_get_repositories` | `APITOOL` | List repositories for the authenticated user. |
+| `github_get_repository` | `APITOOL` | Get a specific repository. |
+| `github_get_workflow_run` | `APITOOL` | Get a single workflow run. |
+| `github_get_workflow_runs` | `APITOOL` | List workflow runs for a repository. |
+| `github_get_workflows` | `APITOOL` | List workflows for a repository. |
+| `github_list_organizations` | `APITOOL` | List organizations. |
+| `github_list_pages_builds` | `APITOOL` | List GitHub Pages builds for a repository (newest first). |
+| `github_remove_collaborator` | `APITOOL` | Remove a collaborator from a repository. |
+| `github_remove_organization_member` | `APITOOL` | Remove a user from an organization (repositories access included). |
+| `github_request_pages_build` | `APITOOL` | Request a fresh GitHub Pages build without pushing a commit. |
+| `github_rerun_workflow_run` | `APITOOL` | Re-run a workflow run. |
+| `github_search_code` | `APITOOL` | Search code using query keywords. |
+| `github_search_issues` | `APITOOL` | Search issues using query keywords. |
+| `github_search_repositories` | `APITOOL` | Search repositories using query keywords. |
+| `github_set_organization_membership` | `APITOOL` | Add a user to an organization or update their role. |
+| `github_trigger_workflow_dispatch` | `APITOOL` | Trigger a workflow dispatch event. |
+| `github_update_branch_protection` | `APITOOL` | Update branch protection configuration. |
+| `github_update_content` | `APITOOL` | Update a file in a repository. |
+| `github_update_issue` | `APITOOL` | Update an issue in a repository. |
+| `github_update_organization` | `APITOOL` | Update an organization's profile and member settings. |
+| `github_update_pages` | `APITOOL` | Update the GitHub Pages configuration for a repository. |
+| `github_update_pull_request` | `APITOOL` | Update a pull request. |
+| `github_update_release` | `APITOOL` | Update (PATCH) a repository release. |
+| `github_update_repository` | `APITOOL` | Update a repository. |
+
+</details>
+
+_11 action-routed tool(s) (default) · 66 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
@@ -239,19 +317,23 @@ consumed from a **remote deployment**. The
 | `EUNOMIA_REMOTE_URL` | `http://eunomia-server:8000` |  |
 | `GITHUB_URL` | `https://api.github.com` |  |
 | `GITHUB_VERIFY` | `True` |  |
+| `GITHUB_SSL_VERIFY` | `True` | GITHUB_SSL_VERIFY takes precedence over GITHUB_VERIFY when set |
+| `GITHUB_ALLOW_DESTRUCTIVE` | `False` | Allow destructive (delete/force) operations |
+| `GITHUB_HTTP_CONNECT_TIMEOUT` | `10` | HTTP client timeouts (seconds) |
+| `GITHUB_HTTP_READ_TIMEOUT` | `30` |  |
 | `DEBUG` | `False` |  |
 | `PYTHONUNBUFFERED` | `1` |  |
 | `GITHUB_TOKEN` | `your_github_token_here` |  |
-| `ACTIONSTOOL` | `True` | MCP tools table (condensed action-routed surface). |
-| `BRANCHESTOOL` | `True` |  |
-| `COLLABORATORSTOOL` | `True` |  |
-| `COMMITSTOOL` | `True` |  |
-| `CONTENTSTOOL` | `True` |  |
+| `ACTIONTOOL` | `True` | MCP tools table (condensed action-routed surface). |
+| `BRANCHTOOL` | `True` |  |
+| `COLLABORATORTOOL` | `True` |  |
+| `COMMITTOOL` | `True` |  |
+| `CONTENTTOOL` | `True` |  |
 | `ISSUETOOL` | `True` |  |
-| `ORGSTOOL` | `True` |  |
-| `PULLSTOOL` | `True` |  |
-| `RELEASESTOOL` | `True` |  |
-| `REPOSTOOL` | `True` |  |
+| `ORGTOOL` | `True` |  |
+| `PULLTOOL` | `True` |  |
+| `RELEASETOOL` | `True` |  |
+| `REPOTOOL` | `True` |  |
 | `SEARCHTOOL` | `True` |  |
 
 #### Inherited agent-utilities variables (apply to every connector)
@@ -271,7 +353,7 @@ consumed from a **remote deployment**. The
 | `MODEL_ID` | `gpt-4o` | Model id for the agent |
 | `ENABLE_WEB_UI` | `True` | Serve the AG-UI web interface |
 
-_27 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
+_31 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
 <!-- ENV-VARS-TABLE:END -->
 
 
@@ -302,16 +384,16 @@ The full list is in the [Available MCP Tools](#available-mcp-tools) table above.
 
 | Variable | Tool | Default |
 |----------|------|---------|
-| `ACTIONSTOOL` | `github_actions` — Actions workflows and runs | `True` |
-| `BRANCHESTOOL` | `github_branches` — branches | `True` |
-| `COLLABORATORSTOOL` | `github_collaborators` — repository collaborators | `True` |
-| `COMMITSTOOL` | `github_commits` — commits | `True` |
-| `CONTENTSTOOL` | `github_contents` — file contents | `True` |
+| `ACTIONTOOL` | `github_actions` — Actions workflows and runs | `True` |
+| `BRANCHTOOL` | `github_branches` — branches | `True` |
+| `COLLABORATORTOOL` | `github_collaborators` — repository collaborators | `True` |
+| `COMMITTOOL` | `github_commits` — commits | `True` |
+| `CONTENTTOOL` | `github_contents` — file contents | `True` |
 | `ISSUETOOL` | `github_issues` — issues | `True` |
-| `ORGSTOOL` | `github_orgs` — organizations | `True` |
-| `PULLSTOOL` | `github_pulls` — pull requests | `True` |
-| `RELEASESTOOL` | `github_releases` — releases | `True` |
-| `REPOSTOOL` | `github_repos` — repositories and Pages sites | `True` |
+| `ORGTOOL` | `github_orgs` — organizations | `True` |
+| `PULLTOOL` | `github_pulls` — pull requests | `True` |
+| `RELEASETOOL` | `github_releases` — releases | `True` |
+| `REPOTOOL` | `github_repos` — repositories and Pages sites | `True` |
 | `SEARCHTOOL` | `github_search` — search repositories, issues, code | `True` |
 
 ### Telemetry & governance

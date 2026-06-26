@@ -113,6 +113,12 @@ logfire = [
     { name = "skill-graphs" },
     { name = "universal-skills" },
 ]
+mcp = [
+    { name = "eunomia-mcp" },
+    { name = "fastapi" },
+    { name = "fastmcp" },
+    { name = "httpx" },
+]
 
 [[package]]
 name = "agent-webui"
@@ -1590,10 +1596,19 @@ name = "github-agent"
 version = "0.33.0"
 source = { editable = "." }
 dependencies = [
-    { name = "agent-utilities", extra = ["agent", "logfire"] },
+    { name = "agent-utilities", extra = ["mcp"] },
 ]
 
 [package.optional-dependencies]
+agent = [
+    { name = "agent-utilities", extra = ["agent", "logfire"] },
+]
+all = [
+    { name = "agent-utilities", extra = ["agent", "logfire", "mcp"] },
+]
+mcp = [
+    { name = "agent-utilities", extra = ["mcp"] },
+]
 test = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1607,12 +1622,15 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-utilities", extras = ["agent", "logfire"], specifier = ">=0.51.0" },
+    { name = "agent-utilities", extras = ["agent", "logfire"], marker = "extra == 'agent'", specifier = ">=0.51.0" },
+    { name = "agent-utilities", extras = ["mcp"], specifier = ">=0.51.0" },
+    { name = "agent-utilities", extras = ["mcp"], marker = "extra == 'mcp'", specifier = ">=0.51.0" },
+    { name = "agent-utilities", extras = ["mcp", "agent", "logfire"], marker = "extra == 'all'", specifier = ">=0.51.0" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-asyncio", marker = "extra == 'test'" },
     { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.6.0" },
 ]
-provides-extras = ["test"]
+provides-extras = ["mcp", "agent", "all", "test"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest-timeout", specifier = ">=2.4.0" }]
