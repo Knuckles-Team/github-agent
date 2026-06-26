@@ -490,9 +490,7 @@ def register_issue_tools(mcp: FastMCP):
                     for k in ("sort", "order", "per_page", "max_pages"):
                         if kwargs.get(k) is not None:
                             search_kwargs[k] = kwargs[k]
-                    response = await run_blocking(
-                        client.search_issues, **search_kwargs
-                    )
+                    response = await run_blocking(client.search_issues, **search_kwargs)
                     return {
                         "status": 200,
                         "message": f"Org-wide issues for '{org}' via search (1 call)",
@@ -1818,21 +1816,21 @@ def register_release_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
-#: (tag, env-toggle, registrar) — explicit so the historical env-var names
-#: (REPOSTOOL/PULLSTOOL/CONTENTSTOOL/… with trailing "S") are preserved rather
-#: than auto-derived from the function names.
+#: (tag, env-toggle, registrar) — toggle names are the framework-derived
+#: ``<TAG>TOOL`` form (``register_<x>_tools`` ⇒ ``<X>TOOL``) so config mirrors
+#: and the drift guard agree on one canonical set.
 TOOL_REGISTRY = [
-    ("repos", "REPOSTOOL", register_repo_tools),
+    ("repos", "REPOTOOL", register_repo_tools),
     ("issue", "ISSUETOOL", register_issue_tools),
-    ("pulls", "PULLSTOOL", register_pull_tools),
-    ("contents", "CONTENTSTOOL", register_content_tools),
-    ("branches", "BRANCHESTOOL", register_branch_tools),
-    ("commits", "COMMITSTOOL", register_commit_tools),
+    ("pulls", "PULLTOOL", register_pull_tools),
+    ("contents", "CONTENTTOOL", register_content_tools),
+    ("branches", "BRANCHTOOL", register_branch_tools),
+    ("commits", "COMMITTOOL", register_commit_tools),
     ("search", "SEARCHTOOL", register_search_tools),
-    ("orgs", "ORGSTOOL", register_org_tools),
-    ("collaborators", "COLLABORATORSTOOL", register_collaborator_tools),
-    ("actions", "ACTIONSTOOL", register_action_tools),
-    ("releases", "RELEASESTOOL", register_release_tools),
+    ("orgs", "ORGTOOL", register_org_tools),
+    ("collaborators", "COLLABORATORTOOL", register_collaborator_tools),
+    ("actions", "ACTIONTOOL", register_action_tools),
+    ("releases", "RELEASETOOL", register_release_tools),
 ]
 
 

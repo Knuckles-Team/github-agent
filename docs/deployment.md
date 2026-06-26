@@ -190,9 +190,9 @@ the MCP server:
 | `PORT` | `8000` | Bind port for HTTP transports |
 | `TRANSPORT` | `stdio` | `stdio`, `streamable-http`, or `sse` |
 
-Each tool domain is gated by its own switch — `REPOSTOOL`, `ISSUETOOL`, `PULLSTOOL`,
-`CONTENTSTOOL`, `BRANCHESTOOL`, `COMMITSTOOL`, `SEARCHTOOL`, `ORGSTOOL`,
-`COLLABORATORSTOOL`, `ACTIONSTOOL`, `RELEASESTOOL` (all default `True`). The full set,
+Each tool domain is gated by its own switch — `REPOTOOL`, `ISSUETOOL`, `PULLTOOL`,
+`CONTENTTOOL`, `BRANCHTOOL`, `COMMITTOOL`, `SEARCHTOOL`, `ORGTOOL`,
+`COLLABORATORTOOL`, `ACTIONTOOL`, `RELEASETOOL` (all default `True`). The full set,
 including telemetry (`ENABLE_OTEL`, `OTEL_EXPORTER_OTLP_*`) and access governance
 (`EUNOMIA_TYPE`), is documented in
 [`.env.example`](https://github.com/Knuckles-Team/github-agent/blob/main/.env.example).
@@ -337,11 +337,12 @@ Add to your client's `mcp_config.json` (multiplexer nickname `gh`):
       "command": "uv",
       "args": ["run", "github-mcp"],
       "env": {
+        "MCP_TOOL_MODE": "condensed",
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_TOKEN": "ghp_your_personal_access_token",
-        "REPOSTOOL": "True",
+        "REPOTOOL": "True",
         "ISSUETOOL": "True",
-        "PULLSTOOL": "True"
+        "PULLTOOL": "True"
       }
     }
   }
