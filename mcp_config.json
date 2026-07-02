@@ -19,6 +19,7 @@
         "GITHUB_TOKEN": "your_github_token_here",
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
+        "GRAPHQLTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
