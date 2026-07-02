@@ -8,16 +8,23 @@
       ],
       "env": {
         "MCP_TOOL_MODE": "condensed",
-        "AGENT_DESCRIPTION": "<YOUR_AGENT_DESCRIPTION>",
-        "AGENT_SYSTEM_PROMPT": "<YOUR_AGENT_SYSTEM_PROMPT>",
+        "ACTIONTOOL": "True",
+        "BRANCHTOOL": "True",
+        "COLLABORATORTOOL": "True",
+        "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
-        "DEFAULT_AGENT_NAME": "<YOUR_DEFAULT_AGENT_NAME>",
-        "GITHUB_TOKEN": "<YOUR_GITHUB_TOKEN>",
-        "GITHUB_URL": "<YOUR_GITHUB_URL>",
-        "GITHUB_VERIFY": "<YOUR_GITHUB_VERIFY>",
+        "GITHUB_ALLOW_DESTRUCTIVE": "False",
+        "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
+        "GITHUB_HTTP_READ_TIMEOUT": "30",
+        "GITHUB_TOKEN": "your_github_token_here",
+        "GITHUB_URL": "https://api.github.com",
+        "GITHUB_VERIFY": "True",
         "ISSUETOOL": "True",
+        "ORGTOOL": "True",
         "PULLTOOL": "True",
-        "REPOTOOL": "True"
+        "RELEASETOOL": "True",
+        "REPOTOOL": "True",
+        "SEARCHTOOL": "True"
       }
     }
   }
