@@ -1816,6 +1816,85 @@ def register_release_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+def register_graphql_tools(mcp: FastMCP):
+    from github_agent.auth import get_graphql_client
+
+    @mcp.tool(tags={"graphql"})
+    async def github_graphql(
+        query: str = Field(
+            description="The raw GraphQL query or mutation string to execute against the GitHub API."
+        ),
+        variables: str = Field(
+            default="{}",
+            description="JSON string of variables to pass along with the query.",
+        ),
+        operation_name: str | None = Field(
+            default=None,
+            description="Optional operation name if executing a specific query within the document.",
+        ),
+        client=Depends(get_graphql_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> Any:
+        """Execute raw GraphQL queries and mutations natively on GitHub.
+
+        One request can fan out across many repositories via aliased sub-queries
+        (e.g. fetch the latest-commit CI status for the whole fleet in a single
+        call) — far cheaper than one REST request per repository.
+        """
+        if ctx:
+            await ctx.info("Executing GitHub GraphQL query...")
+        import json
+
+        try:
+            vars_dict = json.loads(variables) if variables else None
+        except Exception as e:
+            return {"error": f"Invalid variables JSON: {e}"}
+
+        try:
+            return await run_blocking(
+                client.execute_gql,
+                query_str=query,
+                variables=vars_dict,
+                operation_name=operation_name,
+            )
+        except Exception as e:
+            return {"error": f"GraphQL execution failed: {str(e)}"}
+
+    @mcp.tool(tags={"graphql"})
+    async def github_discover_graphql_schema(
+        type_name: str | None = Field(
+            default=None,
+            description="Optional GraphQL type name to inspect (e.g. 'Repository', 'CheckSuite'). If omitted, lists all available types.",
+        ),
+        client=Depends(get_graphql_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time."""
+        from agent_utilities.mcp.context_helpers import (
+            ctx_graphql_get_type_details,
+            ctx_graphql_list_types,
+        )
+
+        if ctx:
+            await ctx.info("Retrieving live GitHub GraphQL schema...")
+
+        async def execute_fn(q, variables=None):
+            return await run_blocking(
+                client.execute_gql, query_str=q, variables=variables
+            )
+
+        try:
+            if type_name:
+                return await ctx_graphql_get_type_details(execute_fn, type_name)
+            return await ctx_graphql_list_types(execute_fn)
+        except Exception as e:
+            return {"error": f"Failed to discover GitHub GraphQL schema: {str(e)}"}
+
+
 #: (tag, env-toggle, registrar) — toggle names are the framework-derived
 #: ``<TAG>TOOL`` form (``register_<x>_tools`` ⇒ ``<X>TOOL``) so config mirrors
 #: and the drift guard agree on one canonical set.
@@ -1831,6 +1910,7 @@ TOOL_REGISTRY = [
     ("collaborators", "COLLABORATORTOOL", register_collaborator_tools),
     ("actions", "ACTIONTOOL", register_action_tools),
     ("releases", "RELEASETOOL", register_release_tools),
+    ("graphql", "GRAPHQLTOOL", register_graphql_tools),
 ]
 
 

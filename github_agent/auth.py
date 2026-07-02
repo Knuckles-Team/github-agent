@@ -114,3 +114,32 @@ def get_client(config: dict | None = None) -> Api:
                 f"Please check your GITHUB_TOKEN and GITHUB_URL environment variables. "
                 f"Error details: {str(e)}"
             ) from e
+
+
+def get_graphql_client(config: dict | None = None):
+    """Factory for the GitHub GraphQL client (parity with :func:`get_client`).
+
+    Resolves the same ``GITHUB_URL`` / ``GITHUB_TOKEN`` / verify settings and
+    honours OIDC delegation, then returns a :class:`~github_agent.github_gql.GraphQL`.
+    """
+    from github_agent.github_gql import GraphQL
+
+    instance = setting("GITHUB_URL", "https://api.github.com")
+    token = setting("GITHUB_TOKEN", None)
+    if setting("GITHUB_SSL_VERIFY", None) is not None:
+        verify = setting("GITHUB_SSL_VERIFY", True)
+    else:
+        verify = setting("GITHUB_VERIFY", True)
+
+    if config is None:
+        from agent_utilities.mcp_utilities import config as default_config
+
+        config = default_config
+
+    if config.get("enable_delegation"):
+        # Reuse the REST factory's OIDC token exchange, then read back the
+        # exchanged bearer token for the GraphQL transport.
+        api = get_client(config)
+        token = getattr(api, "token", None) or token
+
+    return GraphQL(url=instance, token=token, verify=verify)

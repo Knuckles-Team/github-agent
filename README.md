@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 1.0.1*
+*Version: 1.0.2*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > CLI interfaces, including the integrated A2A agent server, are maintained in the
@@ -214,6 +214,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "GITHUB_TOKEN": "your_github_token_here",
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
+        "GRAPHQLTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
@@ -258,6 +259,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "GITHUB_TOKEN": "your_github_token_here",
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
+        "GRAPHQLTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
@@ -303,6 +305,7 @@ docker run -d \
   -e GITHUB_TOKEN=your_github_token_here \
   -e GITHUB_URL=https://api.github.com \
   -e GITHUB_VERIFY=True \
+  -e GRAPHQLTOOL=True \
   -e ISSUETOOL=True \
   -e ORGTOOL=True \
   -e PULLTOOL=True \
@@ -365,6 +368,7 @@ consumed from a **remote deployment**. The
 | `COLLABORATORTOOL` | `True` |  |
 | `COMMITTOOL` | `True` |  |
 | `CONTENTTOOL` | `True` |  |
+| `GRAPHQLTOOL` | `True` |  |
 | `ISSUETOOL` | `True` |  |
 | `ORGTOOL` | `True` |  |
 | `PULLTOOL` | `True` |  |
@@ -389,7 +393,7 @@ consumed from a **remote deployment**. The
 | `MODEL_ID` | `gpt-4o` | Model id for the agent |
 | `ENABLE_WEB_UI` | `True` | Serve the AG-UI web interface |
 
-_31 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
+_32 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
 <!-- ENV-VARS-TABLE:END -->
 
 
