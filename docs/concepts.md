@@ -21,6 +21,7 @@
 | `CONCEPT:GH-009` | Release Operations | MCP tool domain `release` — Action-routed dynamic tool registration |
 | `CONCEPT:GH-010` | Repo Operations | MCP tool domain `repo` — Action-routed dynamic tool registration |
 | `CONCEPT:GH-011` | Search & Discovery | MCP tool domain `search` — Action-routed dynamic tool registration |
+| `CONCEPT:GH-012` | GraphQL Operations | MCP tool domain `graphql` (`GRAPHQLTOOL`) — native GitHub GraphQL client + schema discovery; one aliased query fans out across many repos (e.g. fleet-wide CI status in a single call) |
 
 ## Cross-Project References (from agent-utilities)
 

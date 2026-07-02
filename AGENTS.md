@@ -5,12 +5,26 @@
 
 ## Tech Stack & Architecture
 - Language/Version: Python 3.10+
-- Core Libraries: `agent-utilities`, `fastmcp`, `pydantic-ai`
+- Core Libraries: `agent-utilities`, `fastmcp`, `pydantic-ai`, `gql[requests]`
 - Key principles: Functional patterns, Pydantic for data validation, asynchronous tool execution.
 - Architecture:
     - `mcp_server.py`: Main MCP server entry point and tool registration.
     - `agent_server.py`: Pydantic AI agent definition and logic.
+    - `github_gql.py`: GitHub **GraphQL** client (`gql`) — parity with the REST `Api`.
     - `skills/`: Directory containing modular agent skills (if applicable).
+
+### GraphQL tools (`GRAPHQLTOOL`, `CONCEPT:GH-012`)
+The `graphql` tool domain (`register_graphql_tools` → `GRAPHQLTOOL`) exposes two tools
+backed by `github_gql.GraphQL` + `get_graphql_client` (GitHub's `/graphql` endpoint):
+
+- `github_graphql(query, variables, operation_name)` — run any GraphQL query/mutation. A
+  single **aliased** query can fan out across many repositories (e.g. fetch the latest-commit
+  CI/`statusCheckRollup` for the whole fleet in **one call** instead of one REST request per
+  repo). Prefer it for cross-repo/org-wide reads.
+- `github_discover_graphql_schema(type_name?)` — live schema introspection (types/fields).
+
+Endpoint is derived from `GITHUB_URL`: `api.github.com` → `/graphql`; GitHub Enterprise
+(`…/api/v3`) → `…/api/graphql`. Auth is the same `GITHUB_TOKEN` bearer as REST.
 
 ### Architecture Diagram
 ```mermaid
