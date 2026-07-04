@@ -13,7 +13,7 @@
     - `github_gql.py`: GitHub **GraphQL** client (`gql`) — parity with the REST `Api`.
     - `skills/`: Directory containing modular agent skills (if applicable).
 
-### GraphQL tools (`GRAPHQLTOOL`, `CONCEPT:GH-012`)
+### GraphQL tools (`GRAPHQLTOOL`, `CONCEPT:GH-OS.governance.gh-12`)
 The `graphql` tool domain (`register_graphql_tools` → `GRAPHQLTOOL`) exposes two tools
 backed by `github_gql.GraphQL` + `get_graphql_client` (GitHub's `/graphql` endpoint):
 
@@ -256,7 +256,7 @@ alone).
 Working in parallel with other sessions/worktrees? **Reserve a concept id before you write its `CONCEPT:` marker** so two sessions never collide:
 
 ```bash
-agent-utilities --json concept reserve --ns KG-2   # or a package prefix, e.g. KEY
+agent-utilities --json concept reserve --ns EG-KG.compute.backend   # or a package prefix, e.g. KEY
 ```
 
 Full protocol (ledger, merge=union, reconcile, MCP/REST): <https://knuckles-team.github.io/agent-utilities/concept_coordination/>
