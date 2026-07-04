@@ -1,0 +1,18 @@
+{
+  "_comment": "Tier-1 mcp_tool source presets for github-agent (AU-KG.ingest.mcp-tool-connector). Syncs GitHub repositories into the KG as repository documents via the github-agent MCP server. Contributed presets win over the central MCP_TOOL_PRESETS. Extend with pull-request / issue presets as needed.",
+  "github-repositories": {
+    "server": "github-agent",
+    "tool": "github_repos",
+    "action": "list",
+    "records_path": "data",
+    "id_field": "id",
+    "title_field": "full_name",
+    "text_field": "description",
+    "updated_field": "updated_at",
+    "pagination": "page",
+    "page_kind": "page",
+    "page_param": "page",
+    "page_size_param": "per_page",
+    "doc_type": "repository"
+  }
+}

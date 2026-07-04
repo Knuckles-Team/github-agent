@@ -1816,6 +1816,47 @@ def register_release_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+def register_ingest_tools(mcp: FastMCP):
+    @mcp.tool(tags={"kg"})
+    async def github_ingest_repos(
+        params_json: str = Field(
+            default="{}",
+            description="JSON string of github_repos 'list' filters (e.g. visibility, affiliation, type).",
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> Any:
+        """Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes.
+
+        Lists the authenticated user's repositories via the GitHub API and pushes them
+        (with their owner :Organization/:Person + :ownedByOrg links) into the knowledge
+        graph via the fast engine client. Best-effort: returns ``{"ingested": None}``
+        when no engine is reachable. CONCEPT:AU-KG.ingest.enterprise-source-extractor.
+        """
+        if ctx:
+            await ctx.info("Ingesting GitHub repositories into the knowledge graph...")
+        import json
+
+        from github_agent.kg_ingest import ingest_repositories
+
+        try:
+            kwargs = json.loads(params_json) if params_json else {}
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        response = await run_blocking(client.get_repositories, **kwargs)
+        records = [
+            repo.model_dump() if hasattr(repo, "model_dump") else repo
+            for repo in response.data
+            if repo is not None
+        ]
+        result = ingest_repositories(records)
+        return {"listed": len(records), "ingested": result}
+
+
 def register_graphql_tools(mcp: FastMCP):
     from github_agent.auth import get_graphql_client
 
@@ -1910,6 +1951,7 @@ TOOL_REGISTRY = [
     ("collaborators", "COLLABORATORTOOL", register_collaborator_tools),
     ("actions", "ACTIONTOOL", register_action_tools),
     ("releases", "RELEASETOOL", register_release_tools),
+    ("ingest", "INGESTTOOL", register_ingest_tools),
     ("graphql", "GRAPHQLTOOL", register_graphql_tools),
 ]
 

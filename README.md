@@ -70,6 +70,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
 | `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
 | `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
+| `github_ingest_repos` | `INGESTTOOL` | Ingest repositories into the knowledge graph as typed :Repository nodes. |
 | `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
 | `github_orgs` | `ORGTOOL` | Manage GitHub organizations. |
 | `github_pulls` | `PULLTOOL` | Manage GitHub pull requests. |
@@ -215,6 +216,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
         "GRAPHQLTOOL": "True",
+        "INGESTTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
@@ -260,6 +262,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
         "GRAPHQLTOOL": "True",
+        "INGESTTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
@@ -306,6 +309,7 @@ docker run -d \
   -e GITHUB_URL=https://api.github.com \
   -e GITHUB_VERIFY=True \
   -e GRAPHQLTOOL=True \
+  -e INGESTTOOL=True \
   -e ISSUETOOL=True \
   -e ORGTOOL=True \
   -e PULLTOOL=True \
@@ -369,6 +373,7 @@ consumed from a **remote deployment**. The
 | `COMMITTOOL` | `True` |  |
 | `CONTENTTOOL` | `True` |  |
 | `GRAPHQLTOOL` | `True` |  |
+| `INGESTTOOL` | `True` |  |
 | `ISSUETOOL` | `True` |  |
 | `ORGTOOL` | `True` |  |
 | `PULLTOOL` | `True` |  |
@@ -429,6 +434,7 @@ The full list is in the [Available MCP Tools](#available-mcp-tools) table above.
 | `COLLABORATORTOOL` | `github_collaborators` — repository collaborators | `True` |
 | `COMMITTOOL` | `github_commits` — commits | `True` |
 | `CONTENTTOOL` | `github_contents` — file contents | `True` |
+| `INGESTTOOL` | `github_ingest_repos` — KG repository ingestion | `True` |
 | `ISSUETOOL` | `github_issues` — issues | `True` |
 | `ORGTOOL` | `github_orgs` — organizations | `True` |
 | `PULLTOOL` | `github_pulls` — pull requests | `True` |

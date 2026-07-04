@@ -946,12 +946,18 @@ async def test_mcp_releases():
 
 @pytest.mark.anyio
 async def test_all_tools_invalid_json():
+    import inspect
+
     tools = await get_registered_tools()
     client = create_mock_client()
     ctx = AsyncMockContext()
 
-    # We test every tool in the registry with invalid JSON
+    # We test every action-routed tool in the registry with invalid JSON. Tools that
+    # are not action-routed (e.g. github_graphql, github_ingest_repos) take different
+    # parameters and are exercised by their own tests.
     for tool_fn in tools.values():
+        if "action" not in inspect.signature(tool_fn).parameters:
+            continue
         res = await tool_fn(
             action="invalid_action", params_json="{", client=client, ctx=ctx
         )
@@ -1018,6 +1024,7 @@ def test_requests_dependency_warning_import_error():
 
 @pytest.mark.anyio
 async def test_mcp_tool_safety_exceptions():
+    import inspect
     import json
 
     tools = await get_registered_tools()
@@ -1057,6 +1064,8 @@ async def test_mcp_tool_safety_exceptions():
     params_json = json.dumps(params_data)
 
     for tool_name, tool_fn in tools.items():
+        if "action" not in inspect.signature(tool_fn).parameters:
+            continue
         action = valid_actions.get(tool_name, "list")
         res = await tool_fn(
             action=action, params_json=params_json, client=failing_client, ctx=ctx

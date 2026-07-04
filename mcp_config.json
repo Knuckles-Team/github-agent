@@ -20,6 +20,7 @@
         "GITHUB_URL": "https://api.github.com",
         "GITHUB_VERIFY": "True",
         "GRAPHQLTOOL": "True",
+        "INGESTTOOL": "True",
         "ISSUETOOL": "True",
         "ORGTOOL": "True",
         "PULLTOOL": "True",
