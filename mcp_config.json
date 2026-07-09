@@ -13,6 +13,7 @@
         "COLLABORATORTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
+        "DEPENDABOTTOOL": "True",
         "GITHUB_ALLOW_DESTRUCTIVE": "False",
         "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
         "GITHUB_HTTP_READ_TIMEOUT": "30",

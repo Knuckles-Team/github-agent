@@ -70,6 +70,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
 | `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
 | `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
+| `github_dependabot` | `DEPENDABOTTOOL` | Review and manage GitHub Dependabot vulnerability alerts. |
 | `github_discover_graphql_schema` | `GRAPHQLTOOL` | Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time. |
 | `github_graphql` | `GRAPHQLTOOL` | Execute raw GraphQL queries and mutations natively on GitHub. |
 | `github_ingest_repos` | `INGESTTOOL` | Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes. |
@@ -83,7 +84,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 #### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
 
 <details>
-<summary>72 per-operation tools — one per public API method (click to expand)</summary>
+<summary>76 per-operation tools — one per public API method (click to expand)</summary>
 
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
@@ -116,8 +117,11 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_commit` | `APITOOL` | Get a single commit in a repository. |
 | `github_get_commits` | `APITOOL` | List commits for a repository. |
 | `github_get_contents` | `APITOOL` | Get contents of a file or directory in a repository. |
+| `github_get_dependabot_alert` | `APITOOL` | Get a single Dependabot alert. |
+| `github_get_dependabot_alerts` | `APITOOL` | List Dependabot alerts for a repository. |
 | `github_get_issue` | `APITOOL` | Get a single issue in a repository. |
 | `github_get_issues` | `APITOOL` | List issues for a repository. |
+| `github_get_org_dependabot_alerts` | `APITOOL` | List Dependabot alerts for an entire organization. |
 | `github_get_org_members` | `APITOOL` | List members for an organization. |
 | `github_get_org_repos` | `APITOOL` | List repositories for an organization. |
 | `github_get_org_teams` | `APITOOL` | List teams for an organization. |
@@ -153,6 +157,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_trigger_workflow_dispatch` | `APITOOL` | Trigger a workflow dispatch event. |
 | `github_update_branch_protection` | `APITOOL` | Update branch protection configuration. |
 | `github_update_content` | `APITOOL` | Update a file in a repository. |
+| `github_update_dependabot_alert` | `APITOOL` | Update the state of a Dependabot alert. |
 | `github_update_issue` | `APITOOL` | Update an issue in a repository. |
 | `github_update_organization` | `APITOOL` | Update an organization's profile and member settings. |
 | `github_update_pages` | `APITOOL` | Update the GitHub Pages configuration for a repository. |
@@ -162,7 +167,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 </details>
 
-_14 action-routed tool(s) (default) · 72 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
+_15 action-routed tool(s) (default) · 76 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
@@ -217,6 +222,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "COLLABORATORTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
+        "DEPENDABOTTOOL": "True",
         "GITHUB_ALLOW_DESTRUCTIVE": "False",
         "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
         "GITHUB_HTTP_READ_TIMEOUT": "30",
@@ -263,6 +269,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "COLLABORATORTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
+        "DEPENDABOTTOOL": "True",
         "GITHUB_ALLOW_DESTRUCTIVE": "False",
         "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
         "GITHUB_HTTP_READ_TIMEOUT": "30",
@@ -310,6 +317,7 @@ docker run -d \
   -e COLLABORATORTOOL=True \
   -e COMMITTOOL=True \
   -e CONTENTTOOL=True \
+  -e DEPENDABOTTOOL=True \
   -e GITHUB_ALLOW_DESTRUCTIVE=False \
   -e GITHUB_HTTP_CONNECT_TIMEOUT=10 \
   -e GITHUB_HTTP_READ_TIMEOUT=30 \
@@ -380,6 +388,7 @@ consumed from a **remote deployment**. The
 | `COLLABORATORTOOL` | `True` |  |
 | `COMMITTOOL` | `True` |  |
 | `CONTENTTOOL` | `True` |  |
+| `DEPENDABOTTOOL` | `True` |  |
 | `GRAPHQLTOOL` | `True` |  |
 | `INGESTTOOL` | `True` |  |
 | `ISSUETOOL` | `True` |  |
@@ -406,7 +415,7 @@ consumed from a **remote deployment**. The
 | `MODEL_ID` | `gpt-4o` | Model id for the agent |
 | `ENABLE_WEB_UI` | `True` | Serve the AG-UI web interface |
 
-_33 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
+_34 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
 <!-- ENV-VARS-TABLE:END -->
 
 
