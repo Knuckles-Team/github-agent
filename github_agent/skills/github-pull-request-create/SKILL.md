@@ -1,5 +1,6 @@
 ---
 name: github-pull-request-create
+skill_type: skill
 description: >-
   Open a new GitHub pull request against a repository via the github-agent MCP server —
   from a head branch into a base branch, with title, body, draft flag, and requested

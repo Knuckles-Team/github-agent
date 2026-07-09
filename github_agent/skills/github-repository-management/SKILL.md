@@ -1,5 +1,6 @@
 ---
 name: github-repository-management
+skill_type: skill
 description: >-
   Repository lifecycle and structure operations on GitHub via the github-agent MCP
   server — list/read/create/update/delete repositories, manage branches and branch

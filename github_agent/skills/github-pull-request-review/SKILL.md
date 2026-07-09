@@ -1,5 +1,6 @@
 ---
 name: github-pull-request-review
+skill_type: skill
 description: >-
   Review and merge GitHub pull requests via the github-agent MCP server — by default the
   PRs assigned to you or where your review is requested, optionally scoped to an org, user,

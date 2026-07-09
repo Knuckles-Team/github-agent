@@ -1,5 +1,6 @@
 ---
 name: github-actions-ci-review
+skill_type: skill
 description: >-
   Review GitHub Actions CI results across an organization, a user, or a single repository via
   the github-agent MCP server — enumerate repos, list workflow runs (filterable to failures),

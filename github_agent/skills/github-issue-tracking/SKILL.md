@@ -1,5 +1,6 @@
 ---
 name: github-issue-tracking
+skill_type: skill
 description: >-
   Issue triage and search on GitHub via the github-agent MCP server — list, read, open,
   and update issues (repo-scoped or org-wide in one search call), and run repository /
