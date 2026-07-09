@@ -34,7 +34,11 @@ from agent_utilities.mcp_utilities import (
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.api_client import Api
-from github_agent.auth import allow_destructive_default, get_client
+from github_agent.auth import (
+    allow_destructive_default,
+    get_client,
+    get_graphql_client,
+)
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
 __version__ = "1.0.0"
@@ -45,7 +49,10 @@ logger.setLevel(logging.INFO)
 DESTRUCTIVE_ORG_ACTIONS = {"delete", "remove_member"}
 
 #: Repo actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
-DESTRUCTIVE_REPO_ACTIONS = {"pages_delete"}
+DESTRUCTIVE_REPO_ACTIONS = {"pages_delete", "secrets_delete"}
+
+#: Pull actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
+DESTRUCTIVE_PULL_ACTIONS = {"merge", "enable_auto_merge"}
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
@@ -64,9 +71,23 @@ REPO_ACTIONS = (
     "pages_delete",
     "pages_builds",
     "pages_request_build",
+    "secrets_list",
+    "secrets_public_key",
+    "secrets_set",
+    "secrets_delete",
 )
 ISSUE_ACTIONS = ("list", "get", "create", "update")
-PULL_ACTIONS = ("list", "get", "create", "update")
+PULL_ACTIONS = (
+    "list",
+    "get",
+    "create",
+    "update",
+    "approve",
+    "request_reviewers",
+    "merge",
+    "enable_auto_merge",
+    "disable_auto_merge",
+)
 CONTENT_ACTIONS = ("get", "create", "update", "delete")
 BRANCH_ACTIONS = (
     "list",
@@ -98,6 +119,8 @@ WORKFLOW_ACTIONS = (
     "list_workflows",
     "list_runs",
     "get_run",
+    "list_jobs",
+    "job_logs",
     "trigger_dispatch",
     "rerun",
     "cancel",
@@ -136,7 +159,8 @@ def register_repo_tools(mcp: FastMCP):
                 "Action to perform. Must be one of: 'list', 'get', 'create', "
                 "'delete', 'update', 'pages_get', 'pages_create', "
                 "'pages_update', 'pages_delete', 'pages_builds', "
-                "'pages_request_build'"
+                "'pages_request_build', 'secrets_list', 'secrets_public_key', "
+                "'secrets_set', 'secrets_delete'"
             )
         ),
         params_json: str = Field(
@@ -145,8 +169,9 @@ def register_repo_tools(mcp: FastMCP):
         allow_destructive: bool = Field(
             default=False,
             description=(
-                "Must be true to run destructive actions: ['pages_delete']. "
-                "Deleting a Pages site takes it offline immediately."
+                "Must be true to run destructive actions: ['pages_delete', "
+                "'secrets_delete']. Deleting a Pages site takes it offline "
+                "immediately; deleting a secret removes it permanently."
             ),
         ),
         client=Depends(get_client),
@@ -185,6 +210,17 @@ def register_repo_tools(mcp: FastMCP):
         - 'pages_request_build': {"owner", "repo"} — request a fresh Pages
           build without pushing a commit (the programmatic fix for the
           first-deploy race where the initial Pages build never ran).
+
+        Actions secrets actions:
+        - 'secrets_list': {"owner", "repo"} — list repository Actions secret
+          names (values are never returned by GitHub).
+        - 'secrets_public_key': {"owner", "repo"} — the repository public key
+          used to encrypt secret values before uploading them.
+        - 'secrets_set': {"owner", "repo", "secret_name", "encrypted_value",
+          "key_id"} — create or update a secret; encrypted_value must be
+          sealed with the public key from 'secrets_public_key'.
+        - 'secrets_delete': {"owner", "repo", "secret_name"} — permanently
+          delete a secret; requires allow_destructive=true.
         """
         if ctx:
             await ctx.info("Executing github_repos action...")
@@ -417,6 +453,101 @@ def register_repo_tools(mcp: FastMCP):
                     "message": "Pages build requested successfully",
                     "data": response.data.model_dump(),
                 }
+            elif action == "secrets_list":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_repo_secrets, owner=owner, repo=repo
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secrets retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_public_key":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_repo_secret_public_key, owner=owner, repo=repo
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret public key retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_set":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                secret_name = kwargs.get("secret_name")
+                encrypted_value = kwargs.get("encrypted_value")
+                key_id = kwargs.get("key_id")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                if not secret_name or encrypted_value is None or not key_id:
+                    return {
+                        "status": 400,
+                        "error": (
+                            "Missing 'secret_name', 'encrypted_value', or "
+                            "'key_id' parameter"
+                        ),
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_or_update_repo_secret,
+                    owner=owner,
+                    repo=repo,
+                    secret_name=secret_name,
+                    encrypted_value=encrypted_value,
+                    key_id=key_id,
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret set successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                secret_name = kwargs.get("secret_name")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                if not secret_name:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'secret_name' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.delete_repo_secret,
+                    owner=owner,
+                    repo=repo,
+                    secret_name=secret_name,
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret deleted successfully",
+                    "data": response.data,
+                }
             else:
                 return {
                     "status": 400,
@@ -574,22 +705,31 @@ def register_pull_tools(mcp: FastMCP):
     @mcp.tool(tags={"pulls"})
     async def github_pulls(
         action: str = Field(
-            description="Action to perform. Must be one of: 'list', 'get', 'create', 'update'"
+            description="Action to perform. Must be one of: 'list', 'get', 'create', 'update', 'approve', 'request_reviewers', 'merge', 'enable_auto_merge', 'disable_auto_merge'"
         ),
         params_json: str = Field(
             default="{}", description="JSON string of parameters to pass to the action."
         ),
+        allow_destructive: bool = Field(
+            default=False,
+            description="Confirm a guarded write ('merge', 'enable_auto_merge'). Also honoured via GITHUB_ALLOW_DESTRUCTIVE.",
+        ),
         client=Depends(get_client),
+        gql_client=Depends(get_graphql_client),
         ctx: Context | None = Field(
             default=None, description="MCP context for progress reporting"
         ),
     ) -> dict:
-        """Manage GitHub pull requests.
+        """Manage GitHub pull requests and their review/merge lifecycle.
 
         list params (via params_json): owner, repo, and optional filters applied
         server-side — state (open/closed/all), head, base, sort, direction,
         per_page (1-100, default 30), max_pages (default 1 page; max_pages<=0 =
-        all pages).
+        all pages). Write actions: approve, request_reviewers, merge (merge_method
+        merge/squash/rebase), enable_auto_merge/disable_auto_merge (GraphQL;
+        accept owner+repo+number or a pull_request_id node id). merge and
+        enable_auto_merge are guarded by allow_destructive /
+        GITHUB_ALLOW_DESTRUCTIVE.
         """
         if ctx:
             await ctx.info("Executing github_pulls action...")
@@ -606,6 +746,19 @@ def register_pull_tools(mcp: FastMCP):
         if isinstance(resolved, dict):
             return resolved
         action = resolved
+
+        if action in DESTRUCTIVE_PULL_ACTIONS and not (
+            allow_destructive is True or allow_destructive_default()
+        ):
+            return {
+                "status": 403,
+                "error": (
+                    f"Action '{action}' is a guarded write and blocked by default. "
+                    "Re-run with allow_destructive=true (or set "
+                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+                ),
+                "data": None,
+            }
 
         try:
             if action == "list":
@@ -681,6 +834,110 @@ def register_pull_tools(mcp: FastMCP):
                     "message": "Pull request updated successfully",
                     "data": response.data.model_dump(),
                 }
+            elif action == "approve":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_pull_request_review,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    event=kwargs.get("event", "APPROVE"),
+                    body=kwargs.get("body"),
+                )
+                return {
+                    "status": 200,
+                    "message": "Pull request review submitted successfully",
+                    "data": response.data,
+                }
+            elif action == "request_reviewers":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.request_reviewers,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    reviewers=kwargs.get("reviewers"),
+                    team_reviewers=kwargs.get("team_reviewers"),
+                )
+                return {
+                    "status": 200,
+                    "message": "Reviewers requested successfully",
+                    "data": response.data.model_dump(),
+                }
+            elif action == "merge":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                if not owner or not repo or not number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'number' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.merge_pull_request,
+                    owner=owner,
+                    repo=repo,
+                    number=int(number),
+                    merge_method=kwargs.get("merge_method", "merge"),
+                    commit_title=kwargs.get("commit_title"),
+                    commit_message=kwargs.get("commit_message"),
+                    sha=kwargs.get("sha"),
+                )
+                return {
+                    "status": 200,
+                    "message": "Pull request merged successfully",
+                    "data": response.data,
+                }
+            elif action in ("enable_auto_merge", "disable_auto_merge"):
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                number = kwargs.get("number")
+                node_id = kwargs.get("pull_request_id")
+                if not node_id:
+                    if not owner or not repo or not number:
+                        return {
+                            "status": 400,
+                            "error": "Provide 'pull_request_id' (node id) or 'owner'+'repo'+'number'",
+                            "data": None,
+                        }
+                    pr = await run_blocking(
+                        client.get_pull_request,
+                        owner=owner,
+                        repo=repo,
+                        number=int(number),
+                    )
+                    node_id = pr.data.node_id
+                if action == "enable_auto_merge":
+                    data = await run_blocking(
+                        gql_client.enable_pull_request_auto_merge,
+                        pull_request_id=node_id,
+                        merge_method=kwargs.get("merge_method", "MERGE"),
+                    )
+                    message = "Auto-merge enabled successfully"
+                else:
+                    data = await run_blocking(
+                        gql_client.disable_pull_request_auto_merge,
+                        pull_request_id=node_id,
+                    )
+                    message = "Auto-merge disabled successfully"
+                return {"status": 200, "message": message, "data": data}
             else:
                 return {
                     "status": 400,
@@ -1572,6 +1829,51 @@ def register_action_tools(mcp: FastMCP):
                     "status": 200,
                     "message": "Workflow run retrieved successfully",
                     "data": response.data.model_dump(),
+                }
+            elif action == "list_jobs":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
+                response = await run_blocking(
+                    client.get_workflow_run_jobs,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
+                    **extra,
+                )
+                data = response.data
+                return {
+                    "status": 200,
+                    "message": "Workflow run jobs retrieved successfully",
+                    "data": _slim(data) if slim else data,
+                }
+            elif action == "job_logs":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                job_id = kwargs.get("job_id")
+                if not owner or not repo or not job_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_workflow_job_logs,
+                    owner=owner,
+                    repo=repo,
+                    job_id=int(job_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow job logs retrieved successfully",
+                    "data": response.data,
                 }
             elif action == "trigger_dispatch":
                 owner = kwargs.get("owner")

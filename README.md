@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 1.0.2*
+*Version: 1.0.3*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > CLI interfaces, including the integrated A2A agent server, are maintained in the
@@ -70,10 +70,12 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
 | `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
 | `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
-| `github_ingest_repos` | `INGESTTOOL` | Ingest repositories into the knowledge graph as typed :Repository nodes. |
+| `github_discover_graphql_schema` | `GRAPHQLTOOL` | Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time. |
+| `github_graphql` | `GRAPHQLTOOL` | Execute raw GraphQL queries and mutations natively on GitHub. |
+| `github_ingest_repos` | `INGESTTOOL` | Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes. |
 | `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
 | `github_orgs` | `ORGTOOL` | Manage GitHub organizations. |
-| `github_pulls` | `PULLTOOL` | Manage GitHub pull requests. |
+| `github_pulls` | `PULLTOOL` | Manage GitHub pull requests and their review/merge lifecycle. |
 | `github_releases` | `RELEASETOOL` | Manage repository releases. |
 | `github_repos` | `REPOTOOL` | Manage GitHub repositories and their GitHub Pages sites. |
 | `github_search` | `SEARCHTOOL` | Search GitHub repositories, issues, or code. |
@@ -81,7 +83,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 #### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
 
 <details>
-<summary>66 per-operation tools — one per public API method (click to expand)</summary>
+<summary>72 per-operation tools — one per public API method (click to expand)</summary>
 
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
@@ -95,6 +97,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_create_organization_repository` | `APITOOL` | Create a repository in an organization. |
 | `github_create_pages` | `APITOOL` | Enable GitHub Pages for a repository (HTTP 201). |
 | `github_create_pull_request` | `APITOOL` | Create a new pull request in a repository. |
+| `github_create_pull_request_review` | `APITOOL` | Create a review on a pull request. |
 | `github_create_release` | `APITOOL` | Create a new repository release. |
 | `github_create_repository` | `APITOOL` | Create a new repository for the authenticated user. |
 | `github_delete_branch` | `APITOOL` | Delete a branch in a repository. |
@@ -126,17 +129,22 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_pull_requests` | `APITOOL` | List pull requests for a repository. |
 | `github_get_release` | `APITOOL` | Get a single repository release. |
 | `github_get_releases` | `APITOOL` | List repository releases. |
+| `github_get_repo_secret_public_key` | `APITOOL` | Get the public key for encrypting repository Actions secrets. |
 | `github_get_repo_secrets` | `APITOOL` | List repository Actions secrets names. |
 | `github_get_repositories` | `APITOOL` | List repositories for the authenticated user. |
 | `github_get_repository` | `APITOOL` | Get a specific repository. |
+| `github_get_workflow_job_logs` | `APITOOL` | Download the plaintext logs for a single workflow job. |
 | `github_get_workflow_run` | `APITOOL` | Get a single workflow run. |
+| `github_get_workflow_run_jobs` | `APITOOL` | List the jobs for a workflow run (optional ``filter``: latest/all). |
 | `github_get_workflow_runs` | `APITOOL` | List workflow runs for a repository. |
 | `github_get_workflows` | `APITOOL` | List workflows for a repository. |
 | `github_list_organizations` | `APITOOL` | List organizations. |
 | `github_list_pages_builds` | `APITOOL` | List GitHub Pages builds for a repository (newest first). |
+| `github_merge_pull_request` | `APITOOL` | Merge a pull request (``merge_method`` is merge, squash, or rebase). |
 | `github_remove_collaborator` | `APITOOL` | Remove a collaborator from a repository. |
 | `github_remove_organization_member` | `APITOOL` | Remove a user from an organization (repositories access included). |
 | `github_request_pages_build` | `APITOOL` | Request a fresh GitHub Pages build without pushing a commit. |
+| `github_request_reviewers` | `APITOOL` | Request individual and/or team reviewers on a pull request. |
 | `github_rerun_workflow_run` | `APITOOL` | Re-run a workflow run. |
 | `github_search_code` | `APITOOL` | Search code using query keywords. |
 | `github_search_issues` | `APITOOL` | Search issues using query keywords. |
@@ -154,7 +162,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 </details>
 
-_11 action-routed tool(s) (default) · 66 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
+_14 action-routed tool(s) (default) · 72 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
@@ -398,7 +406,7 @@ consumed from a **remote deployment**. The
 | `MODEL_ID` | `gpt-4o` | Model id for the agent |
 | `ENABLE_WEB_UI` | `True` | Serve the AG-UI web interface |
 
-_32 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
+_33 package + 12 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
 <!-- ENV-VARS-TABLE:END -->
 
 

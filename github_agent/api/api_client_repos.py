@@ -158,6 +158,18 @@ class Api(BaseApiClient):
         return Response(response=response, data={"status": "removed"})
 
     @require_auth
+    def get_repo_secret_public_key(self, owner: str, repo: str) -> Response:
+        """Get the public key for encrypting repository Actions secrets."""
+        response = self._session.get(
+            url=f"{self.url}/repos/{owner}/{repo}/actions/secrets/public-key",
+            headers=self.headers,
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
     def get_repo_secrets(self, owner: str, repo: str) -> Response:
         """List repository Actions secrets names."""
         response = self._session.get(

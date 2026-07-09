@@ -12,7 +12,7 @@ from github_agent.auth import allow_destructive_default, get_client
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
 #: Repo actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
-DESTRUCTIVE_REPO_ACTIONS = {"pages_delete"}
+DESTRUCTIVE_REPO_ACTIONS = {"pages_delete", "secrets_delete"}
 
 #: Valid repo actions for the shared ``resolve_action`` discovery helper.
 REPO_ACTIONS = (
@@ -27,6 +27,10 @@ REPO_ACTIONS = (
     "pages_delete",
     "pages_builds",
     "pages_request_build",
+    "secrets_list",
+    "secrets_public_key",
+    "secrets_set",
+    "secrets_delete",
 )
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
@@ -58,7 +62,8 @@ def register_repo_tools(mcp: FastMCP):
                 "Action to perform. Must be one of: 'list', 'get', 'create', "
                 "'delete', 'update', 'pages_get', 'pages_create', "
                 "'pages_update', 'pages_delete', 'pages_builds', "
-                "'pages_request_build'"
+                "'pages_request_build', 'secrets_list', 'secrets_public_key', "
+                "'secrets_set', 'secrets_delete'"
             )
         ),
         params_json: str = Field(
@@ -67,8 +72,9 @@ def register_repo_tools(mcp: FastMCP):
         allow_destructive: bool = Field(
             default=False,
             description=(
-                "Must be true to run destructive actions: ['pages_delete']. "
-                "Deleting a Pages site takes it offline immediately."
+                "Must be true to run destructive actions: ['pages_delete', "
+                "'secrets_delete']. Deleting a Pages site takes it offline "
+                "immediately; deleting a secret removes it permanently."
             ),
         ),
         client=Depends(get_client),
@@ -107,6 +113,17 @@ def register_repo_tools(mcp: FastMCP):
         - 'pages_request_build': {"owner", "repo"} — request a fresh Pages
           build without pushing a commit (the programmatic fix for the
           first-deploy race where the initial Pages build never ran).
+
+        Actions secrets actions:
+        - 'secrets_list': {"owner", "repo"} — list repository Actions secret
+          names (values are never returned by GitHub).
+        - 'secrets_public_key': {"owner", "repo"} — the repository public key
+          used to encrypt secret values before uploading them.
+        - 'secrets_set': {"owner", "repo", "secret_name", "encrypted_value",
+          "key_id"} — create or update a secret; encrypted_value must be
+          sealed with the public key from 'secrets_public_key'.
+        - 'secrets_delete': {"owner", "repo", "secret_name"} — permanently
+          delete a secret; requires allow_destructive=true.
         """
         if ctx:
             await ctx.info("Executing github_repos action...")
@@ -338,6 +355,101 @@ def register_repo_tools(mcp: FastMCP):
                     "status": 201,
                     "message": "Pages build requested successfully",
                     "data": response.data.model_dump(),
+                }
+            elif action == "secrets_list":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_repo_secrets, owner=owner, repo=repo
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secrets retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_public_key":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_repo_secret_public_key, owner=owner, repo=repo
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret public key retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_set":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                secret_name = kwargs.get("secret_name")
+                encrypted_value = kwargs.get("encrypted_value")
+                key_id = kwargs.get("key_id")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                if not secret_name or encrypted_value is None or not key_id:
+                    return {
+                        "status": 400,
+                        "error": (
+                            "Missing 'secret_name', 'encrypted_value', or "
+                            "'key_id' parameter"
+                        ),
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_or_update_repo_secret,
+                    owner=owner,
+                    repo=repo,
+                    secret_name=secret_name,
+                    encrypted_value=encrypted_value,
+                    key_id=key_id,
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret set successfully",
+                    "data": response.data,
+                }
+            elif action == "secrets_delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                secret_name = kwargs.get("secret_name")
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                if not secret_name:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'secret_name' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.delete_repo_secret,
+                    owner=owner,
+                    repo=repo,
+                    secret_name=secret_name,
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository secret deleted successfully",
+                    "data": response.data,
                 }
             else:
                 return {

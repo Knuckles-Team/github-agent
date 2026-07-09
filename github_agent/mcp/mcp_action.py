@@ -18,6 +18,8 @@ WORKFLOW_ACTIONS = (
     "list_workflows",
     "list_runs",
     "get_run",
+    "list_jobs",
+    "job_logs",
     "trigger_dispatch",
     "rerun",
     "cancel",
@@ -125,6 +127,51 @@ def register_action_tools(mcp: FastMCP):
                     "status": 200,
                     "message": "Workflow run retrieved successfully",
                     "data": response.data.model_dump(),
+                }
+            elif action == "list_jobs":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                run_id = kwargs.get("run_id")
+                if not owner or not repo or not run_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+                        "data": None,
+                    }
+                extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
+                response = await run_blocking(
+                    client.get_workflow_run_jobs,
+                    owner=owner,
+                    repo=repo,
+                    run_id=int(run_id),
+                    **extra,
+                )
+                data = response.data
+                return {
+                    "status": 200,
+                    "message": "Workflow run jobs retrieved successfully",
+                    "data": _slim(data) if slim else data,
+                }
+            elif action == "job_logs":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                job_id = kwargs.get("job_id")
+                if not owner or not repo or not job_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_workflow_job_logs,
+                    owner=owner,
+                    repo=repo,
+                    job_id=int(job_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Workflow job logs retrieved successfully",
+                    "data": response.data,
                 }
             elif action == "trigger_dispatch":
                 owner = kwargs.get("owner")

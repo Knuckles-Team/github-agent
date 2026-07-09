@@ -50,7 +50,9 @@ class GraphQL:
             verify=verify,
             proxies=proxies,
         )
-        self.client = Client(transport=self.transport, fetch_schema_from_transport=False)
+        self.client = Client(
+            transport=self.transport, fetch_schema_from_transport=False
+        )
 
     @staticmethod
     def _graphql_endpoint(url: str) -> str:
@@ -86,3 +88,40 @@ class GraphQL:
         except Exception as e:
             logging.error(f"GraphQL execution failed: {str(e)}")
             raise ParameterError(f"Query execution failed: {str(e)}") from e
+
+    def enable_pull_request_auto_merge(
+        self, pull_request_id: str, merge_method: str = "MERGE"
+    ) -> dict[str, Any]:
+        """Enable auto-merge on a pull request (no REST equivalent exists).
+
+        ``pull_request_id`` is the PR's GraphQL node id; ``merge_method`` is one
+        of MERGE, SQUASH, or REBASE. Auto-merge queues the PR to merge once its
+        required status checks pass and approvals are satisfied.
+        """
+        mutation = """
+        mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+          enablePullRequestAutoMerge(
+            input: {pullRequestId: $pullRequestId, mergeMethod: $mergeMethod}
+          ) {
+            pullRequest {
+              number
+              autoMergeRequest { enabledAt mergeMethod }
+            }
+          }
+        }
+        """
+        return self.execute_gql(
+            mutation,
+            {"pullRequestId": pull_request_id, "mergeMethod": merge_method.upper()},
+        )
+
+    def disable_pull_request_auto_merge(self, pull_request_id: str) -> dict[str, Any]:
+        """Disable a previously-enabled auto-merge on a pull request (GraphQL)."""
+        mutation = """
+        mutation($pullRequestId: ID!) {
+          disablePullRequestAutoMerge(input: {pullRequestId: $pullRequestId}) {
+            pullRequest { number }
+          }
+        }
+        """
+        return self.execute_gql(mutation, {"pullRequestId": pull_request_id})

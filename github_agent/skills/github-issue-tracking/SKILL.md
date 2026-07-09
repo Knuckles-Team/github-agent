@@ -6,13 +6,13 @@ description: >-
   issue / code searches. Use when the agent must triage open issues by label or
   assignee, open or update an issue, find every open issue across an org, or search
   repositories/code. Do NOT use for pull-request review
-  (github-pull-request-review) or repository/branch structure
-  (github-repository-management).
+  (github-pull-request-review), opening a PR (github-pull-request-create), CI/Actions review
+  (github-actions-ci-review), or repository/branch structure (github-repository-management).
 license: MIT
-tags: [github, issues, search, triage, mcp]
+tags: [github, issues, search, triage, organization, mcp]
 metadata:
   author: Genius
-  version: '0.1.0'
+  version: '0.2.0'
 ---
 # GitHub Issue Tracking
 
@@ -21,9 +21,11 @@ Domain-typed access to GitHub **issues** and **search** via the github-agent MCP
 return issue- and search-shaped records.
 
 ## When to use
-- List / triage issues in a repo, filtered by state, labels, or assignee.
+- Review / triage issues for a **specific repository** (project), filtered by state, labels,
+  or assignee.
+- Review issues affecting a whole **organization** — every open issue across its repos in ONE
+  `/search/issues` call.
 - Open a new issue or update one (title, body, state, labels, assignees).
-- List **org-wide** issues across every repo in ONE `/search/issues` call.
 - Search repositories, issues, or code with GitHub query qualifiers.
 
 ## When NOT to use
