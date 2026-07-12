@@ -73,6 +73,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_dependabot` | `DEPENDABOTTOOL` | Review and manage GitHub Dependabot vulnerability alerts. |
 | `github_discover_graphql_schema` | `GRAPHQLTOOL` | Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time. |
 | `github_graphql` | `GRAPHQLTOOL` | Execute raw GraphQL queries and mutations natively on GitHub. |
+| `github_ingest_pipelines` | `INGESTTOOL` | Natively ingest GitHub Actions workflow runs into epistemic-graph. |
 | `github_ingest_repos` | `INGESTTOOL` | Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes. |
 | `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
 | `github_orgs` | `ORGTOOL` | Manage GitHub organizations. |
@@ -167,7 +168,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 </details>
 
-_15 action-routed tool(s) (default) · 76 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
+_16 action-routed tool(s) (default) · 76 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/mcp.md](docs/mcp.md).
