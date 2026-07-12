@@ -3,7 +3,8 @@
 CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector natively
 pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
-``:Person``) plus links, and release notes as **:Document** nodes for semantic search —
+``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
+**:Document** nodes for semantic search —
 using the lightweight engine client (``GraphComputeEngine()._client`` + ``txn``), the
 same fast client the blob ``MediaStore`` uses, NOT the heavy in-process ingestion engine.
 
@@ -355,3 +356,123 @@ def ingest_release_notes(
             }
         )
     return ingest_documents(docs, client=client, graph=graph)
+
+
+def _duration_seconds(start: Any, end: Any) -> int | None:
+    """Whole-second wall-clock duration between two ISO-8601 timestamps, or ``None``."""
+    if not start or not end:
+        return None
+    try:
+        import datetime as _dt
+
+        started = _dt.datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+        ended = _dt.datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+        return max(0, int((ended - started).total_seconds()))
+    except (ValueError, TypeError):
+        return None
+
+
+def ingest_pipeline_runs(
+    runs: list[dict[str, Any]],
+    *,
+    repo_full_name: str | None = None,
+    repo_node_id: str | None = None,
+    jobs_by_run: dict[int, list[dict[str, Any]]] | None = None,
+    client: Any | None = None,
+    graph: str | None = None,
+) -> dict[str, int] | None:
+    """Map GitHub Actions workflow runs (+ jobs/check-runs) → ``:PipelineRun``/``:CheckRun``.
+
+    ``runs``: raw ``WorkflowRun`` records (``client.get_workflow_runs`` /
+    ``.get_workflow_run`` ``model_dump()``). ``jobs_by_run``: optional ``{run_id:
+    [job_or_check_run, ...]}`` from ``client.get_workflow_run_jobs`` (or the Checks
+    API) — each becomes a child ``:CheckRun`` linked via ``hasJob``.
+
+    Uses the SAME ``:PipelineRun``/``:CheckRun`` classes and ``ranFor``/``hasJob``
+    edge names as gitlab-api's ingestion so GitHub Actions and GitLab CI/CD unify
+    under one CI node shape in the knowledge graph. ``ranFor`` is emitted once per
+    known target — the repo, the head commit, and (if the run lists it) the PR.
+    Stable ids: ``github:pipelinerun:<repo>:<id>`` / ``github:checkrun:<repo>:<id>``.
+    """
+    entities: list[dict[str, Any]] = []
+    relationships: list[dict[str, Any]] = []
+    jobs_by_run = jobs_by_run or {}
+    for run in runs or []:
+        run_id = run.get("id")
+        if run_id is None:
+            continue
+        repo = repo_full_name or (run.get("repository") or {}).get("full_name")
+        node_id = f"github:pipelinerun:{repo}:{run_id}"
+        run_started = run.get("run_started_at")
+        run_updated = run.get("updated_at")
+        entities.append(
+            {
+                "id": node_id,
+                "type": "PipelineRun",
+                "status": run.get("status"),
+                "conclusion": run.get("conclusion"),
+                "headSha": run.get("head_sha"),
+                "headBranch": run.get("head_branch"),
+                "event": run.get("event"),
+                "htmlUrl": _str(run.get("html_url")),
+                "runStartedAt": run_started,
+                "runUpdatedAt": run_updated,
+                "durationSeconds": _duration_seconds(run_started, run_updated),
+                "externalToolId": str(run_id),
+            }
+        )
+
+        if repo_node_id:
+            relationships.append(
+                {"source": node_id, "target": repo_node_id, "type": "ranFor"}
+            )
+
+        head_sha = run.get("head_sha")
+        if repo and head_sha:
+            commit_id = f"github:commit:{repo}:{head_sha}"
+            entities.append(
+                {
+                    "id": commit_id,
+                    "type": "Commit",
+                    "sha": head_sha,
+                    "externalToolId": head_sha,
+                }
+            )
+            relationships.append(
+                {"source": node_id, "target": commit_id, "type": "ranFor"}
+            )
+
+        for pr in run.get("pull_requests") or []:
+            pr_id = pr.get("id")
+            if pr_id is None:
+                continue
+            relationships.append(
+                {
+                    "source": node_id,
+                    "target": f"github:pullrequest:{pr_id}",
+                    "type": "ranFor",
+                }
+            )
+
+        for job in jobs_by_run.get(run_id) or []:
+            job_id = job.get("id")
+            if job_id is None:
+                continue
+            job_node_id = f"github:checkrun:{repo}:{job_id}"
+            entities.append(
+                {
+                    "id": job_node_id,
+                    "type": "CheckRun",
+                    "name": job.get("name"),
+                    "status": job.get("status"),
+                    "conclusion": job.get("conclusion"),
+                    "startedAt": job.get("started_at"),
+                    "completedAt": job.get("completed_at"),
+                    "htmlUrl": _str(job.get("html_url")),
+                    "externalToolId": str(job_id),
+                }
+            )
+            relationships.append(
+                {"source": node_id, "target": job_node_id, "type": "hasJob"}
+            )
+    return ingest_entities(entities, relationships, client=client, graph=graph)

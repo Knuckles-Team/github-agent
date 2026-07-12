@@ -2317,6 +2317,99 @@ def register_ingest_tools(mcp: FastMCP):
         result = ingest_repositories(records)
         return {"listed": len(records), "ingested": result}
 
+    @mcp.tool(tags={"kg"})
+    async def github_ingest_pipelines(
+        params_json: str = Field(
+            default="{}",
+            description="JSON string with required 'owner'/'repo' and optional "
+            "github_actions 'list_runs' filters (status, branch, per_page, "
+            "max_pages), plus 'include_jobs' (default true — fetch each run's "
+            "jobs as :CheckRun children) and 'repo_node_id' (the :Repository "
+            "node id to link runs to via ranFor).",
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> Any:
+        """Natively ingest GitHub Actions workflow runs into epistemic-graph.
+
+        Lists recent workflow runs for a repository (+ each run's jobs, unless
+        ``include_jobs=false``) via the GitHub API and pushes them as typed
+        :PipelineRun nodes (with child :CheckRun jobs linked via hasJob, and
+        ranFor links to the repo/head-commit/PR) into the knowledge graph via
+        the fast engine client. Uses the SAME :PipelineRun/:CheckRun classes as
+        gitlab-api's CI ingestion so GitHub Actions and GitLab CI/CD unify under
+        one node shape. Best-effort: returns ``{"ingested": None}`` when no
+        engine is reachable. CONCEPT:AU-KG.ingest.enterprise-source-extractor.
+        """
+        if ctx:
+            await ctx.info(
+                "Ingesting GitHub Actions pipeline runs into the knowledge graph..."
+            )
+        import json
+
+        from github_agent.kg_ingest import ingest_pipeline_runs
+
+        try:
+            kwargs = json.loads(params_json) if params_json else {}
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+
+        owner = kwargs.get("owner")
+        repo = kwargs.get("repo")
+        if not owner or not repo:
+            return {
+                "status": 400,
+                "error": "Missing required 'owner' or 'repo' parameter",
+                "data": None,
+            }
+
+        include_jobs = kwargs.get("include_jobs", True)
+        repo_node_id = kwargs.get("repo_node_id")
+        list_kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in ("owner", "repo", "status", "branch", "per_page", "max_pages")
+            and v is not None
+        }
+
+        response = await run_blocking(client.get_workflow_runs, **list_kwargs)
+        runs = [
+            run.model_dump() if hasattr(run, "model_dump") else run
+            for run in response.data
+            if run is not None
+        ]
+
+        jobs_by_run: dict[int, Any] = {}
+        if include_jobs:
+            for run in runs:
+                run_id = run.get("id")
+                if run_id is None:
+                    continue
+                try:
+                    jobs_response = await run_blocking(
+                        client.get_workflow_run_jobs,
+                        owner=owner,
+                        repo=repo,
+                        run_id=run_id,
+                    )
+                    jobs_by_run[run_id] = jobs_response.data
+                except Exception as e:
+                    logger.debug(
+                        "github_ingest_pipelines: jobs fetch failed for run %s: %s",
+                        run_id,
+                        e,
+                    )
+
+        result = ingest_pipeline_runs(
+            runs,
+            repo_full_name=f"{owner}/{repo}",
+            repo_node_id=repo_node_id,
+            jobs_by_run=jobs_by_run,
+        )
+        return {"listed": len(runs), "ingested": result}
+
 
 def register_graphql_tools(mcp: FastMCP):
     from github_agent.auth import get_graphql_client
