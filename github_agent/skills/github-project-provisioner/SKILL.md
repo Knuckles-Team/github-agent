@@ -6,7 +6,7 @@ license: MIT
 tags: [github, provision, ci-cd, actions, pages, ops]
 metadata:
   author: Genius
-  version: '0.1.21'
+  version: '0.1.22'
 ---
 
 # GitHub Project Provisioner
@@ -16,7 +16,7 @@ metadata:
 This skill provisions a GitHub repository with standard CI/CD and deployment configurations. It handles creating the repository using the `github-agent` MCP tool, setting up standardized GitHub Actions workflows (with remote caching), and programmatically enabling GitHub Pages (via GitHub Actions workflow).
 
 ## Prerequisites
-- The environment must provide `GITHUB_ACCESS_TOKEN` for the python scripts to authenticate. The `github-agent` MCP should already be available and configured with its own secrets. Do NOT hardcode or ask for secrets.
+- The environment must provide `GITHUB_TOKEN` for the python scripts to authenticate. The `github-agent` MCP should already be available and configured with its own secrets. Do NOT hardcode or ask for secrets.
 
 ## Workflow
 
@@ -52,7 +52,7 @@ Usage:
 ```bash
 python scripts/enable_pages.py <owner> <repo_name>
 ```
-*Note: This script uses the `GITHUB_ACCESS_TOKEN` environment variable.*
+*Note: This script uses the `GITHUB_TOKEN` environment variable.*
 
 ### Step 4: Verify Provisioning
 Ensure all actions have succeeded without exposing secrets in any output or file.

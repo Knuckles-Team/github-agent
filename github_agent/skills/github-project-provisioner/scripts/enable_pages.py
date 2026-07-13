@@ -6,10 +6,10 @@ import urllib.request
 
 
 def enable_pages(owner, repo):
-    token = os.environ.get("GITHUB_ACCESS_TOKEN")
+    token = os.environ.get("GITHUB_TOKEN")
     if not token:
         print(
-            "Error: GITHUB_ACCESS_TOKEN environment variable is not set.",
+            "Error: GITHUB_TOKEN environment variable is not set.",
             file=sys.stderr,
         )
         sys.exit(1)
