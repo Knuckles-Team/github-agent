@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""GitHub write-helper for posting a comment (the github-mcp has no comment tool)
-and merging a PR with a write-time mergeable_state re-check. (Closing is done via
-the MCP — `github_issues action=update` / `github_pulls action=update` with
-state=closed — so this helper deliberately does not implement close. The MCP also
-has a native `github_pulls action=merge`; this helper is preferred for merge because
-it re-verifies mergeable_state at write time and couples the disclaimer comment.)
+"""Fallback GitHub write-helper for posting a comment and merging a PR with a
+write-time mergeable_state re-check. The github-mcp now has native tools for both
+(`github_comments` and `github_merge_pull_request`); this helper is retained for two
+cases: a deployed github-mcp that predates `github_comments`, and callers that want
+the atomic re-verify-mergeable-then-comment-then-merge in one guarded step. (Closing
+is done via the MCP — `github_issues action=update` / `github_pulls action=update`
+with state=closed — so this helper deliberately does not implement close.)
 
 Auth: reads the token from the ``GITHUB_TOKEN`` runtime environment variable.
 No token is ever printed or read from a plaintext credential file.
