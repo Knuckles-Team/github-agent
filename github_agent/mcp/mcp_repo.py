@@ -458,5 +458,5 @@ def register_repo_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}

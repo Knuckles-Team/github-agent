@@ -580,7 +580,7 @@ def register_repo_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -723,7 +723,7 @@ def register_issue_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -982,7 +982,7 @@ def register_pull_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -1666,7 +1666,7 @@ def register_content_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -1832,7 +1832,7 @@ def register_branch_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -1899,7 +1899,7 @@ def register_commit_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -1962,7 +1962,7 @@ def register_search_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2119,7 +2119,7 @@ def register_org_tools(mcp: FastMCP):
                         admin=admin,
                         profile_name=kwargs.get("profile_name"),
                     )
-                except OrganizationCreationNotSupportedError as e:
+                except OrganizationCreationNotSupportedError:
                     return {"status": 400, "error": "Operation failed", "data": None}
                 return {
                     "status": 201,
@@ -2231,7 +2231,7 @@ def register_org_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2324,7 +2324,7 @@ def register_collaborator_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2551,7 +2551,7 @@ def register_action_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2696,7 +2696,7 @@ def register_release_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2851,7 +2851,7 @@ def register_dependabot_tools(mcp: FastMCP):
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
-        except Exception as e:
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -3022,7 +3022,7 @@ def register_graphql_tools(mcp: FastMCP):
 
         try:
             vars_dict = json.loads(variables) if variables else None
-        except Exception as e:
+        except Exception:
             return {"error": "Operation failed"}
 
         try:
@@ -3064,7 +3064,7 @@ def register_graphql_tools(mcp: FastMCP):
             if type_name:
                 return await ctx_graphql_get_type_details(execute_fn, type_name)
             return await ctx_graphql_list_types(execute_fn)
-        except Exception as e:
+        except Exception:
             return {"error": "Failed to discover GitHub GraphQL schema"}
 
 
