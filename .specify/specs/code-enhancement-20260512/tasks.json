@@ -275,7 +275,7 @@
   {
     "id": "T022",
     "title": "[Environment Variables] 7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_",
-    "description": "7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, GITHUB_VERIFY, ISSUETOOL",
+    "description": "7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, TLS_PROFILE, ISSUETOOL",
     "domain": "Environment Variables",
     "priority": "P2-Medium",
     "effort": "Medium",

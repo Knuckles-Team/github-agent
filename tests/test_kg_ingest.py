@@ -8,9 +8,13 @@ CONCEPT:AU-KG.ingest.enterprise-source-extractor.
 
 from __future__ import annotations
 
+import pytest
+from agent_utilities.knowledge_graph.memory.native_ingest import NativeIngestError
+
 from github_agent.kg_ingest import (
     ingest_entities,
     ingest_issues,
+    ingest_pipeline_runs,
     ingest_pull_requests,
     ingest_release_notes,
     ingest_repositories,
@@ -20,6 +24,7 @@ from github_agent.kg_ingest import (
 class _FakeTxn:
     def __init__(self):
         self.nodes = {}
+        self.edges = []
         self.committed = False
 
     def begin(self, graph=None):
@@ -29,33 +34,28 @@ class _FakeTxn:
     def add_node(self, txn, node_id, props):
         self.nodes[node_id] = props
 
+    def add_edge(self, txn, src, dst, props):
+        self.edges.append((src, dst, props))
+
     def commit(self, txn):
         self.committed = True
         return True
 
 
-class _FakeEdges:
-    def __init__(self):
-        self.edges = []
-
-    def add(self, src, dst, props):
-        self.edges.append((src, dst, props))
-
 
 class _FakeClient:
     def __init__(self):
         self.txn = _FakeTxn()
-        self.edges = _FakeEdges()
 
 
 def test_ingest_entities_writes_nodes_and_edges():
     c = _FakeClient()
     res = ingest_entities(
         [
-            {"id": "a", "type": "Repository", "name": "r"},
-            {"id": "b", "type": "Organization"},
+            {"id": "a", "node_type": "Repository", "name": "r"},
+            {"id": "b", "node_type": "Organization"},
         ],
-        [{"source": "a", "target": "b", "type": "ownedByOrg"}],
+        [{"source": "a", "target": "b", "relationship": "ownedByOrg"}],
         client=c,
         graph="__commons__",
     )
@@ -65,7 +65,7 @@ def test_ingest_entities_writes_nodes_and_edges():
     # provenance is stamped
     assert c.txn.nodes["a"]["source"] == "github-agent"
     assert c.txn.nodes["a"]["domain"] == "github"
-    assert c.edges.edges == [("a", "b", {"type": "ownedByOrg"})]
+    assert c.txn.edges == [("a", "b", {"relationship": "ownedByOrg"})]
 
 
 def test_ingest_repositories_maps_repo_and_owner():
@@ -92,14 +92,14 @@ def test_ingest_repositories_maps_repo_and_owner():
     )
     assert res == {"nodes": 2, "edges": 1}
     repo = c.txn.nodes["github:repository:42"]
-    assert repo["type"] == "Repository"
+    assert repo["node_type"] == "Repository"
     assert repo["fullName"] == "acme/api"
     assert repo["isPrivate"] is True
     assert repo["externalToolId"] == "42"
     org = c.txn.nodes["github:organization:acme"]
-    assert org["type"] == "Organization"
-    assert c.edges.edges == [
-        ("github:repository:42", "github:organization:acme", {"type": "ownedByOrg"})
+    assert org["node_type"] == "Organization"
+    assert c.txn.edges == [
+        ("github:repository:42", "github:organization:acme", {"relationship": "ownedByOrg"})
     ]
 
 
@@ -116,7 +116,7 @@ def test_ingest_repositories_user_owner_is_person():
         client=c,
         graph="__commons__",
     )
-    assert c.txn.nodes["github:organization:octocat"]["type"] == "Person"
+    assert c.txn.nodes["github:organization:octocat"]["node_type"] == "Person"
 
 
 def test_ingest_pull_requests_maps_author_and_repo_link():
@@ -138,14 +138,14 @@ def test_ingest_pull_requests_maps_author_and_repo_link():
     )
     assert res == {"nodes": 2, "edges": 2}
     pr = c.txn.nodes["github:pullrequest:100"]
-    assert pr["type"] == "PullRequest"
+    assert pr["node_type"] == "PullRequest"
     assert pr["number"] == 5
-    assert c.txn.nodes["github:person:octocat"]["type"] == "Person"
+    assert c.txn.nodes["github:person:octocat"]["node_type"] == "Person"
     assert (
         "github:pullrequest:100",
         "github:repository:42",
-        {"type": "belongsToRepository"},
-    ) in c.edges.edges
+        {"relationship": "belongsToRepository"},
+    ) in c.txn.edges
 
 
 def test_ingest_issues_skips_pull_requests():
@@ -185,18 +185,109 @@ def test_ingest_release_notes_writes_documents():
     # Empty-body release is skipped.
     assert res == {"nodes": 1, "edges": 0}
     doc = c.txn.nodes["github:release:500"]
-    assert doc["type"] == "Document"
+    assert doc["node_type"] == "Document"
     assert doc["text"].startswith("## Highlights")
     assert doc["source_uri"].endswith("v1.0.0")
     assert doc["source"] == "github-agent"
 
 
-def test_ingest_noops_without_engine():
-    # No injected client + no reachable engine -> clean no-op.
-    assert ingest_entities([{"id": "a", "type": "Repository"}]) is None
+def test_ingest_pipeline_runs_maps_run_repo_commit_pr_and_jobs():
+    c = _FakeClient()
+    res = ingest_pipeline_runs(
+        [
+            {
+                "id": 555,
+                "status": "completed",
+                "conclusion": "success",
+                "head_sha": "abc123",
+                "head_branch": "main",
+                "event": "push",
+                "html_url": "https://github.com/acme/api/actions/runs/555",
+                "run_started_at": "2026-07-10T10:00:00Z",
+                "updated_at": "2026-07-10T10:05:00Z",
+                "pull_requests": [{"id": 100, "number": 5}],
+            }
+        ],
+        repo_full_name="acme/api",
+        repo_node_id="github:repository:42",
+        jobs_by_run={
+            555: [
+                {
+                    "id": 9001,
+                    "name": "build",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "started_at": "2026-07-10T10:00:05Z",
+                    "completed_at": "2026-07-10T10:04:55Z",
+                    "html_url": "https://github.com/acme/api/actions/runs/555/job/9001",
+                }
+            ]
+        },
+        client=c,
+        graph="__commons__",
+    )
+    # PipelineRun + Commit + CheckRun nodes; ranFor(repo)+ranFor(commit)+ranFor(PR)+hasJob edges.
+    assert res == {"nodes": 3, "edges": 4}
+
+    run = c.txn.nodes["github:pipelinerun:acme/api:555"]
+    assert run["node_type"] == "PipelineRun"
+    assert run["status"] == "completed"
+    assert run["conclusion"] == "success"
+    assert run["headSha"] == "abc123"
+    assert run["headBranch"] == "main"
+    assert run["event"] == "push"
+    assert run["durationSeconds"] == 300
+    assert run["externalToolId"] == "555"
+
+    commit = c.txn.nodes["github:commit:acme/api:abc123"]
+    assert commit["node_type"] == "Commit"
+    assert commit["sha"] == "abc123"
+
+    job = c.txn.nodes["github:checkrun:acme/api:9001"]
+    assert job["node_type"] == "CheckRun"
+    assert job["name"] == "build"
+    assert job["status"] == "completed"
+    assert job["conclusion"] == "success"
+
+    assert (
+        "github:pipelinerun:acme/api:555",
+        "github:repository:42",
+        {"relationship": "ranFor"},
+    ) in c.txn.edges
+    assert (
+        "github:pipelinerun:acme/api:555",
+        "github:commit:acme/api:abc123",
+        {"relationship": "ranFor"},
+    ) in c.txn.edges
+    assert (
+        "github:pipelinerun:acme/api:555",
+        "github:pullrequest:100",
+        {"relationship": "ranFor"},
+    ) in c.txn.edges
+    assert (
+        "github:pipelinerun:acme/api:555",
+        "github:checkrun:acme/api:9001",
+        {"relationship": "hasJob"},
+    ) in c.txn.edges
 
 
-def test_ingest_empty_is_noop():
-    assert ingest_entities([], client=_FakeClient()) is None
-    assert ingest_repositories([], client=_FakeClient()) is None
-    assert ingest_release_notes([], client=_FakeClient()) is None
+def test_ingest_pipeline_runs_minimal_no_links():
+    c = _FakeClient()
+    res = ingest_pipeline_runs(
+        [{"id": 1, "status": "in_progress"}],
+        client=c,
+        graph="__commons__",
+    )
+    assert res == {"nodes": 1, "edges": 0}
+    run = c.txn.nodes["github:pipelinerun:None:1"]
+    assert run["status"] == "in_progress"
+    assert "durationSeconds" not in run
+
+
+def test_ingest_rejects_legacy_structural_fields():
+    with pytest.raises(NativeIngestError, match="canonical node_type"):
+        ingest_entities([{"id": "legacy", "type": "Legacy"}], client=_FakeClient())
+
+def test_ingest_empty_is_rejected():
+    with pytest.raises(NativeIngestError, match="at least one entity"):
+        ingest_entities([], client=_FakeClient())

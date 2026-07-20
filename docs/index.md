@@ -53,7 +53,7 @@ Connect it to GitHub:
 
 ```bash
 export GITHUB_URL=https://api.github.com
-export GITHUB_TOKEN=ghp_your_personal_access_token
+export GITHUB_TOKEN="<GITHUB_TOKEN>"
 github-mcp --transport streamable-http --host 0.0.0.0 --port 8000
 ```
 

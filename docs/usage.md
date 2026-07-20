@@ -38,12 +38,13 @@ Example agent prompts that map onto these tools:
 per-domain mixins. Build it directly, or from the environment with `get_client()`.
 
 ```python
+import os
+
 from github_agent.api_client import Api
 
 api = Api(
     url="https://api.github.com",
-    token="ghp_your_personal_access_token",
-    verify=True,
+    token=os.environ["GITHUB_TOKEN"],
 )
 
 # Reads
@@ -61,7 +62,7 @@ Build a client straight from the environment:
 
 ```python
 from github_agent.auth import get_client
-api = get_client()        # reads GITHUB_URL / GITHUB_TOKEN / GITHUB_VERIFY
+api = get_client()        # reads endpoint/credentials and AgentConfig TLS policy
 ```
 
 ### Writes

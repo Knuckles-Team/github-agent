@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -38,8 +38,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/git/refs",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             return Response(response=response, data=response.json())
@@ -52,8 +50,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/repos/{owner}/{repo}/git/refs/heads/{branch}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "deleted"})
@@ -64,8 +60,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/branches/{branch}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -80,8 +74,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/branches/{branch}/protection",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -95,8 +87,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/branches/{branch}/protection",
             json=protection_config,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -107,8 +97,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/repos/{owner}/{repo}/branches/{branch}/protection",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "protection_deleted"})

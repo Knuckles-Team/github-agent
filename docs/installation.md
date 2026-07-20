@@ -16,7 +16,7 @@ path that matches how you want to run it.
 pip install github-agent
 ```
 
-The base install pulls in `agent-utilities[agent,logfire]`, which provides the
+The base install pulls in `agent-utilities[agent-runtime,logfire]`, which provides the
 FastMCP runtime, the Pydantic-AI agent stack, and Logfire/OpenTelemetry tracing —
 everything needed to run both the MCP server and the A2A agent.
 
@@ -43,15 +43,15 @@ uv run github-mcp
 
 ## Prebuilt Docker image
 
-A multi-stage, slim image is published on every release (entrypoint `github-mcp`):
+A multi-stage runtime image is published on every release (entrypoint `github-mcp`):
 
 ```bash
-docker pull knucklessg1/github-agent:latest
+docker pull example/github-agent@sha256:<digest>
 
 docker run --rm -i \
   -e GITHUB_URL=https://api.github.com \
-  -e GITHUB_TOKEN=ghp_your_personal_access_token \
-  knucklessg1/github-agent:latest        # stdio transport (default)
+  -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
+  example/github-agent@sha256:<digest>        # stdio transport (default)
 ```
 
 For an HTTP server with a published port, see [Deployment](deployment.md).

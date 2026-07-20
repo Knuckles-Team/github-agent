@@ -22,7 +22,7 @@
 - [ ] **FR-019**: 4 tests have no assertions
 - [ ] **FR-020**: Only 25% of env vars documented in README.md
 - [ ] **FR-021**: Undocumented env vars: ALLOWED_CLIENT_REDIRECT_URIS, AUTH_TYPE, EUNOMIA_POLICY_FILE, EUNOMIA_REMOTE_URL, EUNOMIA_TYPE, GITHUB_USER_EMAIL, GITHUB_USER_NAME, HOST, OAUTH_BASE_URL, OAUTH_UPSTREAM_AUTH_ENDPOINT
-- [ ] **FR-022**: 7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, GITHUB_VERIFY, ISSUETOOL
+- [ ] **FR-022**: 7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, TLS_PROFILE, ISSUETOOL
 
 ## User Stories / Acceptance Criteria
 - [ ] As a **developer**, I want to **address Project Analysis findings (grade: C, score: 74)**, so that **improve project project analysis from C to at least B (80+)**.

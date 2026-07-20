@@ -3,7 +3,8 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action, run_blocking
+from agent_utilities.mcp.action_dispatch import resolve_action
+from agent_utilities.mcp.concurrency import run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -94,7 +95,7 @@ def register_org_tools(mcp: FastMCP):
         try:
             kwargs = json.loads(params_json)
         except Exception as e:
-            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+            return {"status": 400, "error": f"Invalid params_json: {type(e).__name__}", "data": None}
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
@@ -185,7 +186,7 @@ def register_org_tools(mcp: FastMCP):
                         profile_name=kwargs.get("profile_name"),
                     )
                 except OrganizationCreationNotSupportedError as e:
-                    return {"status": 400, "error": str(e), "data": None}
+                    return {"status": 400, "error": "Operation failed", "data": None}
                 return {
                     "status": 201,
                     "message": "Organization created successfully",
@@ -297,4 +298,4 @@ def register_org_tools(mcp: FastMCP):
                     "data": None,
                 }
         except Exception as e:
-            return {"status": 500, "error": str(e), "data": None}
+            return {"status": 500, "error": "Operation failed", "data": None}

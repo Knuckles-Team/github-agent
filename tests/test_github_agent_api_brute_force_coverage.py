@@ -143,7 +143,7 @@ def test_github_brute_force():
         try:
             method(**kwargs)
         except Exception as e:
-            print(f"Failed calling {name}: {e}")
+            print(f"Operation failed: {type(e).__name__}")
 
 
 @pytest.mark.usefixtures("mock_session")
@@ -186,7 +186,7 @@ def test_mcp_server_coverage():
 
                         await mcp.call_tool(tool_name, target_params)
                     except Exception as e:
-                        print(f"Tool {tool_name} failed: {e}")
+                        print(f"Operation failed: {type(e).__name__}")
 
             loop = asyncio.new_event_loop()
             loop.run_until_complete(run_tools())

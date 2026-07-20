@@ -418,7 +418,7 @@
   {
     "id": "T033",
     "title": "[Environment Variables] 6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, GITHUB_SS",
-    "description": "6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, GITHUB_SSL_VERIFY, ORGSTOOL, RELEASESTOOL",
+    "description": "6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, TLS_PROFILE_REF, ORGSTOOL, RELEASESTOOL",
     "domain": "Environment Variables",
     "priority": "P2-Medium",
     "effort": "Medium",

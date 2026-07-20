@@ -143,7 +143,7 @@
     },
     {
       "id": "FR-022",
-      "description": "7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, GITHUB_VERIFY, ISSUETOOL",
+      "description": "7 Python env vars not in .env.example: CONTENTSTOOL, DEFAULT_AGENT_NAME, GITHUB_URL, TLS_PROFILE, ISSUETOOL",
       "testable": true
     }
   ],

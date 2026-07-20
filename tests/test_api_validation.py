@@ -1,8 +1,10 @@
 from typing import Any
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 import requests
-from agent_utilities.exceptions import ParameterError
+from agent_utilities.core.exceptions import ParameterError
+
 from github_agent.api_client import Api
 
 

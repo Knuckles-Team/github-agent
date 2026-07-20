@@ -1,14 +1,14 @@
-import logging
 import os
+from unittest.mock import ANY, MagicMock, patch
+
 import pytest
 import requests
-import urllib3
-from unittest.mock import MagicMock, patch
-from agent_utilities.exceptions import (
+from agent_utilities.core.exceptions import (
     AuthError,
-    UnauthorizedError,
     MissingParameterError,
+    UnauthorizedError,
 )
+
 from github_agent.api_client import Api
 from github_agent.auth import get_client, local
 
@@ -27,13 +27,9 @@ def test_api_client_init_edge_cases():
         api = Api(debug=True, token="test-token")
         assert api.debug is True
 
-        # 3. verify=False disables InsecureRequestWarning
-        with patch("urllib3.disable_warnings") as mock_disable:
-            api_no_verify = Api(verify=False, token="test-token")
-            mock_disable.assert_called_once_with(
-                urllib3.exceptions.InsecureRequestWarning
-            )
-            assert api_no_verify.verify is False
+        # 3. Every client receives a mandatory-verification TLS profile.
+        api_profiled = Api(token="test-token")
+        assert api_profiled.tls_profile.verify_enabled is True
 
         # 4. Omitted token warning
         with patch("github_agent.api_client.logger.warning") as mock_warn:
@@ -68,8 +64,10 @@ def test_api_client_auth_errors():
         side_effect=requests.exceptions.RequestException("connection timed out"),
     ):
         with patch("github_agent.api_client.logger.error") as mock_err:
-            api = Api(token="any-token")
-            mock_err.assert_called_with("Connection Error: connection timed out")
+            Api(token="any-token")
+            mock_err.assert_called_with(
+                "Operation failed: error_type=%s", "RequestException"
+            )
 
 
 def test_auth_get_client_fixed_credentials_failure():
@@ -93,7 +91,7 @@ def test_auth_get_client_delegation_missing_token():
 
 def test_auth_get_client_delegation_exchange_failure():
     # delegation enabled, user token present, but token exchange fails
-    local.user_token = "some-subject-token" # sanitizer:ignore
+    local.user_token = "some-subject-token"  # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -107,15 +105,13 @@ def test_auth_get_client_delegation_exchange_failure():
         "requests.post",
         side_effect=requests.exceptions.RequestException("OAuth connection error"),
     ):
-        with pytest.raises(
-            RuntimeError, match="Token exchange failed: OAuth connection error"
-        ):
+        with pytest.raises(RuntimeError, match="^Token exchange failed$"):
             get_client(config)
 
 
 def test_auth_get_client_delegation_auth_error():
     # delegation enabled, user token present, token exchange succeeds, but Api throws AuthError
-    local.user_token = "some-subject-token" # sanitizer:ignore
+    local.user_token = "some-subject-token"  # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -142,7 +138,7 @@ def test_auth_get_client_delegation_auth_error():
 
 def test_auth_get_client_delegation_success():
     # delegation enabled, user token present, token exchange succeeds, Api succeeds
-    local.user_token = "some-subject-token" # sanitizer:ignore
+    local.user_token = "some-subject-token"  # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": "github-audience",
@@ -165,8 +161,8 @@ def test_auth_get_client_delegation_success():
             assert client == mock_api_instance
             mock_api_class.assert_called_with(
                 url="https://api.github.com",
-                token="exchanged-github-token", # sanitizer:ignore
-                verify=True,
+                token="exchanged-github-token",  # sanitizer:ignore
+                tls_profile=ANY,
             )
 
 
@@ -179,13 +175,15 @@ def test_auth_get_client_default_config():
             client = get_client(None)
             assert client == mock_api_instance
             mock_api_class.assert_called_with(
-                url="https://api.github.com", token="my-fixed-token", verify=True
+                url="https://api.github.com",
+                token="my-fixed-token",
+                tls_profile=ANY,
             )
 
 
 def test_auth_invalid_oauth_types():
     # delegation enabled, user token present, but one of the parameters is not a string
-    local.user_token = "some-subject-token" # sanitizer:ignore
+    local.user_token = "some-subject-token"  # sanitizer:ignore
     config = {
         "enable_delegation": True,
         "audience": 12345,  # Invalid type (must be string)

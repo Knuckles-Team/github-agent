@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from agent_utilities.core.exceptions import MissingParameterError
 
 from github_agent.github_gql import GraphQL
 
@@ -17,15 +18,15 @@ def test_endpoint_github_com():
 
 
 def test_endpoint_enterprise():
-    assert GraphQL._graphql_endpoint("https://ghe.corp/api/v3") == (
-        "https://ghe.corp/api/graphql"
+    assert GraphQL._graphql_endpoint("https://github.example/api/v3") == (
+        "https://github.example/api/graphql"
     )
 
 
 def test_requires_url_and_token():
-    with pytest.raises(Exception):
+    with pytest.raises(MissingParameterError):
         GraphQL(url=None, token="x")
-    with pytest.raises(Exception):
+    with pytest.raises(MissingParameterError):
         GraphQL(url="https://api.github.com", token=None)
 
 

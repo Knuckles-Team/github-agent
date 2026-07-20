@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Agent Operations"
+  short_description: "Help with GitHub Agent Operations tasks"
+  default_prompt: "Use $github-agent-operations to complete a governed provider workflow."

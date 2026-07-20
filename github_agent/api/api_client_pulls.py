@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     MissingParameterError,
     ParameterError,
 )
@@ -43,8 +43,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/pulls",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = PullRequest(**response.json())
@@ -62,8 +60,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/pulls/{number}",
                 json=kwargs,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = PullRequest(**response.json())
@@ -78,8 +74,6 @@ class Api(BaseApiClient):
             response = self._session.get(
                 url=f"{self.url}/repos/{owner}/{repo}/pulls/{number}",
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = PullRequest(**response.json())
@@ -109,8 +103,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/pulls/{number}/reviews",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -138,8 +130,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/pulls/{number}/merge",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -163,8 +153,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/pulls/{number}/requested_reviewers",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:

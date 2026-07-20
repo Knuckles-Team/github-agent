@@ -63,8 +63,6 @@ def test_release_crud(mock_session):
             "body": "Description of release",
         },
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
     # Mock for getting a release
@@ -80,8 +78,6 @@ def test_release_crud(mock_session):
     mock_session.get.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/test-repo/releases/12345",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
     # Mock for updating a release
@@ -104,8 +100,6 @@ def test_release_crud(mock_session):
         url="https://api.github.com/repos/Knuckles-Team/test-repo/releases/12345",
         json={"name": "Updated Release Name"},
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
     # Mock for deleting a release
@@ -120,8 +114,6 @@ def test_release_crud(mock_session):
     mock_session.delete.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/test-repo/releases/12345",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -157,8 +149,6 @@ def test_actions_operations(mock_session):
     mock_session.post.assert_any_call(
         url="https://api.github.com/repos/Knuckles-Team/test-repo/actions/runs/999/rerun",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
     # 3. Cancel workflow run
@@ -170,8 +160,6 @@ def test_actions_operations(mock_session):
     mock_session.post.assert_any_call(
         url="https://api.github.com/repos/Knuckles-Team/test-repo/actions/runs/999/cancel",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
     # 4. Delete workflow run
@@ -183,8 +171,6 @@ def test_actions_operations(mock_session):
     mock_session.delete.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/test-repo/actions/runs/999",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 

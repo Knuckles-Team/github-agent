@@ -4,8 +4,13 @@ import threading
 
 import requests
 from agent_utilities.base_utilities import get_logger
+from agent_utilities.core.config import config as agent_config
 from agent_utilities.core.config import setting
-from agent_utilities.exceptions import AuthError, UnauthorizedError
+from agent_utilities.core.exceptions import AuthError, UnauthorizedError
+from agent_utilities.core.transport_security import (
+    ResolvedTLSProfile,
+    resolve_configured_tls_profile,
+)
 
 local = threading.local()
 from github_agent.api_client import Api
@@ -23,20 +28,20 @@ def allow_destructive_default() -> bool:
     return setting("GITHUB_ALLOW_DESTRUCTIVE", False)
 
 
-def get_client(config: dict | None = None) -> Api:
+def get_client(
+    config: dict | None = None,
+    tls_profile: ResolvedTLSProfile | None = None,
+) -> Api:
     """
     Factory function to create the GitHub Api client.
     Supports fixed credentials (token) and delegation (OAuth exchange).
     """
     instance = setting("GITHUB_URL", "https://api.github.com")
     token = setting("GITHUB_TOKEN", None)
-    if setting("GITHUB_SSL_VERIFY", None) is not None:
-        verify = setting("GITHUB_SSL_VERIFY", True)
-    else:
-        verify = setting("GITHUB_VERIFY", True)
+    profile = tls_profile or resolve_configured_tls_profile("github")
 
     if config is None:
-        from agent_utilities.mcp_utilities import config as default_config
+        from agent_utilities.mcp.server_factory import mcp_auth_config as default_config
 
         config = default_config
 
@@ -78,27 +83,38 @@ def get_client(config: dict | None = None) -> Api:
             "scope": delegated_scopes,
         }
         auth = (client_id, client_secret)
+        token_tls = resolve_configured_tls_profile(
+            "oauth2_token",
+            profile_name=agent_config.oauth2_token_tls_profile,
+            profile_ref=agent_config.oauth2_token_tls_profile_ref,
+            config=agent_config,
+        )
         try:
             response = requests.post(
-                token_endpoint, data=exchange_data, auth=auth, timeout=30
+                token_endpoint,
+                data=exchange_data,
+                auth=auth,
+                timeout=30,
+                **token_tls.requests_kwargs(),
             )
             response.raise_for_status()
             new_token = response.json()["access_token"]
             logger.info("Token exchange successful")
         except Exception as e:
-            logger.error(f"Token exchange failed: {str(e)}")
-            raise RuntimeError(f"Token exchange failed: {str(e)}") from e
+            logger.error("Token exchange failed: error_type=%s", type(e).__name__)
+            raise RuntimeError("Token exchange failed") from e
+        finally:
+            token_tls.cleanup()
 
         try:
             return Api(
                 url=instance,
                 token=new_token,
-                verify=verify,
+                tls_profile=profile,
             )
         except (AuthError, UnauthorizedError) as e:
             raise RuntimeError(
-                f"AUTHENTICATION ERROR: The delegated GitHub credentials are not valid for '{instance}'."
-                f"Error details: {str(e)}"
+                "AUTHENTICATION ERROR: The delegated GitHub credentials are not valid."
             ) from e
     else:
         logger.info("Using fixed credentials for GitHub API")
@@ -106,40 +122,40 @@ def get_client(config: dict | None = None) -> Api:
             return Api(
                 url=instance,
                 token=token,
-                verify=verify,
+                tls_profile=profile,
             )
         except (AuthError, UnauthorizedError) as e:
             raise RuntimeError(
-                f"AUTHENTICATION ERROR: The GitHub credentials provided are not valid for '{instance}'. "
-                f"Please check your GITHUB_TOKEN and GITHUB_URL environment variables. "
-                f"Error details: {str(e)}"
+                "AUTHENTICATION ERROR: The GitHub credentials provided are not valid. "
+                "Please check the configured credential and endpoint references."
             ) from e
 
 
-def get_graphql_client(config: dict | None = None):
+def get_graphql_client(
+    config: dict | None = None,
+    tls_profile: ResolvedTLSProfile | None = None,
+):
     """Factory for the GitHub GraphQL client (parity with :func:`get_client`).
 
-    Resolves the same ``GITHUB_URL`` / ``GITHUB_TOKEN`` / verify settings and
+    Resolves the same ``GITHUB_URL`` / ``GITHUB_TOKEN`` / TLS profile and
     honours OIDC delegation, then returns a :class:`~github_agent.github_gql.GraphQL`.
     """
     from github_agent.github_gql import GraphQL
 
     instance = setting("GITHUB_URL", "https://api.github.com")
     token = setting("GITHUB_TOKEN", None)
-    if setting("GITHUB_SSL_VERIFY", None) is not None:
-        verify = setting("GITHUB_SSL_VERIFY", True)
-    else:
-        verify = setting("GITHUB_VERIFY", True)
+    profile = tls_profile or resolve_configured_tls_profile("github")
 
     if config is None:
-        from agent_utilities.mcp_utilities import config as default_config
+        from agent_utilities.mcp.server_factory import mcp_auth_config as default_config
 
         config = default_config
 
     if config.get("enable_delegation"):
         # Reuse the REST factory's OIDC token exchange, then read back the
         # exchanged bearer token for the GraphQL transport.
-        api = get_client(config)
-        token = getattr(api, "token", None) or token
+        api = get_client(config, tls_profile=profile)
+        authorization = str(api.headers.get("Authorization", ""))
+        token = authorization.removeprefix("Bearer ") or token
 
-    return GraphQL(url=instance, token=token, verify=verify)
+    return GraphQL(url=instance, token=token, tls_profile=profile)

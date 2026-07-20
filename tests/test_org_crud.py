@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from agent_utilities.exceptions import ParameterError
+from agent_utilities.core.exceptions import ParameterError
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.api_client import Api
@@ -128,8 +128,6 @@ def test_get_organization(mock_session):
     mock_session.get.assert_called_with(
         url="https://api.github.com/orgs/Knuckles-Team",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -183,8 +181,6 @@ def test_update_organization_field_passthrough(mock_session):
             "web_commit_signoff_required": False,
         },
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -206,8 +202,6 @@ def test_delete_organization_202(mock_session):
     mock_session.delete.assert_called_with(
         url="https://api.github.com/orgs/Knuckles-Team",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -238,8 +232,6 @@ def test_create_organization_on_enterprise_server(mock_session):
         url="https://ghe.example.com/api/v3/admin/organizations",
         json={"login": "neworg", "admin": "octocat", "profile_name": "New Org"},
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -292,8 +284,6 @@ def test_set_organization_membership(mock_session):
         url="https://api.github.com/orgs/Knuckles-Team/memberships/octocat",
         json={"role": "admin"},
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -307,8 +297,6 @@ def test_remove_organization_member(mock_session):
     mock_session.delete.assert_called_with(
         url="https://api.github.com/orgs/Knuckles-Team/members/octocat",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -374,7 +362,10 @@ async def test_mcp_orgs_get_list_update():
     assert res["status"] == 400
 
     res = await github_orgs(
-        action="list", params_json='{"scope": "all", "since": 42}', client=client, ctx=ctx
+        action="list",
+        params_json='{"scope": "all", "since": 42}',
+        client=client,
+        ctx=ctx,
     )
     assert res["status"] == 200
     client.list_organizations.assert_called_with(scope="all", since=42)

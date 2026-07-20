@@ -5,6 +5,10 @@ import logging
 from typing import Any
 
 from agent_utilities.core.exceptions import MissingParameterError, ParameterError
+from agent_utilities.core.transport_security import (
+    ResolvedTLSProfile,
+    resolve_configured_tls_profile,
+)
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
@@ -21,8 +25,7 @@ class GraphQL:
         self,
         url: str | None = None,
         token: str | None = None,
-        proxies: dict | None = None,
-        verify: bool = True,
+        tls_profile: ResolvedTLSProfile | None = None,
         debug: bool = False,
     ):
         if not url:
@@ -32,8 +35,7 @@ class GraphQL:
 
         self.url = self._graphql_endpoint(url)
         self.token = token
-        self.proxies = proxies
-        self.verify = verify
+        self.tls_profile = tls_profile or resolve_configured_tls_profile("github")
         self.debug = debug
 
         logging.basicConfig(
@@ -47,12 +49,16 @@ class GraphQL:
         self.transport = RequestsHTTPTransport(
             url=self.url,
             headers=self.headers,
-            verify=verify,
-            proxies=proxies,
+            **self.tls_profile.requests_kwargs(),
         )
         self.client = Client(
             transport=self.transport, fetch_schema_from_transport=False
         )
+
+    def close(self) -> None:
+        """Release GraphQL transport state and runtime-only TLS material."""
+        self.client.close_sync()
+        self.tls_profile.cleanup()
 
     @staticmethod
     def _graphql_endpoint(url: str) -> str:
@@ -86,8 +92,8 @@ class GraphQL:
                 raise ParameterError(f"GraphQL errors: {result['errors']}")
             return result
         except Exception as e:
-            logging.error(f"GraphQL execution failed: {str(e)}")
-            raise ParameterError(f"Query execution failed: {str(e)}") from e
+            logging.error("GraphQL execution failed: error_type=%s", type(e).__name__)
+            raise ParameterError(f"Query execution failed: {type(e).__name__}") from e
 
     def enable_pull_request_auto_merge(
         self, pull_request_id: str, merge_method: str = "MERGE"

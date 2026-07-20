@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from urllib.parse import urlparse
 
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -43,8 +43,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/orgs/{org}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -100,8 +98,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/orgs/{org}",
             json=model.model_dump(exclude_none=True),
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -124,8 +120,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/orgs/{org}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "deletion_scheduled"})
@@ -167,8 +161,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/admin/organizations",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -195,8 +187,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/orgs/{org}/repos",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = Repository(**response.json())
@@ -214,8 +204,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/orgs/{org}/memberships/{username}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -240,8 +228,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/orgs/{org}/memberships/{username}",
             json={"role": role},
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -263,8 +249,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/orgs/{org}/members/{username}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "removed"})
@@ -286,8 +270,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/orgs/{org}/teams",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
