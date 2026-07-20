@@ -6,13 +6,16 @@ Read just-in-time before any write. This skill mutates GitHub — bias hard towa
 ## What the GitHub MCP can and cannot do (important)
 The github-agent MCP exposes read/triage/verify and **close** (via
 `github_issues action=update` / `github_pulls action=update` with `{"state":"closed"}`).
-It DOES have a native `github_pulls action=merge` (merge/squash/rebase, guarded), but it
-has **no comment tool**. So:
-- **triage / verify / close** → github-agent MCP tools (native names; under the
-  multiplexer they carry the `gith__` prefix).
-- **comment + merge** → `scripts/gh_write.py` (GitHub API helper; same token as git
-  push). The script is preferred over native merge here because it re-checks
-  `mergeable_state==clean` at write time and posts the AI-disclaimer comment in one step.
+It has a native merge (`github_pulls action=merge`, or the standalone REST
+`github_merge_pull_request`) AND a native comment tool (`github_comments`,
+create/list/get/update/delete). So:
+- **triage / verify / close / comment / merge** → github-agent MCP tools (native
+  names; under the multiplexer they carry the `gith__` prefix): comment via
+  `github_comments action=create`, merge via `github_merge_pull_request`.
+- **Fallback** — `scripts/gh_write.py` (GitHub API helper; same token as git push):
+  use it only if the deployed github-mcp predates `github_comments` (rebuild/redeploy
+  to get it), or when you want its atomic re-check-`mergeable_state==clean`-then-
+  comment-then-merge in a single guarded step.
 
 ## Verify BEFORE deciding (does the work still exist?)
 - **Issue:** confirm the problem is real and still present, OR already fixed.

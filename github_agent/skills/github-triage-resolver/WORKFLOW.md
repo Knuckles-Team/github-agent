@@ -8,12 +8,12 @@ The **action/executor** counterpart to the sweep skills: it not only reports, it
 **verifies and resolves** open PRs/issues — closing or merging the safe ones with a
 comment, skipping the rest for a human. Conservative by design: when in doubt, skip.
 
-Drives the **github-agent** MCP server for triage, verification, and **close**
-(`github_issues`/`github_pulls action=update state=closed`). The MCP has **no comment
-tool**, and for **merge** this skill uses `scripts/gh_write.py` rather than the native
-`github_pulls action=merge` because the script re-checks `mergeable_state==clean` at write
-time and posts the AI-disclaimer comment in the same step. Read
-`references/resolution-rules.md` before any write.
+Drives the **github-agent** MCP server end-to-end: triage, verification, **comment**
+(`github_comments action=create`), **close** (`github_issues`/`github_pulls action=update
+state=closed`), and **merge** (`github_merge_pull_request`). `scripts/gh_write.py` remains
+a fallback — use it only if your deployed github-mcp predates `github_comments`
+(rebuild/redeploy to get it) or when you want its atomic re-check-then-comment-then-merge
+in one guarded step. Read `references/resolution-rules.md` before any write.
 
 ## Tool access (works under delegation AND the multiplexer)
 
@@ -74,11 +74,12 @@ show it and STOP for confirmation. Never write on `skip`.
 
 ### Step 5 — Act (gated)
 For each confirmed `safe_*` item, **comment first, then act**:
-- Comment: `python scripts/gh_write.py comment <owner/repo> <number> --body "<comment>" --confirm`.
+- Comment: `github_comments action=create {"owner","repo","issue_number":N,"body":"<comment>"}`
+  (works for issues AND PRs). Fallback: `python scripts/gh_write.py comment <owner/repo> <number> --body "<comment>" --confirm`.
 - Close (issue or PR): `github_issues action=update` / `github_pulls action=update`
   `{"owner","repo","<issue|pull>_number":N,"state":"closed"}`.
-- Merge: `python scripts/gh_write.py merge <owner/repo> <pr_number> --method squash --confirm`
-  (re-checks `mergeable_state==clean` at merge time; refuses otherwise).
+- Merge: `github_merge_pull_request {"owner","repo","number":N,"merge_method":"squash"}`
+  (verify `mergeable_state==clean` first; GitHub refuses a non-clean/protected merge).
 
 ### Step 6 — Report (and optionally learn)
 Summarize merged / closed / skipped with links and the one-line reason each.
