@@ -26,14 +26,16 @@ The **action/executor** counterpart to the sweep skills: it not only reports, it
 **verifies and resolves** open PRs/issues — closing or merging the safe ones with a
 comment, skipping the rest for a human. Conservative by design: when in doubt, skip.
 
-Drives the **GitHub MCP server** (`github-mcp`, prefix `gith__`) for triage,
-verification, and **close**. The MCP has **no merge or comment tool**, so those two
-actions use `scripts/gh_write.py` (GitHub API helper). Read `references/resolution-rules.md`
-before any write.
+Drives the **GitHub MCP server** (`github-mcp`, prefix `gith__`) end-to-end —
+triage, verification, **comment**, **close**, and **merge** all run through MCP
+tools; no external write script is needed. Comments use `gith__comments`, merges
+use the standalone REST `gith__merge_pull_request` (robust — it does not depend on
+the GraphQL path), and closes use `gith__update_issue`/`gith__update_pull_request`.
+Read `references/resolution-rules.md` before any write.
 
 ## Tool discovery
-1. `find_tools("github pull requests issues review checks merge close")`.
-2. `load_tools(tools=["gith__pulls","gith__issues","gith__actions","gith__repos","gith__orgs","gith__search_issues","gith__update_pull_request","gith__update_issue"])`.
+1. `find_tools("github pull requests issues review checks merge close comment")`.
+2. `load_tools(tools=["gith__pulls","gith__issues","gith__actions","gith__repos","gith__orgs","gith__search_issues","gith__update_pull_request","gith__update_issue","gith__merge_pull_request","gith__comments"])`.
 
 ## Inputs
 - **accounts**: default `[{login:"Knucklessg1",type:"user"},{login:"Knuckles-Team",type:"org"}]`.
@@ -80,11 +82,13 @@ show it and STOP for confirmation. Never write on `skip`.
 
 ### Step 5 — Act (gated)
 For each confirmed `safe_*` item, **comment first, then act**:
-- Comment: `python scripts/gh_write.py comment <owner/repo> <number> --body "<comment>" --confirm`.
+- Comment: `gith__comments action=create {"owner","repo","issue_number":N,"body":"<comment>"}`
+  (works for issues AND PRs — a PR is an issue on GitHub).
 - Close (issue or PR): `gith__update_issue` / `gith__update_pull_request`
   `{"owner","repo","<issue|pull>_number":N,"state":"closed"}`.
-- Merge: `python scripts/gh_write.py merge <owner/repo> <pr_number> --method squash --confirm`
-  (re-checks `mergeable_state==clean` at merge time; refuses otherwise).
+- Merge: `gith__merge_pull_request {"owner","repo","number":N,"merge_method":"squash"}`
+  (re-check `mergeable_state==clean` first; GitHub's merge endpoint refuses a
+  non-clean/protected merge, so an unmergeable PR fails safe).
 
 ### Step 6 — Report (and optionally learn)
 Summarize merged / closed / skipped with links and the one-line reason each.
