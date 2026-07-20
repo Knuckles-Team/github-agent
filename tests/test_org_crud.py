@@ -263,6 +263,54 @@ def test_org_repo_create_payload_parity_with_user_repo_create(mock_session):
     assert org_call.kwargs["url"] == "https://api.github.com/orgs/Knuckles-Team/repos"
 
 
+def test_create_repository_without_org_posts_to_user_repos(mock_session):
+    """Back-compat: no 'org' kwarg -> POST /user/repos, unchanged behavior."""
+    api = Api(token="test")
+    mock_session.post.return_value = make_response(
+        status_code=201, json_data=REPO_PAYLOAD
+    )
+
+    res = api.create_repository(name="service", private=True, description="d")
+
+    assert isinstance(res.data, Repository)
+    call = mock_session.post.call_args
+    assert call.kwargs["url"] == "https://api.github.com/user/repos"
+    assert call.kwargs["json"] == {
+        "name": "service",
+        "private": True,
+        "description": "d",
+    }
+    assert "org" not in call.kwargs["json"]
+
+
+def test_create_repository_with_org_kwarg_routes_to_org_repos(mock_session):
+    """Regression test for the silent-wrong-target bug: passing 'org' to
+    create_repository must POST to /orgs/{org}/repos (not /user/repos),
+    and 'org' must never leak into the JSON body — GitHub's /user/repos
+    endpoint silently ignores an unrecognized "org" field rather than
+    erroring, which previously caused the repo to be created under the
+    personal account instead of the intended organization.
+    """
+    api = Api(token="test")
+    mock_session.post.return_value = make_response(
+        status_code=201, json_data=REPO_PAYLOAD
+    )
+
+    res = api.create_repository(
+        name="service", org="Knuckles-Team", private=True, description="d"
+    )
+
+    assert isinstance(res.data, Repository)
+    call = mock_session.post.call_args
+    assert call.kwargs["url"] == "https://api.github.com/orgs/Knuckles-Team/repos"
+    assert call.kwargs["json"] == {
+        "name": "service",
+        "private": True,
+        "description": "d",
+    }
+    assert "org" not in call.kwargs["json"]
+
+
 def test_get_organization_membership(mock_session):
     api = Api(token="test")
     mock_session.get.return_value = make_response(json_data=MEMBERSHIP_PAYLOAD)

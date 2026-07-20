@@ -90,7 +90,10 @@ def register_repo_tools(mcp: FastMCP):
         - 'get': {"owner", "repo"} — a single repository.
         - 'create': {"name", plus payload fields such as description,
           private, auto_init, ...} — create a repository for the
-          authenticated user.
+          authenticated user. Pass "org" to create it inside an
+          organization instead (POST /orgs/{org}/repos rather than
+          POST /user/repos); "org" is consumed as the URL path segment
+          and is never sent in the request body.
         - 'delete': {"owner", "repo"} — delete a repository.
         - 'update': {"owner", "repo", plus mutable repository settings} —
           PATCH /repos/{owner}/{repo}.

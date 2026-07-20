@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 1.3.0*
+*Version: 1.4.2*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > CLI interfaces, including the integrated A2A agent server, are maintained in the
@@ -101,7 +101,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_create_pull_request` | `APITOOL` | Create a new pull request in a repository. |
 | `github_create_pull_request_review` | `APITOOL` | Create a review on a pull request. |
 | `github_create_release` | `APITOOL` | Create a new repository release. |
-| `github_create_repository` | `APITOOL` | Create a new repository for the authenticated user. |
+| `github_create_repository` | `APITOOL` | Create a repository for the authenticated user, or for an organization when 'org' is given. |
 | `github_delete_branch` | `APITOOL` | Delete a branch in a repository. |
 | `github_delete_branch_protection` | `APITOOL` | Delete branch protection configuration. |
 | `github_delete_content` | `APITOOL` | Delete a file in a repository. |

@@ -1401,7 +1401,7 @@ wheels = [
 
 [[package]]
 name = "github-agent"
-version = "1.3.0"
+version = "1.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "agent-utilities", extra = ["mcp"] },
