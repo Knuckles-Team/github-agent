@@ -56,8 +56,18 @@ class GraphQL:
         )
 
     def close(self) -> None:
-        """Release GraphQL transport state and runtime-only TLS material."""
-        self.client.close_sync()
+        """Release GraphQL transport state and runtime-only TLS material.
+
+        ``Client.close_sync()`` unconditionally asserts ``self.session`` is a
+        ``SyncClientSession`` — but under gql 4.0 that attribute is only ever
+        set by ``connect_sync()`` (called implicitly by ``execute_gql`` /
+        ``client.execute``). If this ``GraphQL`` was constructed but never
+        used to run a query, the underlying ``Client`` has no ``session``
+        attribute yet and ``close_sync()`` raises ``AttributeError`` instead
+        of being a no-op. Only close a session that was actually opened.
+        """
+        if hasattr(self.client, "session"):
+            self.client.close_sync()
         self.tls_profile.cleanup()
 
     @staticmethod

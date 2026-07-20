@@ -536,6 +536,54 @@ async def test_mcp_pulls():
 
 
 @pytest.mark.anyio
+async def test_mcp_pulls_rest_actions_survive_gql_client_failure(monkeypatch):
+    """REST pull actions must not depend on the GraphQL client at all.
+
+    Regression guard: github_pulls used to declare gql_client=Depends(
+    get_graphql_client) at the tool level, so FastMCP's dependency resolution
+    failed the ENTIRE tool call (every action, including plain REST reads)
+    whenever the GraphQL client couldn't be constructed. The gql client is
+    now resolved lazily, only inside the two GraphQL-only actions
+    (enable_auto_merge/disable_auto_merge) — so a broken get_graphql_client
+    must never affect list/get/create/update/approve/request_reviewers/merge.
+    """
+    tools = await get_registered_tools()
+    github_pulls = tools["github_pulls"]
+    client = create_mock_client()
+    ctx = AsyncMockContext()
+
+    def _broken_graphql_client(*args, **kwargs):
+        raise RuntimeError("no graphql client available")
+
+    monkeypatch.setattr(
+        "github_agent.mcp_server.get_graphql_client", _broken_graphql_client
+    )
+
+    res = await github_pulls(action="list", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 200
+
+    res = await github_pulls(
+        action="get",
+        params_json='{"owner": "o", "repo": "r", "number": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    # The GraphQL-only action DOES need the client — it now fails cleanly
+    # (a 500 with a clear message) instead of the whole tool call raising.
+    res = await github_pulls(
+        action="enable_auto_merge",
+        params_json='{"pull_request_id": "PR_kwDO"}',
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 500
+    assert "GraphQL client unavailable" in res["error"]
+
+
+@pytest.mark.anyio
 async def test_mcp_contents():
     tools = await get_registered_tools()
     github_contents = tools["github_contents"]
