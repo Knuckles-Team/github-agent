@@ -52,11 +52,27 @@ class Api(BaseApiClient):
 
     @require_auth
     def create_repository(self, name: str, **kwargs) -> Response:
-        """Create a new repository for the authenticated user."""
+        """Create a repository for the authenticated user, or for an organization when 'org' is given.
+
+        Without ``org``: POST /user/repos — the repository is created under
+        the authenticated user's personal account.
+
+        With ``org``: POST /orgs/{org}/repos (same payload shape as
+        ``create_organization_repository``). ``org`` is consumed as the URL
+        path segment and is never forwarded as a JSON body field. This
+        distinction matters: GitHub's /user/repos endpoint silently ignores
+        an unrecognized "org" body field instead of rejecting it, which
+        previously let a caller pass ``org=...`` expecting an organization
+        repository and get a 201 Created — with the repository silently
+        created under the personal account instead (a wrong-target bug, not
+        a clean failure).
+        """
         try:
+            org = kwargs.pop("org", None)
             payload = {"name": name, **kwargs}
+            url = f"{self.url}/orgs/{org}/repos" if org else f"{self.url}/user/repos"
             response = self._session.post(
-                url=f"{self.url}/user/repos",
+                url=url,
                 json=payload,
                 headers=self.headers,
                 verify=self.verify,

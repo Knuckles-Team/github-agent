@@ -58,7 +58,7 @@ class GhResult:
 
 def run_gh_command(args: Sequence[str], cwd: Path) -> GhResult:
     process = subprocess.run(
-        ["gh", *args],
+        [which("gh") or "gh", *args],
         cwd=cwd,
         text=True,
         capture_output=True,
@@ -68,7 +68,7 @@ def run_gh_command(args: Sequence[str], cwd: Path) -> GhResult:
 
 def run_gh_command_raw(args: Sequence[str], cwd: Path) -> tuple[int, bytes, str]:
     process = subprocess.run(
-        ["gh", *args],
+        [which("gh") or "gh", *args],
         cwd=cwd,
         capture_output=True,
     )
@@ -144,7 +144,7 @@ def main() -> int:
 
 def find_git_root(start: Path) -> Path | None:
     result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
+        [which("git") or "git", "rev-parse", "--show-toplevel"],
         cwd=start,
         text=True,
         capture_output=True,
