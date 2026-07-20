@@ -56,7 +56,7 @@ DESTRUCTIVE_PULL_ACTIONS = {"merge", "enable_auto_merge"}
 DESTRUCTIVE_DEPENDABOT_ACTIONS = {"update"}
 
 #: Comment actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
-DESTRUCTIVE_COMMENT_ACTIONS = {"delete", "delete_review"}
+DESTRUCTIVE_COMMENT_ACTIONS = {"delete", "delete_review", "delete_commit"}
 
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
@@ -146,6 +146,12 @@ COMMENT_ACTIONS = (
     "reply_review",
     "update_review",
     "delete_review",
+    "list_commit",
+    "list_repo_commit",
+    "get_commit",
+    "create_commit",
+    "update_commit",
+    "delete_commit",
 )
 
 
@@ -976,7 +982,9 @@ def register_comment_tools(mcp: FastMCP):
                 "Action to perform. Must be one of: 'list', 'list_repo', "
                 "'get', 'create', 'update', 'delete', 'list_review', "
                 "'list_repo_review', 'get_review', 'create_review', "
-                "'reply_review', 'update_review', 'delete_review'"
+                "'reply_review', 'update_review', 'delete_review', "
+                "'list_commit', 'list_repo_commit', 'get_commit', "
+                "'create_commit', 'update_commit', 'delete_commit'"
             )
         ),
         params_json: str = Field(
@@ -986,8 +994,8 @@ def register_comment_tools(mcp: FastMCP):
             default=False,
             description=(
                 "Must be true to run destructive actions: ['delete', "
-                "'delete_review']. Comment deletion is permanent. Also "
-                "honoured via GITHUB_ALLOW_DESTRUCTIVE."
+                "'delete_review', 'delete_commit']. Comment deletion is "
+                "permanent. Also honoured via GITHUB_ALLOW_DESTRUCTIVE."
             ),
         ),
         client=Depends(get_client),
@@ -1039,8 +1047,22 @@ def register_comment_tools(mcp: FastMCP):
         - 'delete_review': {"owner", "repo", "comment_id"} — permanently
           delete a review comment. Requires allow_destructive=true.
 
-        Commit comments (/repos/{owner}/{repo}/commits/{sha}/comments) are
-        not covered by this tool.
+        Commit comment actions — comments attached to a specific commit, not
+        a line of a PR's diff (parameters via params_json):
+        - 'list_commit': {"owner", "repo", "sha", "per_page", "page"} —
+          comments on one commit
+          (GET /repos/{owner}/{repo}/commits/{sha}/comments).
+        - 'list_repo_commit': {"owner", "repo", "per_page", "page"} — every
+          commit comment in a repository (GET /repos/{owner}/{repo}/comments).
+        - 'get_commit': {"owner", "repo", "comment_id"} — a single commit
+          comment.
+        - 'create_commit': {"owner", "repo", "sha", "body", optional "path",
+          "line"} — comment on a commit, optionally anchored to a file
+          ("path") and line ("line") in the commit's diff.
+        - 'update_commit': {"owner", "repo", "comment_id", "body"} — edit a
+          commit comment.
+        - 'delete_commit': {"owner", "repo", "comment_id"} — permanently
+          delete a commit comment. Requires allow_destructive=true.
         """
         if ctx:
             await ctx.info("Executing github_comments action...")
@@ -1356,6 +1378,134 @@ def register_comment_tools(mcp: FastMCP):
                 return {
                     "status": 200,
                     "message": "Review comment deleted successfully",
+                    "data": response.data,
+                }
+            elif action == "list_commit":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                sha = kwargs.pop("sha", None)
+                if not owner or not repo or not sha:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'sha' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_commit_comments,
+                    owner=owner,
+                    repo=repo,
+                    sha=sha,
+                    **kwargs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Commit comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "list_repo_commit":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_repo_commit_comments, owner=owner, repo=repo, **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository commit comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "get_commit":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_commit_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Commit comment retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "create_commit":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                sha = kwargs.pop("sha", None)
+                body = kwargs.pop("body", None)
+                if not owner or not repo or not sha or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'sha', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_commit_comment,
+                    owner=owner,
+                    repo=repo,
+                    sha=sha,
+                    body=body,
+                    **kwargs,
+                )
+                return {
+                    "status": 201,
+                    "message": "Commit comment created successfully",
+                    "data": response.data,
+                }
+            elif action == "update_commit":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                body = kwargs.get("body")
+                if not owner or not repo or not comment_id or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.update_commit_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                    body=body,
+                )
+                return {
+                    "status": 200,
+                    "message": "Commit comment updated successfully",
+                    "data": response.data,
+                }
+            elif action == "delete_commit":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.delete_commit_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Commit comment deleted successfully",
                     "data": response.data,
                 }
             else:

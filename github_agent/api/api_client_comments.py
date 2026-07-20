@@ -232,3 +232,102 @@ class Api(BaseApiClient):
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "deleted"})
+
+    # --- Commit comments ---------------------------------------------------
+
+    @require_auth
+    def list_commit_comments(
+        self, owner: str, repo: str, sha: str, **filters
+    ) -> Response:
+        """List comments on a single commit.
+
+        GET /repos/{owner}/{repo}/commits/{sha}/comments. Optional filters
+        passed straight through as query parameters (per_page, page).
+        Returns the raw JSON list of comments in ``Response.data``.
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+        response = self._session.get(
+            url=f"{self.url}/repos/{owner}/{repo}/commits/{sha}/comments",
+            params=params or None,
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
+    def list_repo_commit_comments(self, owner: str, repo: str, **filters) -> Response:
+        """List every commit comment in a repository.
+
+        GET /repos/{owner}/{repo}/comments. Optional filters passed straight
+        through as query parameters (per_page, page). Returns the raw JSON
+        list of comments in ``Response.data``.
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+        response = self._session.get(
+            url=f"{self.url}/repos/{owner}/{repo}/comments",
+            params=params or None,
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
+    def get_commit_comment(self, owner: str, repo: str, comment_id: int) -> Response:
+        """Get a single commit comment.
+
+        GET /repos/{owner}/{repo}/comments/{comment_id}.
+        """
+        response = self._session.get(
+            url=f"{self.url}/repos/{owner}/{repo}/comments/{comment_id}",
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
+    def create_commit_comment(
+        self, owner: str, repo: str, sha: str, body: str, **kwargs
+    ) -> Response:
+        """Create a comment on a commit.
+
+        POST /repos/{owner}/{repo}/commits/{sha}/comments. Optionally anchor
+        the comment to a line of a file in the commit's diff via ``path``
+        (the file path) and ``line`` (the line number in the file).
+        """
+        payload = {"body": body, **kwargs}
+        response = self._session.post(
+            url=f"{self.url}/repos/{owner}/{repo}/commits/{sha}/comments",
+            json=payload,
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
+    def update_commit_comment(
+        self, owner: str, repo: str, comment_id: int, body: str
+    ) -> Response:
+        """Edit a commit comment.
+
+        PATCH /repos/{owner}/{repo}/comments/{comment_id}.
+        """
+        response = self._session.patch(
+            url=f"{self.url}/repos/{owner}/{repo}/comments/{comment_id}",
+            json={"body": body},
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data=response.json())
+
+    @require_auth
+    def delete_commit_comment(self, owner: str, repo: str, comment_id: int) -> Response:
+        """Permanently delete a commit comment.
+
+        DELETE /repos/{owner}/{repo}/comments/{comment_id} (HTTP 204).
+        """
+        response = self._session.delete(
+            url=f"{self.url}/repos/{owner}/{repo}/comments/{comment_id}",
+            headers=self.headers,
+        )
+        response.raise_for_status()
+        return Response(response=response, data={"status": "deleted"})

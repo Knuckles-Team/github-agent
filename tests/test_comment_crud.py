@@ -1,8 +1,8 @@
 """Comment CRUD coverage: API client methods + the github_comments MCP tool.
 
 Covers issue/PR comments (a pull request IS an issue on GitHub, so the
-issue-comment endpoints serve both) and pull-request review (inline code)
-comments.
+issue-comment endpoints serve both), pull-request review (inline code)
+comments, and commit comments.
 """
 
 import inspect
@@ -268,6 +268,134 @@ def test_delete_review_comment(mock_session):
     )
 
 
+# --- API client: commit comments ----------------------------------------
+
+
+def test_list_commit_comments(mock_session):
+    api = Api(token="test")
+    mock_session.get.return_value = make_response(json_data=[{"id": 20}])
+
+    res = api.list_commit_comments(owner="o", repo="r", sha="abc123")
+
+    assert res.data == [{"id": 20}]
+    mock_session.get.assert_called_with(
+        url="https://api.github.com/repos/o/r/commits/abc123/comments",
+        params=None,
+        headers=api.headers,
+    )
+
+
+def test_list_commit_comments_passes_filters(mock_session):
+    api = Api(token="test")
+    mock_session.get.return_value = make_response(json_data=[])
+
+    api.list_commit_comments(owner="o", repo="r", sha="abc123", per_page=10)
+
+    mock_session.get.assert_called_with(
+        url="https://api.github.com/repos/o/r/commits/abc123/comments",
+        params={"per_page": 10},
+        headers=api.headers,
+    )
+
+
+def test_list_repo_commit_comments(mock_session):
+    api = Api(token="test")
+    mock_session.get.return_value = make_response(json_data=[{"id": 21}])
+
+    res = api.list_repo_commit_comments(owner="o", repo="r", per_page=5)
+
+    assert res.data == [{"id": 21}]
+    mock_session.get.assert_called_with(
+        url="https://api.github.com/repos/o/r/comments",
+        params={"per_page": 5},
+        headers=api.headers,
+    )
+
+
+def test_get_commit_comment(mock_session):
+    api = Api(token="test")
+    mock_session.get.return_value = make_response(
+        json_data={"id": 22, "body": "nice commit"}
+    )
+
+    res = api.get_commit_comment(owner="o", repo="r", comment_id=22)
+
+    assert res.data == {"id": 22, "body": "nice commit"}
+    mock_session.get.assert_called_with(
+        url="https://api.github.com/repos/o/r/comments/22",
+        headers=api.headers,
+    )
+
+
+def test_create_commit_comment(mock_session):
+    api = Api(token="test")
+    mock_session.post.return_value = make_response(
+        status_code=201, json_data={"id": 23}
+    )
+
+    res = api.create_commit_comment(
+        owner="o",
+        repo="r",
+        sha="abc123",
+        body="commit comment",
+        path="file.py",
+        line=10,
+    )
+
+    assert res.data == {"id": 23}
+    mock_session.post.assert_called_with(
+        url="https://api.github.com/repos/o/r/commits/abc123/comments",
+        json={"body": "commit comment", "path": "file.py", "line": 10},
+        headers=api.headers,
+    )
+
+
+def test_create_commit_comment_body_only(mock_session):
+    api = Api(token="test")
+    mock_session.post.return_value = make_response(
+        status_code=201, json_data={"id": 24}
+    )
+
+    api.create_commit_comment(owner="o", repo="r", sha="abc123", body="plain")
+
+    mock_session.post.assert_called_with(
+        url="https://api.github.com/repos/o/r/commits/abc123/comments",
+        json={"body": "plain"},
+        headers=api.headers,
+    )
+
+
+def test_update_commit_comment(mock_session):
+    api = Api(token="test")
+    mock_session.patch.return_value = make_response(
+        json_data={"id": 23, "body": "edited commit comment"}
+    )
+
+    res = api.update_commit_comment(
+        owner="o", repo="r", comment_id=23, body="edited commit comment"
+    )
+
+    assert res.data == {"id": 23, "body": "edited commit comment"}
+    mock_session.patch.assert_called_with(
+        url="https://api.github.com/repos/o/r/comments/23",
+        json={"body": "edited commit comment"},
+        headers=api.headers,
+    )
+
+
+def test_delete_commit_comment(mock_session):
+    api = Api(token="test")
+    mock_session.delete.return_value = make_response(status_code=204)
+
+    res = api.delete_commit_comment(owner="o", repo="r", comment_id=23)
+
+    assert res.data == {"status": "deleted"}
+    mock_session.delete.assert_called_with(
+        url="https://api.github.com/repos/o/r/comments/23",
+        headers=api.headers,
+    )
+
+
 # --- MCP tool ------------------------------------------------------------
 
 
@@ -300,6 +428,14 @@ def make_comment_client():
         data={"id": 11, "body": "edited"}
     )
     client.delete_review_comment.return_value = MagicMock(data={"status": "deleted"})
+    client.list_commit_comments.return_value = MagicMock(data=[{"id": 20}])
+    client.list_repo_commit_comments.return_value = MagicMock(data=[{"id": 20}])
+    client.get_commit_comment.return_value = MagicMock(data={"id": 20})
+    client.create_commit_comment.return_value = MagicMock(data={"id": 21})
+    client.update_commit_comment.return_value = MagicMock(
+        data={"id": 20, "body": "edited"}
+    )
+    client.delete_commit_comment.return_value = MagicMock(data={"status": "deleted"})
     return client
 
 
@@ -520,6 +656,92 @@ async def test_mcp_comments_review_crud():
 
 
 @pytest.mark.anyio
+async def test_mcp_comments_commit_crud():
+    github_comments = await get_github_comments_tool()
+    client = make_comment_client()
+    ctx = AsyncMockContext()
+
+    res = await github_comments(
+        action="list_commit",
+        params_json='{"owner": "o", "repo": "r", "sha": "abc123"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    assert res["data"] == [{"id": 20}]
+    client.list_commit_comments.assert_called_with(owner="o", repo="r", sha="abc123")
+
+    res = await github_comments(
+        action="list_commit", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_comments(
+        action="list_repo_commit",
+        params_json='{"owner": "o", "repo": "r"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    client.list_repo_commit_comments.assert_called_with(owner="o", repo="r")
+
+    res = await github_comments(
+        action="list_repo_commit", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_comments(
+        action="get_commit",
+        params_json='{"owner": "o", "repo": "r", "comment_id": 20}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    assert res["data"] == {"id": 20}
+    client.get_commit_comment.assert_called_with(owner="o", repo="r", comment_id=20)
+
+    res = await github_comments(
+        action="get_commit", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_comments(
+        action="create_commit",
+        params_json=(
+            '{"owner": "o", "repo": "r", "sha": "abc123", "body": "b", '
+            '"path": "f.py", "line": 3}'
+        ),
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 201
+    client.create_commit_comment.assert_called_with(
+        owner="o", repo="r", sha="abc123", body="b", path="f.py", line=3
+    )
+
+    res = await github_comments(
+        action="create_commit", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_comments(
+        action="update_commit",
+        params_json='{"owner": "o", "repo": "r", "comment_id": 20, "body": "edited"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    client.update_commit_comment.assert_called_with(
+        owner="o", repo="r", comment_id=20, body="edited"
+    )
+
+    res = await github_comments(
+        action="update_commit", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+
+@pytest.mark.anyio
 async def test_mcp_comments_destructive_gating(monkeypatch):
     monkeypatch.delenv("GITHUB_ALLOW_DESTRUCTIVE", raising=False)
     github_comments = await get_github_comments_tool()
@@ -572,6 +794,29 @@ async def test_mcp_comments_destructive_gating(monkeypatch):
     assert res["status"] == 200
     client.delete_review_comment.assert_called_with(owner="o", repo="r", comment_id=10)
 
+    # 'delete_commit' blocked by default
+    monkeypatch.delenv("GITHUB_ALLOW_DESTRUCTIVE", raising=False)
+    res = await github_comments(
+        action="delete_commit",
+        params_json='{"owner": "o", "repo": "r", "comment_id": 20}',
+        allow_destructive=False,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 403
+    client.delete_commit_comment.assert_not_called()
+
+    # Allowed with explicit per-call consent
+    res = await github_comments(
+        action="delete_commit",
+        params_json='{"owner": "o", "repo": "r", "comment_id": 20}',
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    client.delete_commit_comment.assert_called_with(owner="o", repo="r", comment_id=20)
+
     # Missing comment_id still 400 (with gate open)
     res = await github_comments(
         action="delete",
@@ -607,6 +852,12 @@ async def test_mcp_comments_list_actions_discovery():
         "reply_review",
         "update_review",
         "delete_review",
+        "list_commit",
+        "list_repo_commit",
+        "get_commit",
+        "create_commit",
+        "update_commit",
+        "delete_commit",
     ):
         assert action in res["actions"]
 
