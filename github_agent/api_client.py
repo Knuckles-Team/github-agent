@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from github_agent.api.api_client_base import logger  # noqa: F401
 from github_agent.api.api_client_branches import Api as BranchesApi
+from github_agent.api.api_client_comments import Api as CommentsApi
 from github_agent.api.api_client_commits import Api as CommitsApi
 from github_agent.api.api_client_contents import Api as ContentsApi
 from github_agent.api.api_client_dependabot import Api as DependabotApi
@@ -38,6 +39,7 @@ from github_agent.github_response_models import (  # noqa: F401
 
 class Api(
     BranchesApi,
+    CommentsApi,
     CommitsApi,
     ContentsApi,
     DependabotApi,

@@ -7,7 +7,7 @@ supervisor architecture and the specialized child agents are detailed in
 
 ## As an MCP server
 
-Once [deployed](deployment.md), the server registers eleven action-dispatch tool
+Once [deployed](deployment.md), the server registers twelve action-dispatch tool
 domains. Each domain takes an `action` and a JSON `params_json` payload; each is
 gated by its own environment switch (all default `True`).
 
@@ -16,6 +16,7 @@ gated by its own environment switch (all default `True`).
 | `github_repos` | `list`, `get`, `create`, `update`, `delete` |
 | `github_issues` | `list`, `get`, `create`, `update` |
 | `github_pulls` | `list`, `get`, `create`, `update` |
+| `github_comments` | `list`, `list_repo`, `get`, `create`, `update`, `delete`, `list_review`, `list_repo_review`, `get_review`, `create_review`, `reply_review`, `update_review`, `delete_review` |
 | `github_contents` | `get`, `create`, `update`, `delete` |
 | `github_branches` | `list`, `get`, `create`, `delete`, `get_protection`, `update_protection`, `delete_protection` |
 | `github_commits` | `list`, `get` |

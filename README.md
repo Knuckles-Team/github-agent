@@ -61,13 +61,14 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 <!-- MCP-TOOLS-TABLE:START -->
 
-#### Condensed action-routed tools (default — `MCP_TOOL_MODE=condensed`)
+#### Condensed action-routed tools (`MCP_TOOL_MODE=condensed`)
 
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
 | `github_actions` | `ACTIONTOOL` | Manage GitHub actions workflows and runs. |
 | `github_branches` | `BRANCHTOOL` | Manage GitHub branches. |
 | `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
+| `github_comments` | `COMMENTTOOL` | Manage GitHub issue and pull-request comments. |
 | `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
 | `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
 | `github_dependabot` | `DEPENDABOTTOOL` | Review and manage GitHub Dependabot vulnerability alerts. |
@@ -85,15 +86,17 @@ _Auto-generated from the live MCP server — do not edit by hand._
 #### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
 
 <details>
-<summary>76 per-operation tools — one per public API method (click to expand)</summary>
+<summary>90 per-operation tools — one per public API method (click to expand)</summary>
 
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
 | `github_add_collaborator` | `APITOOL` | Add a collaborator to a repository. |
 | `github_cancel_workflow_run` | `APITOOL` | Cancel a workflow run. |
+| `github_close` | `BASE_API_CLIENTTOOL` | Release transport resources and runtime-only TLS material. |
 | `github_create_branch` | `APITOOL` | Create a new branch in a repository (using git ref creation). |
 | `github_create_content` | `APITOOL` | Create a file in a repository. |
 | `github_create_issue` | `APITOOL` | Create a new issue in a repository. |
+| `github_create_issue_comment` | `APITOOL` | Create a comment on an issue or pull request. |
 | `github_create_or_update_repo_secret` | `APITOOL` | Create or update a repository Actions secret. |
 | `github_create_organization` | `APITOOL` | Create an organization — GitHub Enterprise Server ONLY. |
 | `github_create_organization_repository` | `APITOOL` | Create a repository in an organization. |
@@ -102,14 +105,18 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_create_pull_request_review` | `APITOOL` | Create a review on a pull request. |
 | `github_create_release` | `APITOOL` | Create a new repository release. |
 | `github_create_repository` | `APITOOL` | Create a new repository for the authenticated user. |
+| `github_create_review_comment` | `APITOOL` | Create an inline review comment on a pull request's diff. |
+| `github_create_review_comment_reply` | `APITOOL` | Reply to an existing pull-request review comment thread. |
 | `github_delete_branch` | `APITOOL` | Delete a branch in a repository. |
 | `github_delete_branch_protection` | `APITOOL` | Delete branch protection configuration. |
 | `github_delete_content` | `APITOOL` | Delete a file in a repository. |
+| `github_delete_issue_comment` | `APITOOL` | Permanently delete an issue/PR comment. |
 | `github_delete_organization` | `APITOOL` | Schedule an organization for deletion. IRREVERSIBLE. |
 | `github_delete_pages` | `APITOOL` | Disable GitHub Pages for a repository and delete the site. |
 | `github_delete_release` | `APITOOL` | Delete a repository release. |
 | `github_delete_repo_secret` | `APITOOL` | Delete a repository Actions secret. |
 | `github_delete_repository` | `APITOOL` | Delete a repository. |
+| `github_delete_review_comment` | `APITOOL` | Permanently delete a pull-request review comment. |
 | `github_delete_workflow_run` | `APITOOL` | Delete a workflow run. |
 | `github_get_branch` | `APITOOL` | Get a single branch in a repository. |
 | `github_get_branch_protection` | `APITOOL` | Get branch protection configuration. |
@@ -121,6 +128,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_dependabot_alert` | `APITOOL` | Get a single Dependabot alert. |
 | `github_get_dependabot_alerts` | `APITOOL` | List Dependabot alerts for a repository. |
 | `github_get_issue` | `APITOOL` | Get a single issue in a repository. |
+| `github_get_issue_comment` | `APITOOL` | Get a single issue/PR comment. |
 | `github_get_issues` | `APITOOL` | List issues for a repository. |
 | `github_get_org_dependabot_alerts` | `APITOOL` | List Dependabot alerts for an entire organization. |
 | `github_get_org_members` | `APITOOL` | List members for an organization. |
@@ -138,13 +146,18 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_repo_secrets` | `APITOOL` | List repository Actions secrets names. |
 | `github_get_repositories` | `APITOOL` | List repositories for the authenticated user. |
 | `github_get_repository` | `APITOOL` | Get a specific repository. |
+| `github_get_review_comment` | `APITOOL` | Get a single pull-request review comment. |
 | `github_get_workflow_job_logs` | `APITOOL` | Download the plaintext logs for a single workflow job. |
 | `github_get_workflow_run` | `APITOOL` | Get a single workflow run. |
 | `github_get_workflow_run_jobs` | `APITOOL` | List the jobs for a workflow run (optional ``filter``: latest/all). |
 | `github_get_workflow_runs` | `APITOOL` | List workflow runs for a repository. |
 | `github_get_workflows` | `APITOOL` | List workflows for a repository. |
+| `github_list_issue_comments` | `APITOOL` | List comments on an issue or pull request. |
 | `github_list_organizations` | `APITOOL` | List organizations. |
 | `github_list_pages_builds` | `APITOOL` | List GitHub Pages builds for a repository (newest first). |
+| `github_list_repo_issue_comments` | `APITOOL` | List every issue/PR comment in a repository. |
+| `github_list_repo_review_comments` | `APITOOL` | List every pull-request review comment in a repository. |
+| `github_list_review_comments` | `APITOOL` | List review (inline code) comments on a pull request. |
 | `github_merge_pull_request` | `APITOOL` | Merge a pull request (``merge_method`` is merge, squash, or rebase). |
 | `github_remove_collaborator` | `APITOOL` | Remove a collaborator from a repository. |
 | `github_remove_organization_member` | `APITOOL` | Remove a user from an organization (repositories access included). |
@@ -160,15 +173,17 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_update_content` | `APITOOL` | Update a file in a repository. |
 | `github_update_dependabot_alert` | `APITOOL` | Update the state of a Dependabot alert. |
 | `github_update_issue` | `APITOOL` | Update an issue in a repository. |
+| `github_update_issue_comment` | `APITOOL` | Edit an issue/PR comment. |
 | `github_update_organization` | `APITOOL` | Update an organization's profile and member settings. |
 | `github_update_pages` | `APITOOL` | Update the GitHub Pages configuration for a repository. |
 | `github_update_pull_request` | `APITOOL` | Update a pull request. |
 | `github_update_release` | `APITOOL` | Update (PATCH) a repository release. |
 | `github_update_repository` | `APITOOL` | Update a repository. |
+| `github_update_review_comment` | `APITOOL` | Edit a pull-request review comment. |
 
 </details>
 
-_16 action-routed tool(s) (default) · 76 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (`condensed` default · `verbose` 1:1 · `both`). Auto-generated — do not edit._
+_17 action-routed tool(s) · 90 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (**`intent` default** — the six verb-tools, granular set loaded on demand · `condensed` action-routed · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/usage.md](docs/usage.md).
@@ -220,6 +235,7 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "ACTIONTOOL": "True",
         "BRANCHTOOL": "True",
         "COLLABORATORTOOL": "True",
+        "COMMENTTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
         "DEPENDABOTTOOL": "True",
@@ -270,6 +286,7 @@ own runtime secret boundary.
         "ACTIONTOOL": "True",
         "BRANCHTOOL": "True",
         "COLLABORATORTOOL": "True",
+        "COMMENTTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
         "DEPENDABOTTOOL": "True",
@@ -319,6 +336,7 @@ docker run -i --rm \
   -e ACTIONTOOL=True \
   -e BRANCHTOOL=True \
   -e COLLABORATORTOOL=True \
+  -e COMMENTTOOL=True \
   -e COMMITTOOL=True \
   -e CONTENTTOOL=True \
   -e DEPENDABOTTOOL=True \
@@ -395,6 +413,7 @@ the detailed transport contract.
 | `ACTIONTOOL` | `True` | These names match the authoritative "Toggle Env Var" column in the README MCP tools table (condensed action-routed surface). |
 | `BRANCHTOOL` | `True` |  |
 | `COLLABORATORTOOL` | `True` |  |
+| `COMMENTTOOL` | `True` |  |
 | `COMMITTOOL` | `True` |  |
 | `CONTENTTOOL` | `True` |  |
 | `DEPENDABOTTOOL` | `True` |  |
@@ -426,7 +445,7 @@ the detailed transport contract.
 | `MODEL_ID` | `gpt-4o` | Model id for the agent |
 | `ENABLE_WEB_UI` | `True` | Serve the AG-UI web interface |
 
-_35 package + 14 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
+_36 package + 14 inherited variable(s). Auto-generated from `.env.example` + the shared agent-utilities set — do not edit._
 <!-- ENV-VARS-TABLE:END -->
 
 

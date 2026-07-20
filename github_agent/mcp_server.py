@@ -55,6 +55,9 @@ DESTRUCTIVE_PULL_ACTIONS = {"merge", "enable_auto_merge"}
 #: Dependabot actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
 DESTRUCTIVE_DEPENDABOT_ACTIONS = {"update"}
 
+#: Comment actions gated behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
+DESTRUCTIVE_COMMENT_ACTIONS = {"delete", "delete_review"}
+
 #: Exact keys dropped by _slim (pure hypermedia/noise, never semantic data).
 _SLIM_DROP_EXACT = {"_links", "url", "node_id"}
 
@@ -129,6 +132,21 @@ WORKFLOW_ACTIONS = (
 )
 RELEASE_ACTIONS = ("list", "get", "create", "update", "delete")
 DEPENDABOT_ACTIONS = ("list", "get", "list_org", "update")
+COMMENT_ACTIONS = (
+    "list",
+    "list_repo",
+    "get",
+    "create",
+    "update",
+    "delete",
+    "list_review",
+    "list_repo_review",
+    "get_review",
+    "create_review",
+    "reply_review",
+    "update_review",
+    "delete_review",
+)
 
 
 def _slim(obj: Any) -> Any:
@@ -947,6 +965,406 @@ def register_pull_tools(mcp: FastMCP):
                     "data": None,
                 }
         except Exception as e:
+            return {"status": 500, "error": "Operation failed", "data": None}
+
+
+def register_comment_tools(mcp: FastMCP):
+    @mcp.tool(tags={"comments"})
+    async def github_comments(
+        action: str = Field(
+            description=(
+                "Action to perform. Must be one of: 'list', 'list_repo', "
+                "'get', 'create', 'update', 'delete', 'list_review', "
+                "'list_repo_review', 'get_review', 'create_review', "
+                "'reply_review', 'update_review', 'delete_review'"
+            )
+        ),
+        params_json: str = Field(
+            default="{}", description="JSON string of parameters to pass to the action."
+        ),
+        allow_destructive: bool = Field(
+            default=False,
+            description=(
+                "Must be true to run destructive actions: ['delete', "
+                "'delete_review']. Comment deletion is permanent. Also "
+                "honoured via GITHUB_ALLOW_DESTRUCTIVE."
+            ),
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(
+            default=None, description="MCP context for progress reporting"
+        ),
+    ) -> dict:
+        """Manage GitHub issue and pull-request comments.
+
+        A pull request IS an issue on GitHub, so the issue-comment actions
+        below work for both issues and PRs (e.g. replying to an issue or
+        leaving a top-level comment on a PR).
+
+        Issue/PR comment actions (parameters via params_json):
+        - 'list': {"owner", "repo", "issue_number", "since", "per_page",
+          "page"} — comments on one issue or pull request
+          (GET /repos/{owner}/{repo}/issues/{issue_number}/comments).
+        - 'list_repo': {"owner", "repo", "sort", "direction", "since",
+          "per_page", "page"} — every issue/PR comment in a repository
+          (GET /repos/{owner}/{repo}/issues/comments).
+        - 'get': {"owner", "repo", "comment_id"} — a single comment.
+        - 'create': {"owner", "repo", "issue_number", "body"} — comment on
+          an issue or pull request.
+        - 'update': {"owner", "repo", "comment_id", "body"} — edit a
+          comment.
+        - 'delete': {"owner", "repo", "comment_id"} — permanently delete a
+          comment. Requires allow_destructive=true.
+
+        Pull-request review-comment actions — inline comments anchored to a
+        line of the diff (parameters via params_json):
+        - 'list_review': {"owner", "repo", "pull_number", "since",
+          "per_page", "page"} — review comments on one pull request
+          (GET /repos/{owner}/{repo}/pulls/{pull_number}/comments).
+        - 'list_repo_review': {"owner", "repo", "sort", "direction",
+          "since", "per_page", "page"} — every review comment in a
+          repository.
+        - 'get_review': {"owner", "repo", "comment_id"} — a single review
+          comment.
+        - 'create_review': {"owner", "repo", "pull_number", "body",
+          "commit_id", "path", plus one of "line"+"side" (or
+          "start_line"+"start_side" for a multi-line comment), or the
+          legacy "position", or "in_reply_to" (an existing review comment
+          id)} — create an inline review comment.
+        - 'reply_review': {"owner", "repo", "pull_number", "comment_id",
+          "body"} — reply to an existing review comment thread; simpler
+          than 'create_review' with in_reply_to (no commit_id/path needed).
+        - 'update_review': {"owner", "repo", "comment_id", "body"} — edit a
+          review comment.
+        - 'delete_review': {"owner", "repo", "comment_id"} — permanently
+          delete a review comment. Requires allow_destructive=true.
+
+        Commit comments (/repos/{owner}/{repo}/commits/{sha}/comments) are
+        not covered by this tool.
+        """
+        if ctx:
+            await ctx.info("Executing github_comments action...")
+        import json
+
+        try:
+            kwargs = json.loads(params_json)
+        except Exception as e:
+            return {"status": 400, "error": f"Invalid params_json: {type(e).__name__}", "data": None}
+
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+        resolved = resolve_action(action, COMMENT_ACTIONS, service="github-agent")
+        if isinstance(resolved, dict):
+            return resolved
+        action = resolved
+
+        if action in DESTRUCTIVE_COMMENT_ACTIONS and not (
+            allow_destructive is True or allow_destructive_default()
+        ):
+            return {
+                "status": 403,
+                "error": (
+                    f"Action '{action}' is a guarded write and blocked by default. "
+                    "Re-run with allow_destructive=true (or set "
+                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+                ),
+                "data": None,
+            }
+
+        try:
+            if action == "list":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                issue_number = kwargs.pop("issue_number", None)
+                if not owner or not repo or not issue_number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'issue_number' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_issue_comments,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=int(issue_number),
+                    **kwargs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "list_repo":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_repo_issue_comments, owner=owner, repo=repo, **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "get":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_issue_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Comment retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "create":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                issue_number = kwargs.pop("issue_number", None)
+                body = kwargs.pop("body", None)
+                if not owner or not repo or not issue_number or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'issue_number', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_issue_comment,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=int(issue_number),
+                    body=body,
+                )
+                return {
+                    "status": 201,
+                    "message": "Comment created successfully",
+                    "data": response.data,
+                }
+            elif action == "update":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                body = kwargs.get("body")
+                if not owner or not repo or not comment_id or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.update_issue_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                    body=body,
+                )
+                return {
+                    "status": 200,
+                    "message": "Comment updated successfully",
+                    "data": response.data,
+                }
+            elif action == "delete":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.delete_issue_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Comment deleted successfully",
+                    "data": response.data,
+                }
+            elif action == "list_review":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                pull_number = kwargs.pop("pull_number", None)
+                if not owner or not repo or not pull_number:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'pull_number' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_review_comments,
+                    owner=owner,
+                    repo=repo,
+                    pull_number=int(pull_number),
+                    **kwargs,
+                )
+                return {
+                    "status": 200,
+                    "message": "Review comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "list_repo_review":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                if not owner or not repo:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner' or 'repo' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.list_repo_review_comments, owner=owner, repo=repo, **kwargs
+                )
+                return {
+                    "status": 200,
+                    "message": "Repository review comments retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "get_review":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.get_review_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Review comment retrieved successfully",
+                    "data": response.data,
+                }
+            elif action == "create_review":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                pull_number = kwargs.pop("pull_number", None)
+                body = kwargs.pop("body", None)
+                if not owner or not repo or not pull_number or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'pull_number', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_review_comment,
+                    owner=owner,
+                    repo=repo,
+                    pull_number=int(pull_number),
+                    body=body,
+                    **kwargs,
+                )
+                return {
+                    "status": 201,
+                    "message": "Review comment created successfully",
+                    "data": response.data,
+                }
+            elif action == "reply_review":
+                owner = kwargs.pop("owner", None)
+                repo = kwargs.pop("repo", None)
+                pull_number = kwargs.pop("pull_number", None)
+                comment_id = kwargs.pop("comment_id", None)
+                body = kwargs.pop("body", None)
+                if (
+                    not owner
+                    or not repo
+                    or not pull_number
+                    or not comment_id
+                    or not body
+                ):
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'pull_number', 'comment_id', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.create_review_comment_reply,
+                    owner=owner,
+                    repo=repo,
+                    pull_number=int(pull_number),
+                    comment_id=int(comment_id),
+                    body=body,
+                )
+                return {
+                    "status": 201,
+                    "message": "Review comment reply created successfully",
+                    "data": response.data,
+                }
+            elif action == "update_review":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                body = kwargs.get("body")
+                if not owner or not repo or not comment_id or not body:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.update_review_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                    body=body,
+                )
+                return {
+                    "status": 200,
+                    "message": "Review comment updated successfully",
+                    "data": response.data,
+                }
+            elif action == "delete_review":
+                owner = kwargs.get("owner")
+                repo = kwargs.get("repo")
+                comment_id = kwargs.get("comment_id")
+                if not owner or not repo or not comment_id:
+                    return {
+                        "status": 400,
+                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+                        "data": None,
+                    }
+                response = await run_blocking(
+                    client.delete_review_comment,
+                    owner=owner,
+                    repo=repo,
+                    comment_id=int(comment_id),
+                )
+                return {
+                    "status": 200,
+                    "message": "Review comment deleted successfully",
+                    "data": response.data,
+                }
+            else:
+                return {
+                    "status": 400,
+                    "error": f"Unknown action: {action}",
+                    "data": None,
+                }
+        except Exception:
             return {"status": 500, "error": "Operation failed", "data": None}
 
 
@@ -2495,6 +2913,7 @@ TOOL_REGISTRY = [
     ("repos", "REPOTOOL", register_repo_tools),
     ("issue", "ISSUETOOL", register_issue_tools),
     ("pulls", "PULLTOOL", register_pull_tools),
+    ("comment", "COMMENTTOOL", register_comment_tools),
     ("contents", "CONTENTTOOL", register_content_tools),
     ("branches", "BRANCHTOOL", register_branch_tools),
     ("commits", "COMMITTOOL", register_commit_tools),
