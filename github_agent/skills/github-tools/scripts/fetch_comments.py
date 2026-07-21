@@ -105,7 +105,7 @@ def _run_json(cmd: list[str], stdin: str | None = None) -> dict[str, Any]:
         return json.loads(out)
     except json.JSONDecodeError as e:
         raise RuntimeError(
-            f"Failed to parse JSON from command output: {e}\nRaw:\n{out}"
+            f"Failed to parse JSON from command output: {type(e).__name__}\nRaw:\n{out}"
         ) from e
 
 

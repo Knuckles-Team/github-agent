@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from typing import Any
 
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -25,8 +25,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/actions/workflows",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -64,8 +62,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/actions/runs/{run_id}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -91,8 +87,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "dispatched"})
@@ -103,8 +97,6 @@ class Api(BaseApiClient):
         response = self._session.post(
             url=f"{self.url}/repos/{owner}/{repo}/actions/runs/{run_id}/rerun",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "rerun_triggered"})
@@ -115,8 +107,6 @@ class Api(BaseApiClient):
         response = self._session.post(
             url=f"{self.url}/repos/{owner}/{repo}/actions/runs/{run_id}/cancel",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "cancelled"})
@@ -127,8 +117,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/repos/{owner}/{repo}/actions/runs/{run_id}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "deleted"})
@@ -142,8 +130,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
             params=kwargs or None,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         res_json = response.json()
@@ -160,8 +146,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/actions/jobs/{job_id}/logs",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
             allow_redirects=True,
         )
         response.raise_for_status()

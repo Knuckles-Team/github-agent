@@ -1,7 +1,7 @@
 """Action-discovery contract for the github-agent MCP tools.
 
 Every action-routed tool dispatches through the shared
-``agent_utilities.mcp_utilities.resolve_action`` helper, which gives callers
+``agent_utilities.mcp.action_dispatch.resolve_action`` helper, which gives callers
 ``list_actions`` discovery and a rich did-you-mean error on an unknown action.
 These tests assert that contract on the live tool dispatch path.
 """

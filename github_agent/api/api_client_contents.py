@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -25,8 +25,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{model.owner}/{model.repo}/contents/{model.path}",
                 params=model.api_parameters,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             data = response.json()
@@ -50,8 +48,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/contents/{path}",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             res_json = response.json()
@@ -80,8 +76,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/contents/{path}",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             res_json = response.json()
@@ -103,8 +97,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/contents/{path}",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             return Response(response=response, data=response.json())

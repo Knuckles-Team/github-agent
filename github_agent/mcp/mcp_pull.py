@@ -3,7 +3,8 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_utilities.mcp_utilities import resolve_action, run_blocking
+from agent_utilities.mcp.action_dispatch import resolve_action
+from agent_utilities.mcp.concurrency import run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
@@ -45,7 +46,6 @@ def register_pull_tools(mcp: FastMCP):
             description="Confirm a guarded write ('merge', 'enable_auto_merge'). Also honoured via GITHUB_ALLOW_DESTRUCTIVE.",
         ),
         client=Depends(get_client),
-        gql_client=Depends(get_graphql_client),
         ctx: Context | None = Field(
             default=None, description="MCP context for progress reporting"
         ),
@@ -68,7 +68,11 @@ def register_pull_tools(mcp: FastMCP):
         try:
             kwargs = json.loads(params_json)
         except Exception as e:
-            return {"status": 400, "error": f"Invalid params_json: {e}", "data": None}
+            return {
+                "status": 400,
+                "error": f"Invalid params_json: {type(e).__name__}",
+                "data": None,
+            }
 
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
@@ -236,6 +240,19 @@ def register_pull_tools(mcp: FastMCP):
                     "data": response.data,
                 }
             elif action in ("enable_auto_merge", "disable_auto_merge"):
+                # GraphQL-only actions: resolve the gql client lazily, here
+                # and only here, so a construction failure (e.g. no token,
+                # unreachable endpoint) can never break the REST actions
+                # above (list/get/create/update/approve/request_reviewers/
+                # merge), which don't need a GraphQL client at all.
+                try:
+                    gql_client = await run_blocking(get_graphql_client)
+                except Exception as e:
+                    return {
+                        "status": 500,
+                        "error": f"GraphQL client unavailable: {type(e).__name__}",
+                        "data": None,
+                    }
                 owner = kwargs.get("owner")
                 repo = kwargs.get("repo")
                 number = kwargs.get("number")

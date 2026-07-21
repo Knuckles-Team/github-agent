@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from agent_utilities.exceptions import ParameterError
+from agent_utilities.core.exceptions import ParameterError
 
 from github_agent.api_client import Api
 from github_agent.github_response_models import (
@@ -99,8 +99,6 @@ def test_get_pages(mock_session):
     mock_session.get.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/service/pages",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -136,8 +134,6 @@ def test_create_pages_workflow_default(mock_session):
         url="https://api.github.com/repos/Knuckles-Team/service/pages",
         json={"build_type": "workflow"},
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -229,8 +225,6 @@ def test_update_pages_field_passthrough(mock_session):
             "https_enforced": True,
         },
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -258,8 +252,6 @@ def test_delete_pages_204(mock_session):
     mock_session.delete.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/service/pages",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 
@@ -307,8 +299,6 @@ def test_request_pages_build(mock_session):
     mock_session.post.assert_called_with(
         url="https://api.github.com/repos/Knuckles-Team/service/pages/builds",
         headers=api.headers,
-        verify=api.verify,
-        proxies=api.proxies,
     )
 
 

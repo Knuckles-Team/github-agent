@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""GitHub write-helper for posting a comment (the github-mcp has no comment tool)
-and merging a PR with a write-time mergeable_state re-check. (Closing is done via
-the MCP — `github_issues action=update` / `github_pulls action=update` with
-state=closed — so this helper deliberately does not implement close. The MCP also
-has a native `github_pulls action=merge`; this helper is preferred for merge because
-it re-verifies mergeable_state at write time and couples the disclaimer comment.)
+"""Fallback GitHub write-helper for posting a comment and merging a PR with a
+write-time mergeable_state re-check. The github-mcp now has native tools for both
+(`github_comments` and `github_merge_pull_request`); this helper is retained for two
+cases: a deployed github-mcp that predates `github_comments`, and callers that want
+the atomic re-verify-mergeable-then-comment-then-merge in one guarded step. (Closing
+is done via the MCP — `github_issues action=update` / `github_pulls action=update`
+with state=closed — so this helper deliberately does not implement close.)
 
-Auth: reads the token from `~/.git-credentials` (the same credential the local
-git push uses); override with the GITHUB_TOKEN env var. No token is ever printed.
+Auth: reads the token from the ``GITHUB_TOKEN`` runtime environment variable.
+No token is ever printed or read from a plaintext credential file.
 
 SAFETY: both subcommands DRY-RUN by default and print what they would do. Nothing
 is sent unless `--confirm` is passed. `merge` additionally refuses unless the
@@ -24,87 +25,62 @@ Always prefix triage comments with the AI disclaimer (the skill enforces this):
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import sys
-import urllib.error
-import urllib.request
+
+from github_agent.github_http import github_json_request
+
+REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$")
 
 
 def _token() -> str:
     tok = os.environ.get("GITHUB_TOKEN")
     if tok:
         return tok
-    path = os.path.expanduser("~/.git-credentials")
-    try:
-        with open(path) as fh:
-            for line in fh:
-                m = re.match(r"https://[^:]+:([^@]+)@github\.com", line.strip())
-                if m:
-                    return m.group(1)
-    except OSError:
-        pass
-    sys.exit("No GitHub token (set GITHUB_TOKEN or populate ~/.git-credentials).")
+    sys.exit("No GitHub token is configured.")
 
 
 def _api(method: str, path: str, payload: dict | None) -> tuple[int, dict]:
-    req = urllib.request.Request(
-        "https://api.github.com" + path,
-        method=method,
-        data=json.dumps(payload).encode() if payload is not None else None,
-        headers={
-            "Authorization": "token " + _token(),
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json",
-        },
-    )
     try:
-        with urllib.request.urlopen(req) as r:
-            body = r.read()
-            return r.status, (json.loads(body) if body else {})
-    except urllib.error.HTTPError as e:
-        return e.code, {"error": e.read().decode()[:300]}
+        return github_json_request(method, path, _token(), payload)
+    except RuntimeError:
+        return 503, {"error": "GitHub request failed"}
 
 
 def cmd_comment(repo: str, number: int, body: str, confirm: bool) -> None:
+    if REPOSITORY_RE.fullmatch(repo) is None:
+        sys.exit("invalid repository identifier")
     if not body.strip():
         sys.exit("refusing to post an empty comment")
     if not confirm:
-        print(f"[dry-run] would comment on {repo}#{number}:\n---\n{body}\n---")
+        print(f"[dry-run] would post a comment ({len(body)} characters)")
         print("(re-run with --confirm to post)")
         return
     st, resp = _api("POST", f"/repos/{repo}/issues/{number}/comments", {"body": body})
-    print(
-        f"comment -> HTTP {st}"
-        + (f"  {resp.get('html_url', '')}" if st < 300 else f"  {resp}")
-    )
+    print(f"comment -> HTTP {st}")
 
 
 def cmd_merge(repo: str, number: int, method: str, confirm: bool) -> None:
+    if REPOSITORY_RE.fullmatch(repo) is None:
+        sys.exit("invalid repository identifier")
     # re-check mergeability at the moment of merge (state can drift since triage)
     st, pr = _api("GET", f"/repos/{repo}/pulls/{number}", None)
     if st >= 300:
-        sys.exit(f"could not load PR {repo}#{number}: HTTP {st}")
+        sys.exit(f"could not load pull request: HTTP {st}")
     ms = pr.get("mergeable_state")
     if pr.get("draft"):
-        sys.exit(f"refusing: {repo}#{number} is a draft")
+        sys.exit("refusing: pull request is a draft")
     if ms != "clean":
-        sys.exit(f"refusing: {repo}#{number} mergeable_state={ms} (need 'clean')")
+        sys.exit(f"refusing: mergeable_state={ms} (need 'clean')")
     if not confirm:
-        print(
-            f"[dry-run] would merge {repo}#{number} ({pr.get('title', '')}) "
-            f"via {method}; mergeable_state=clean"
-        )
+        print(f"[dry-run] would merge via {method}; mergeable_state=clean")
         print("(re-run with --confirm to merge)")
         return
     st, resp = _api(
         "PUT", f"/repos/{repo}/pulls/{number}/merge", {"merge_method": method}
     )
-    print(
-        f"merge -> HTTP {st}"
-        + (f"  sha={resp.get('sha', '')}" if st < 300 else f"  {resp}")
-    )
+    print(f"merge -> HTTP {st}")
 
 
 def main() -> None:

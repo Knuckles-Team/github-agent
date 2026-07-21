@@ -17,7 +17,7 @@ license: MIT
 tags: [github, pull-requests, code-review, sweep, ops]
 metadata:
   author: Knuckles-Team
-  version: '0.1.22'
+  version: '0.1.23'
 ---
 
 # GitHub PR Review Sweep
@@ -35,15 +35,16 @@ required — the MCP server holds its own auth.
 
 ## Tool access (works under delegation AND the multiplexer)
 
-The tools are `github_pulls`, `github_actions`, `github_repos`, `github_orgs` —
-each takes `action` + a `params_json` **JSON string**.
+The tools are `github_pulls`, `github_comments`, `github_actions`, `github_repos`,
+`github_orgs` — each takes `action` + a `params_json` **JSON string**.
 
 - **Under direct delegation** to `github-agent` (`execute_agent server=github-agent`,
   or the `mcp-client` skill) the tools are already bound by their **native** names
   — call them directly. This is the path this skill is written for.
 - **In the multiplexer / orchestrator** context the same tools carry the `gith__`
   prefix (`gith__pulls`, …); mount them first with
-  `load_tools(servers=["github-agent"])`.
+  `load_tools(servers=["github-agent"])` (or
+  `find_tools("github pull requests review checks mergeable")`).
 
 `github_pulls` actions: `list|get|create|update|approve|request_reviewers|merge|
 enable_auto_merge|disable_auto_merge`. See `references/pulls-tool-cheatsheet.md`
@@ -98,10 +99,11 @@ lead with a one-line tally (ready / blocked / conflicts / failing / draft).
 
 ### Step 6 — Opt-in actions (only on explicit confirmation)
 Never write to GitHub without the user confirming. When asked:
-- Comment / leave review feedback: there is **no native comment action or tool**
-  (`github_issues` has no `comment` action, and no dedicated comment tool exists).
-  This is a read-only reporting/sweep skill — it does not post comments. Hand off
-  to `github-triage-resolver`, which performs gated writes, for that.
+- Comment / leave review feedback: `github_comments action=create {"owner","repo",
+  "issue_number":N,"body":"<comment>"}` (a PR is an issue on GitHub). This is a
+  read-only reporting/sweep skill by design — prefer handing gated writes off to
+  `github-triage-resolver`, which re-verifies each item behind a dry-run +
+  confirmation gate, rather than posting comments directly from here.
 - Update branch / change base: `github_pulls action=update`.
 - Merge: only when the user names the PR(s) and the verdict is ✅ ready.
 

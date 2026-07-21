@@ -7,10 +7,11 @@
         "github-mcp"
       ],
       "env": {
-        "MCP_TOOL_MODE": "condensed",
+        "MCP_TOOL_MODE": "intent",
         "ACTIONTOOL": "True",
         "BRANCHTOOL": "True",
         "COLLABORATORTOOL": "True",
+        "COMMENTTOOL": "True",
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
         "DEPENDABOTTOOL": "True",
@@ -19,7 +20,6 @@
         "GITHUB_HTTP_READ_TIMEOUT": "30",
         "GITHUB_TOKEN": "your_github_token_here",
         "GITHUB_URL": "https://api.github.com",
-        "GITHUB_VERIFY": "True",
         "GRAPHQLTOOL": "True",
         "INGESTTOOL": "True",
         "ISSUETOOL": "True",

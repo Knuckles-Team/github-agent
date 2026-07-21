@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from typing import Any
 
-from agent_utilities.decorators import require_auth
+from agent_utilities.core.decorators import require_auth
 
 from github_agent.api.api_client_base import BaseApiClient
 from github_agent.github_response_models import Response
@@ -22,8 +22,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/dependabot/alerts",
             params=params or None,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -39,8 +37,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=(f"{self.url}/repos/{owner}/{repo}/dependabot/alerts/{alert_number}"),
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -59,8 +55,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/orgs/{org}/dependabot/alerts",
             params=params or None,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())
@@ -91,8 +85,6 @@ class Api(BaseApiClient):
             url=(f"{self.url}/repos/{owner}/{repo}/dependabot/alerts/{alert_number}"),
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data=response.json())

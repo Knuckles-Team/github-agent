@@ -218,7 +218,7 @@
     },
     {
       "id": "FR-033",
-      "description": "6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, GITHUB_SSL_VERIFY, ORGSTOOL, RELEASESTOOL",
+      "description": "6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, TLS_PROFILE_REF, ORGSTOOL, RELEASESTOOL",
       "testable": true
     },
     {

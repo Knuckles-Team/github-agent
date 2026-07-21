@@ -18,12 +18,12 @@ deterministic tool surface and supervisor agent over the GitHub REST API.
 Pydantic-AI supervisor agent. It provides:
 
 - **`Api`** — a `requests`-based REST client (`github_agent.api_client.Api`) composed
-  from per-domain mixins (repositories, issues, pull requests, branches, commits,
-  contents, organizations, collaborators, releases, workflows, search), with
+  from per-domain mixins (repositories, issues, pull requests, comments, branches,
+  commits, contents, organizations, collaborators, releases, workflows, search), with
   parallel pagination and tolerant error handling.
-- **Action-dispatch MCP tools** — eleven tool domains (`github_repos`,
-  `github_issues`, `github_pulls`, …), each toggled by an environment switch and
-  routed by an `action` argument.
+- **Action-dispatch MCP tools** — twelve tool domains (`github_repos`,
+  `github_issues`, `github_pulls`, `github_comments`, …), each toggled by an
+  environment switch and routed by an `action` argument.
 - **An A2A supervisor agent** (`github-agent` console script) that delegates GitHub
   work to specialized child agents.
 
@@ -53,7 +53,7 @@ Connect it to GitHub:
 
 ```bash
 export GITHUB_URL=https://api.github.com
-export GITHUB_TOKEN=ghp_your_personal_access_token
+export GITHUB_TOKEN="<GITHUB_TOKEN>"
 github-mcp --transport streamable-http --host 0.0.0.0 --port 8000
 ```
 

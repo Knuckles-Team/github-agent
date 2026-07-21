@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     MissingParameterError,
     ParameterError,
 )
@@ -41,8 +41,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/issues",
                 json=payload,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = Issue(**response.json())
@@ -58,8 +56,6 @@ class Api(BaseApiClient):
                 url=f"{self.url}/repos/{owner}/{repo}/issues/{number}",
                 json=kwargs,
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = Issue(**response.json())
@@ -74,8 +70,6 @@ class Api(BaseApiClient):
             response = self._session.get(
                 url=f"{self.url}/repos/{owner}/{repo}/issues/{number}",
                 headers=self.headers,
-                verify=self.verify,
-                proxies=self.proxies,
             )
             response.raise_for_status()
             parsed_data = Issue(**response.json())

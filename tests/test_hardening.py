@@ -31,9 +31,7 @@ def test_timeout_adapter_injects_default_only_when_unset(monkeypatch):
 
     # Replace the parent send so super().send() in the adapter records the
     # timeout the adapter forwarded, without performing real network I/O.
-    monkeypatch.setattr(
-        requests.adapters.HTTPAdapter, "send", fake_parent_send
-    )
+    monkeypatch.setattr(requests.adapters.HTTPAdapter, "send", fake_parent_send)
 
     prepared = requests.Request("GET", "https://api.github.com/x").prepare()
 
@@ -60,8 +58,6 @@ def _client_without_network() -> BaseApiClient:
     client = object.__new__(BaseApiClient)
     client.url = "https://api.github.com"
     client.headers = {}
-    client.verify = True
-    client.proxies = None
     return client
 
 

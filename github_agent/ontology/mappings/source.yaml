@@ -1,0 +1,20 @@
+schema_version: '1'
+connector: github-agent
+ontology_source: github
+sync:
+- preset: github-repositories
+  server: github-agent
+  tool: github_repos
+  action: list
+  records_path: data
+  id_field: id
+  title_field: full_name
+  text_field: description
+  updated_field: updated_at
+  doc_type: repository
+  tool_schema_sha256: 125cd86b75abcb9a0ac47575ffbdda660260ded083695f69fe9725b3858cd46f
+governance:
+  default_acl: quarantine
+  identity: opaque-reference
+  tenant: required-at-materialization
+  provenance: required-at-materialization

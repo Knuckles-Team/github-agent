@@ -4,18 +4,22 @@ CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector nat
 pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
 ``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
-**:Document** nodes for semantic search —
-using the lightweight engine client (``GraphComputeEngine()._client`` + ``txn``), the
-same fast client the blob ``MediaStore`` uses, NOT the heavy in-process ingestion engine.
+**:Document** nodes for semantic search — using the lightweight engine client
+(``GraphComputeEngine()._client`` + ``txn``), the same fast client the blob
+``MediaStore`` uses, NOT the heavy in-process ingestion engine.
 
 This is a thin mapper: it delegates the txn write path to the shared primitive
 ``agent_utilities.knowledge_graph.memory.native_ingest`` when available, and otherwise
 falls back to a self-contained txn implementation (the primitive is not yet in every
-installed agent_utilities). Entirely best-effort and dependency-/engine-guarded: with no
-KG stack or no reachable engine every entry point **no-ops** (returns ``None``), so the
-connector keeps working with zero KG infrastructure. Nodes carry the shared provenance
-(``domain``/``source``) and match the classes federated by ``github_agent.ontology``.
-Node ids follow ``github:<class>:<externalId>``.
+installed agent_utilities, or its production authority — a reachable engine, an
+authenticated session — is not). Entirely best-effort and dependency-/engine-guarded:
+with no KG stack, no reachable engine, or no verified session, every entry point
+**no-ops** (returns ``None``), so the connector keeps working with zero KG
+infrastructure. Nodes carry the shared provenance (``domain``/``source``) and match
+the classes federated by ``github_agent.ontology``. Node ids follow
+``github:<class>:<externalId>``; entities use the canonical ``node_type`` field and
+relationships the canonical ``relationship`` field, matching the shared primitive's
+schema on both the delegated and the self-contained write path.
 """
 
 from __future__ import annotations
@@ -31,7 +35,9 @@ _DOMAIN = "github"
 _DEFAULT_GRAPH = "__commons__"
 
 # Prefer the shared native-ingest primitive; fall back to the self-contained txn path
-# below when it is not present in the installed agent_utilities.
+# below when it is not present in the installed agent_utilities, or when it cannot
+# reach its production authority (engine unreachable, no verified session) — see
+# ingest_entities/ingest_documents, which catch that failure and fall back in turn.
 try:  # pragma: no cover - import availability varies by install
     from agent_utilities.knowledge_graph.memory.native_ingest import (
         ingest_documents as _shared_ingest_documents,
@@ -93,7 +99,9 @@ def _write_nodes(
     for rel in relationships or []:
         try:
             client.edges.add(
-                rel["source"], rel["target"], {"type": rel.get("type", "RELATED")}
+                rel["source"],
+                rel["target"],
+                {"relationship": rel.get("relationship", "RELATED")},
             )
             edges += 1
         except Exception as e:  # noqa: BLE001 — pure edge link, best-effort
@@ -112,8 +120,8 @@ def ingest_entities(
 ) -> dict[str, int] | None:
     """Write typed OWL nodes (+ edges) into epistemic-graph.
 
-    ``entities``: ``[{"id":..., "type":<owl:Class>, ...props}]``.
-    ``relationships``: ``[{"source":id, "target":id, "type":<link>}]``.
+    ``entities``: ``[{"id":..., "node_type":<owl:Class>, ...props}]``.
+    ``relationships``: ``[{"source":id, "target":id, "relationship":<link>}]``.
     Returns ``{"nodes":n, "edges":m}`` or ``None`` (no engine / failure; never raises).
     ``client``/``graph`` may be injected (tests); otherwise resolved on demand. When a
     client is injected the self-contained fallback is used so the write is observable.
@@ -122,9 +130,14 @@ def ingest_entities(
     if not entities:
         return None
     if client is None and _shared_ingest_entities is not None:
-        return _shared_ingest_entities(
-            entities, relationships, source=_SOURCE, domain=_DOMAIN
-        )
+        try:
+            return _shared_ingest_entities(
+                entities, relationships, source=_SOURCE, domain=_DOMAIN
+            )
+        except Exception as e:  # noqa: BLE001 — shared primitive's authority is
+            # unavailable (no reachable engine, no verified session) -> best-effort
+            # self-contained fallback below, never a hard failure for a connector.
+            logger.debug("KG ingest: shared primitive unavailable: %s", e)
     if client is None:
         client, graph = _client()
     if client is None:
@@ -144,7 +157,10 @@ def ingest_documents(
     Returns ``{"nodes":n, "edges":0}`` or ``None``.
     """
     if client is None and _shared_ingest_documents is not None:
-        return _shared_ingest_documents(documents, source=_SOURCE, domain=_DOMAIN)
+        try:
+            return _shared_ingest_documents(documents, source=_SOURCE, domain=_DOMAIN)
+        except Exception as e:  # noqa: BLE001 — see ingest_entities
+            logger.debug("KG ingest: shared primitive unavailable: %s", e)
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     nodes: list[dict[str, Any]] = []
     for doc in documents or []:
@@ -154,7 +170,7 @@ def ingest_documents(
             continue
         node = {k: v for k, v in doc.items() if k != "content" and v is not None}
         node["id"] = did
-        node["type"] = "Document"
+        node["node_type"] = "Document"
         node["text"] = text
         node.setdefault("created_at", now)
         nodes.append(node)
@@ -177,7 +193,7 @@ def _person(user: dict[str, Any] | None) -> tuple[str | None, dict[str, Any] | N
     pid = f"github:person:{login}"
     return pid, {
         "id": pid,
-        "type": "Person",
+        "node_type": "Person",
         "name": login,
         "htmlUrl": _str(user.get("html_url")),
         "externalToolId": str(user.get("id")) if user.get("id") is not None else login,
@@ -206,7 +222,7 @@ def ingest_repositories(
         entities.append(
             {
                 "id": node_id,
-                "type": "Repository",
+                "node_type": "Repository",
                 "name": repo.get("name"),
                 "fullName": repo.get("full_name"),
                 "htmlUrl": _str(repo.get("html_url")),
@@ -224,7 +240,7 @@ def ingest_repositories(
             entities.append(
                 {
                     "id": oid,
-                    "type": "Organization"
+                    "node_type": "Organization"
                     if owner_type == "organization"
                     else "Person",
                     "name": login,
@@ -232,7 +248,7 @@ def ingest_repositories(
                 }
             )
             relationships.append(
-                {"source": node_id, "target": oid, "type": "ownedByOrg"}
+                {"source": node_id, "target": oid, "relationship": "ownedByOrg"}
             )
     return ingest_entities(entities, relationships, client=client, graph=graph)
 
@@ -255,7 +271,7 @@ def ingest_pull_requests(
         entities.append(
             {
                 "id": node_id,
-                "type": "PullRequest",
+                "node_type": "PullRequest",
                 "title": pr.get("title"),
                 "number": pr.get("number"),
                 "state": pr.get("state"),
@@ -268,14 +284,14 @@ def ingest_pull_requests(
         if author:
             entities.append(author)
             relationships.append(
-                {"source": node_id, "target": author_id, "type": "authoredBy"}
+                {"source": node_id, "target": author_id, "relationship": "authoredBy"}
             )
         if repo_node_id:
             relationships.append(
                 {
                     "source": node_id,
                     "target": repo_node_id,
-                    "type": "belongsToRepository",
+                    "relationship": "belongsToRepository",
                 }
             )
     return ingest_entities(entities, relationships, client=client, graph=graph)
@@ -305,7 +321,7 @@ def ingest_issues(
         entities.append(
             {
                 "id": node_id,
-                "type": "Issue",
+                "node_type": "Issue",
                 "title": issue.get("title"),
                 "number": issue.get("number"),
                 "state": issue.get("state"),
@@ -317,14 +333,14 @@ def ingest_issues(
         if author:
             entities.append(author)
             relationships.append(
-                {"source": node_id, "target": author_id, "type": "authoredBy"}
+                {"source": node_id, "target": author_id, "relationship": "authoredBy"}
             )
         if repo_node_id:
             relationships.append(
                 {
                     "source": node_id,
                     "target": repo_node_id,
-                    "type": "belongsToRepository",
+                    "relationship": "belongsToRepository",
                 }
             )
     return ingest_entities(entities, relationships, client=client, graph=graph)
@@ -408,7 +424,7 @@ def ingest_pipeline_runs(
         entities.append(
             {
                 "id": node_id,
-                "type": "PipelineRun",
+                "node_type": "PipelineRun",
                 "status": run.get("status"),
                 "conclusion": run.get("conclusion"),
                 "headSha": run.get("head_sha"),
@@ -424,7 +440,7 @@ def ingest_pipeline_runs(
 
         if repo_node_id:
             relationships.append(
-                {"source": node_id, "target": repo_node_id, "type": "ranFor"}
+                {"source": node_id, "target": repo_node_id, "relationship": "ranFor"}
             )
 
         head_sha = run.get("head_sha")
@@ -433,13 +449,13 @@ def ingest_pipeline_runs(
             entities.append(
                 {
                     "id": commit_id,
-                    "type": "Commit",
+                    "node_type": "Commit",
                     "sha": head_sha,
                     "externalToolId": head_sha,
                 }
             )
             relationships.append(
-                {"source": node_id, "target": commit_id, "type": "ranFor"}
+                {"source": node_id, "target": commit_id, "relationship": "ranFor"}
             )
 
         for pr in run.get("pull_requests") or []:
@@ -450,7 +466,7 @@ def ingest_pipeline_runs(
                 {
                     "source": node_id,
                     "target": f"github:pullrequest:{pr_id}",
-                    "type": "ranFor",
+                    "relationship": "ranFor",
                 }
             )
 
@@ -462,7 +478,7 @@ def ingest_pipeline_runs(
             entities.append(
                 {
                     "id": job_node_id,
-                    "type": "CheckRun",
+                    "node_type": "CheckRun",
                     "name": job.get("name"),
                     "status": job.get("status"),
                     "conclusion": job.get("conclusion"),
@@ -473,6 +489,6 @@ def ingest_pipeline_runs(
                 }
             )
             relationships.append(
-                {"source": node_id, "target": job_node_id, "type": "hasJob"}
+                {"source": node_id, "target": job_node_id, "relationship": "hasJob"}
             )
     return ingest_entities(entities, relationships, client=client, graph=graph)

@@ -54,7 +54,7 @@ def _load(paths: list[str]) -> list[dict]:
             with open(p) as fh:
                 out.extend(_extract(json.load(fh)))
         except (OSError, json.JSONDecodeError) as e:
-            print(f"warning: skipping {p}: {e}", file=sys.stderr)
+            print(f"warning: skipping {p}: {type(e).__name__}", file=sys.stderr)
     return out
 
 

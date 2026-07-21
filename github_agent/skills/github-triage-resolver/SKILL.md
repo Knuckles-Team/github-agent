@@ -17,7 +17,7 @@ license: MIT
 tags: [github, pull-requests, issues, triage, automation, merge, close, ops]
 metadata:
   author: Knuckles-Team
-  version: '0.1.22'
+  version: '0.1.23'
 ---
 
 # GitHub Triage Resolver
@@ -26,25 +26,25 @@ The **action/executor** counterpart to the sweep skills: it not only reports, it
 **verifies and resolves** open PRs/issues — closing or merging the safe ones with a
 comment, skipping the rest for a human. Conservative by design: when in doubt, skip.
 
-Drives the **github-agent** MCP server for triage, verification, and **close**
-(`github_issues`/`github_pulls action=update state=closed`). The MCP has **no comment
-tool**, and for **merge** this skill uses `scripts/gh_write.py` rather than the native
-`github_pulls action=merge` because the script re-checks `mergeable_state==clean` at write
-time and posts the AI-disclaimer comment in the same step. Read
-`references/resolution-rules.md` before any write.
+Drives the **github-agent** MCP server end-to-end — triage, verification,
+**comment**, **close**, and **merge** all run through native MCP tools; no external
+write script is required. It has a native merge (`github_pulls action=merge`, or the
+standalone REST `github_merge_pull_request` — robust, since it does not depend on
+the GraphQL client) AND a native comment tool (`github_comments`,
+create/list/get/update/delete). Read `references/resolution-rules.md` before any write.
 
 ## Tool access (works under delegation AND the multiplexer)
 
-The tools — `github_pulls`, `github_issues`, `github_actions`, `github_repos`,
-`github_orgs`, `github_commits`, `github_contents`, `github_search` — each take
-`action` + a `params_json` **JSON string**.
+The tools — `github_pulls`, `github_issues`, `github_comments`, `github_actions`,
+`github_repos`, `github_orgs`, `github_commits`, `github_contents`, `github_search`
+— each take `action` + a `params_json` **JSON string**.
 
 - **Under direct delegation** to `github-agent` (`execute_agent server=github-agent`, or
   the `mcp-client` skill) the tools are already bound by these **native** names — call
   them directly. This is the path this skill is written for.
 - **In the multiplexer / orchestrator** context the same tools carry the `gith__` prefix
   (`gith__pulls`, …); mount them first with `load_tools(servers=["github-agent"])` (or
-  `find_tools("github pull requests issues review checks merge close")`).
+  `find_tools("github pull requests issues review checks merge close comment")`).
 
 ## Inputs
 - **accounts**: default `[{login:"Knucklessg1",type:"user"},{login:"Knuckles-Team",type:"org"}]`.
@@ -92,11 +92,17 @@ show it and STOP for confirmation. Never write on `skip`.
 
 ### Step 5 — Act (gated)
 For each confirmed `safe_*` item, **comment first, then act**:
-- Comment: `python scripts/gh_write.py comment <owner/repo> <number> --body "<comment>" --confirm`.
+- Comment: `github_comments action=create {"owner","repo","issue_number":N,"body":"<comment>"}`
+  (works for issues AND PRs — a PR is an issue on GitHub).
 - Close (issue or PR): `github_issues action=update` / `github_pulls action=update`
   `{"owner","repo","<issue|pull>_number":N,"state":"closed"}`.
-- Merge: `python scripts/gh_write.py merge <owner/repo> <pr_number> --method squash --confirm`
-  (re-checks `mergeable_state==clean` at merge time; refuses otherwise).
+- Merge: `github_merge_pull_request {"owner","repo","number":N,"merge_method":"squash"}`
+  (re-check `mergeable_state==clean` first; GitHub's merge endpoint refuses a
+  non-clean/protected merge, so an unmergeable PR fails safe).
+- **Fallback** — `scripts/gh_write.py` (same GitHub token as the MCP server): use it
+  only if the deployed github-mcp predates `github_comments` (rebuild/redeploy to
+  get it), or when you want its atomic re-check-`mergeable_state==clean`-then-
+  comment-then-merge in a single guarded step.
 
 ### Step 6 — Report (and optionally learn)
 Summarize merged / closed / skipped with links and the one-line reason each.

@@ -49,7 +49,7 @@
 - **FR-030**: 5 tests have no assertions
 - **FR-031**: Only 22% of env vars documented in README.md
 - **FR-032**: Undocumented env vars: ACTIONSTOOL, ALLOWED_CLIENT_REDIRECT_URIS, AUTH_TYPE, BRANCHESTOOL, COLLABORATORSTOOL, COMMITSTOOL, CONTENTSTOOL, EUNOMIA_POLICY_FILE, EUNOMIA_REMOTE_URL, EUNOMIA_TYPE
-- **FR-033**: 6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, GITHUB_SSL_VERIFY, ORGSTOOL, RELEASESTOOL
+- **FR-033**: 6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, TLS_PROFILE_REF, ORGSTOOL, RELEASESTOOL
 - **FR-034**: Analysis error: No module named 'agent_utilities.knowledge_graph'
 
 ## Success Criteria

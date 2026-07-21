@@ -1,8 +1,10 @@
-import pytest
-import requests
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
-from agent_utilities.exceptions import ParameterError, MissingParameterError
+
+import pytest
+import requests
+from agent_utilities.core.exceptions import MissingParameterError, ParameterError
+
 from github_agent.api_client import Api
 
 

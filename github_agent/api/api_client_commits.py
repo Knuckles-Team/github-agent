@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -35,8 +35,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/commits/{sha}",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:

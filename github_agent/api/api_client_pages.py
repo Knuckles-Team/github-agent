@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import requests
-from agent_utilities.decorators import require_auth
-from agent_utilities.exceptions import (
+from agent_utilities.core.decorators import require_auth
+from agent_utilities.core.exceptions import (
     ParameterError,
 )
 from pydantic import ValidationError
@@ -52,8 +52,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/pages",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         try:
             response.raise_for_status()
@@ -103,8 +101,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/pages",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         try:
             response.raise_for_status()
@@ -146,8 +142,6 @@ class Api(BaseApiClient):
             url=f"{self.url}/repos/{owner}/{repo}/pages",
             json=payload,
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "pages_updated"})
@@ -165,8 +159,6 @@ class Api(BaseApiClient):
         response = self._session.delete(
             url=f"{self.url}/repos/{owner}/{repo}/pages",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         return Response(response=response, data={"status": "pages_deleted"})
@@ -181,8 +173,6 @@ class Api(BaseApiClient):
         response = self._session.get(
             url=f"{self.url}/repos/{owner}/{repo}/pages/builds/latest",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
@@ -223,8 +213,6 @@ class Api(BaseApiClient):
         response = self._session.post(
             url=f"{self.url}/repos/{owner}/{repo}/pages/builds",
             headers=self.headers,
-            verify=self.verify,
-            proxies=self.proxies,
         )
         response.raise_for_status()
         try:
