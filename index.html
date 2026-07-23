@@ -293,6 +293,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration, trust, and privacy
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="deployment/" class="md-tabs__link">
         
   
@@ -563,6 +582,33 @@
   
   
     <li class="md-nav__item">
+      <a href="configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration, trust, and privacy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="deployment/" class="md-nav__link">
         
   
@@ -733,12 +779,12 @@ release.</p>
 Pydantic-AI supervisor agent. It provides:</p>
 <ul>
 <li><strong><code>Api</code></strong> — a <code>requests</code>-based REST client (<code>github_agent.api_client.Api</code>) composed
-  from per-domain mixins (repositories, issues, pull requests, branches, commits,
-  contents, organizations, collaborators, releases, workflows, search), with
+  from per-domain mixins (repositories, issues, pull requests, comments, branches,
+  commits, contents, organizations, collaborators, releases, workflows, search), with
   parallel pagination and tolerant error handling.</li>
-<li><strong>Action-dispatch MCP tools</strong> — eleven tool domains (<code>github_repos</code>,
-  <code>github_issues</code>, <code>github_pulls</code>, …), each toggled by an environment switch and
-  routed by an <code>action</code> argument.</li>
+<li><strong>Action-dispatch MCP tools</strong> — twelve tool domains (<code>github_repos</code>,
+  <code>github_issues</code>, <code>github_pulls</code>, <code>github_comments</code>, …), each toggled by an
+  environment switch and routed by an <code>action</code> argument.</li>
 <li><strong>An A2A supervisor agent</strong> (<code>github-agent</code> console script) that delegates GitHub
   work to specialized child agents.</li>
 </ul>
@@ -760,7 +806,7 @@ leaves calls unauthenticated rather than raising at import time.</p>
 </span></code></pre></div>
 <p>Connect it to GitHub:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GITHUB_URL</span><span class="o">=</span>https://api.github.com
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GITHUB_TOKEN</span><span class="o">=</span>ghp_your_personal_access_token
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GITHUB_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;GITHUB_TOKEN&gt;&quot;</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>github-mcp<span class="w"> </span>--transport<span class="w"> </span>streamable-http<span class="w"> </span>--host<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span>
 </span></code></pre></div>
 <p>See <strong><a href="installation/">Installation</a></strong> and <strong><a href="deployment/">Deployment</a></strong> for the
