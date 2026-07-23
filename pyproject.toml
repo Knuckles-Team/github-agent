@@ -9,7 +9,7 @@ readme = "README.md"
 description = "GitHub Agent for MCP"
 requires-python = ">=3.12, <3.15"
 classifiers = [ "Development Status :: 5 - Production/Stable", "License :: Public Domain", "Environment :: Console", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3",]
-dependencies = [ "agent-utilities[mcp]>=1.27.1,<2.0.0", "gql[requests]>=4.0.0",]
+dependencies = [ "agent-utilities[mcp]>=2.0.0,<3.0.0", "gql[requests]>=4.0.0",]
 [[project.authors]]
 name = "Project Maintainers"
 email = "maintainers@users.noreply.github.com"
@@ -22,9 +22,9 @@ github-mcp = "github_agent.mcp_server:mcp_server"
 github-agent = "github_agent.agent_server:agent_server"
 
 [project.optional-dependencies]
-mcp = [ "agent-utilities[mcp]>=1.27.1,<2.0.0",]
-agent = [ "agent-utilities[agent-runtime,logfire]>=1.27.1,<2.0.0",]
-all = [ "agent-utilities[mcp,agent-runtime,logfire]>=1.27.1,<2.0.0",]
+mcp = [ "agent-utilities[mcp]>=2.0.0,<3.0.0",]
+agent = [ "agent-utilities[agent-runtime,logfire]>=2.0.0,<3.0.0",]
+all = [ "agent-utilities[mcp,agent-runtime,logfire]>=2.0.0,<3.0.0",]
 test = [
     "pytest-xdist>=3.8.0", "pytest>=9.1.1", "pytest-asyncio>=1.4.0",]
 
