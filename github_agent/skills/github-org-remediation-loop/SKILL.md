@@ -3,24 +3,14 @@ name: github-org-remediation-loop
 skill_type: workflow
 domain: github-agent
 description: >-
-  Sweeps org-wide GitHub issues, failing CI runs, and open incoming pull requests,
-  validates each item, generates an SDD spec, risk-classifies it, and either
-  auto-implements + auto-merges + closes (low risk) or implements on a branch and
-  opens a pending-review PR (elevated risk). mode=issues_ci runs the issue/CI-failure
-  remediation loop (Loop A); mode=incoming_prs runs the incoming-PR triage-or-
-  supersede loop (Loop B). Drives github-agent native tools (github_issues,
-  github_actions, github_pulls, github_branches, github_contents) plus the
-  spec-generator / sdd-implementer / spec-verifier universal-skills atomic skills.
-  Use when asked to "clean up the backlog and actually fix things", "turn failing
-  CI into tracked fixes", "process incoming PRs", "remediate org CI failures",
-  "auto-fix issues", or "triage and merge org PRs". Read-only sweep + spec +
-  risk-classify always happen first; every write (branch/commit/PR/merge/close) is
-  gated by autonomy level, defaulting to dry-run. Delegation-ready: runnable
-  unattended via graph_orchestrate execute_agent against the github-agent. Do NOT
-  use for a one-off single-PR review (github-pull-request-review) or for a
-  report-only sweep with no fixing (github-backlog-planner / github-pr-review-sweep
-  alone) — this skill is composition-first and introduces no new business logic
-  beyond the fix-risk gate in scripts/classify_fix_risk.py.
+  Sweeps organization issues, failing CI, and incoming pull requests; validates each
+  item; creates an SDD spec; and risk-classifies remediation. Low-risk work may be
+  implemented, merged, and closed; elevated-risk work is implemented on a branch for
+  review. Use for backlog remediation, CI fixes, or incoming-PR triage. It always
+  performs a read-only sweep, specification, and risk classification first; every
+  write is autonomy-gated and defaults to dry-run. Run through github-agent with
+  graph_orchestrate. For a single PR review or a report-only sweep, use the focused
+  review or backlog skills instead.
 requires: [universal-skills]
 license: MIT
 tags: [github, sdd, remediation, ci, issues, pull-requests, spec-driven, ops, automation]

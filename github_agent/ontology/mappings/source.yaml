@@ -3,7 +3,7 @@ connector: github-agent
 ontology_source: github
 sync:
 - preset: github-repositories
-  server: github-agent
+  server: github-mcp
   tool: github_repos
   action: list
   records_path: data
