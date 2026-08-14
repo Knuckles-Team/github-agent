@@ -4,22 +4,16 @@ CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector nat
 pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
 ``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
-**:Document** nodes for semantic search — using the lightweight engine client
-(``GraphComputeEngine()._client`` + ``txn``), the same fast client the blob
-``MediaStore`` uses, NOT the heavy in-process ingestion engine.
+**:Document** nodes for semantic search, through the required
+``agent_utilities.knowledge_graph.memory.native_ingest`` authority — the one connector
+write path; there is no self-contained fallback transaction here.
 
-This is a thin mapper: it delegates the txn write path to the shared primitive
-``agent_utilities.knowledge_graph.memory.native_ingest`` when available, and otherwise
-falls back to a self-contained txn implementation (the primitive is not yet in every
-installed agent_utilities, or its production authority — a reachable engine, an
-authenticated session — is not). Entirely best-effort and dependency-/engine-guarded:
-with no KG stack, no reachable engine, or no verified session, every entry point
-**no-ops** (returns ``None``), so the connector keeps working with zero KG
-infrastructure. Nodes carry the shared provenance (``domain``/``source``) and match
-the classes federated by ``github_agent.ontology``. Node ids follow
-``github:<class>:<externalId>``; entities use the canonical ``node_type`` field and
-relationships the canonical ``relationship`` field, matching the shared primitive's
-schema on both the delegated and the self-contained write path.
+This is a thin mapper: entities use the canonical ``node_type`` field and
+relationships the canonical ``relationship`` field. ``ingest_entities`` /
+``ingest_documents`` are best-effort: they return ``None`` (never raise) for empty
+input or when the shared primitive reports :class:`NativeIngestError` (no reachable
+engine, no verified session, or a malformed record). Node ids follow
+``github:<class>:<externalId>``.
 """
 
 from __future__ import annotations
@@ -28,87 +22,16 @@ import logging
 import time
 from typing import Any
 
+from agent_utilities.knowledge_graph.memory.native_ingest import (
+    NativeIngestError,
+    ingest_documents as _native_ingest_documents,
+    ingest_entities as _native_ingest_entities,
+)
+
 logger = logging.getLogger("github_agent.kg")
 
 _SOURCE = "github-agent"
 _DOMAIN = "github"
-_DEFAULT_GRAPH = "__commons__"
-
-# Prefer the shared native-ingest primitive; fall back to the self-contained txn path
-# below when it is not present in the installed agent_utilities, or when it cannot
-# reach its production authority (engine unreachable, no verified session) — see
-# ingest_entities/ingest_documents, which catch that failure and fall back in turn.
-try:  # pragma: no cover - import availability varies by install
-    from agent_utilities.knowledge_graph.memory.native_ingest import (
-        ingest_documents as _shared_ingest_documents,
-    )
-    from agent_utilities.knowledge_graph.memory.native_ingest import (
-        ingest_entities as _shared_ingest_entities,
-    )
-except Exception:  # noqa: BLE001 — primitive absent -> self-contained fallback
-    _shared_ingest_entities = None
-    _shared_ingest_documents = None
-
-
-def _client() -> tuple[Any | None, str]:
-    """Return ``(engine_client, graph_name)`` or ``(None, "")`` when unavailable."""
-    try:
-        from agent_utilities.knowledge_graph.core.graph_compute import (
-            GraphComputeEngine,
-        )
-    except Exception as e:  # noqa: BLE001 — KG stack absent
-        logger.debug("KG ingest unavailable (import): %s", e)
-        return None, ""
-    try:
-        engine = GraphComputeEngine()
-        client = getattr(engine, "_client", None)
-        if client is None:
-            return None, ""
-        return client, (getattr(engine, "graph_name", None) or _DEFAULT_GRAPH)
-    except Exception as e:  # noqa: BLE001 — engine unreachable
-        logger.debug("KG ingest: engine unreachable: %s", e)
-        return None, ""
-
-
-def _write_nodes(
-    client: Any,
-    graph: str,
-    nodes: list[dict[str, Any]],
-    relationships: list[dict[str, Any]] | None,
-) -> dict[str, int] | None:
-    """Stamp provenance, MERGE the nodes in one txn, then add the edges (fallback path)."""
-    nodes = [n for n in nodes if n.get("id")]
-    if not nodes:
-        return None
-    try:
-        txn = client.txn.begin(graph=graph)
-        for node in nodes:
-            props = {k: v for k, v in node.items() if k != "id" and v is not None}
-            props.setdefault("source", _SOURCE)
-            props.setdefault("domain", _DOMAIN)
-            client.txn.add_node(txn, node["id"], props)
-        committed = client.txn.commit(txn)
-    except Exception as e:  # noqa: BLE001 — engine/txn failure is non-fatal
-        logger.warning("KG ingest: txn failed: %s", e)
-        return None
-    if not committed:
-        logger.warning("KG ingest: txn not committed (conflict)")
-        return None
-
-    edges = 0
-    for rel in relationships or []:
-        try:
-            client.edges.add(
-                rel["source"],
-                rel["target"],
-                {"relationship": rel.get("relationship", "RELATED")},
-            )
-            edges += 1
-        except Exception as e:  # noqa: BLE001 — pure edge link, best-effort
-            logger.debug("KG ingest: edge skipped: %s", e)
-
-    logger.info("KG ingest: wrote %d nodes, %d edges", len(nodes), edges)
-    return {"nodes": len(nodes), "edges": edges}
 
 
 def ingest_entities(
@@ -118,31 +41,29 @@ def ingest_entities(
     client: Any | None = None,
     graph: str | None = None,
 ) -> dict[str, int] | None:
-    """Write typed OWL nodes (+ edges) into epistemic-graph.
+    """Write typed OWL nodes (+ edges) into epistemic-graph. Best-effort, never raises.
 
     ``entities``: ``[{"id":..., "node_type":<owl:Class>, ...props}]``.
     ``relationships``: ``[{"source":id, "target":id, "relationship":<link>}]``.
-    Returns ``{"nodes":n, "edges":m}`` or ``None`` (no engine / failure; never raises).
-    ``client``/``graph`` may be injected (tests); otherwise resolved on demand. When a
-    client is injected the self-contained fallback is used so the write is observable.
+    Returns ``{"nodes":n, "edges":m}`` or ``None`` (empty input / no reachable engine /
+    malformed record). ``client``/``graph`` may be injected (tests); otherwise the
+    process-owned governed authority is resolved on demand.
     """
     entities = [e for e in (entities or []) if e.get("id")]
     if not entities:
         return None
-    if client is None and _shared_ingest_entities is not None:
-        try:
-            return _shared_ingest_entities(
-                entities, relationships, source=_SOURCE, domain=_DOMAIN
-            )
-        except Exception as e:  # noqa: BLE001 — shared primitive's authority is
-            # unavailable (no reachable engine, no verified session) -> best-effort
-            # self-contained fallback below, never a hard failure for a connector.
-            logger.debug("KG ingest: shared primitive unavailable: %s", e)
-    if client is None:
-        client, graph = _client()
-    if client is None:
+    try:
+        return _native_ingest_entities(
+            entities,
+            relationships,
+            source=_SOURCE,
+            domain=_DOMAIN,
+            client=client,
+            graph=graph,
+        )
+    except NativeIngestError as exc:
+        logger.debug("KG ingest unavailable/failed: %s", exc)
         return None
-    return _write_nodes(client, graph or _DEFAULT_GRAPH, entities, relationships)
 
 
 def ingest_documents(
@@ -151,16 +72,11 @@ def ingest_documents(
     client: Any | None = None,
     graph: str | None = None,
 ) -> dict[str, int] | None:
-    """Write text records as ``:Document`` nodes (semantic-search fodder).
+    """Write text records as ``:Document`` nodes (semantic-search fodder). Best-effort.
 
     Each doc: ``{"id":..., "text":..., "title"?:..., "source_uri"?:..., ...props}``.
     Returns ``{"nodes":n, "edges":0}`` or ``None``.
     """
-    if client is None and _shared_ingest_documents is not None:
-        try:
-            return _shared_ingest_documents(documents, source=_SOURCE, domain=_DOMAIN)
-        except Exception as e:  # noqa: BLE001 — see ingest_entities
-            logger.debug("KG ingest: shared primitive unavailable: %s", e)
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     nodes: list[dict[str, Any]] = []
     for doc in documents or []:
@@ -176,11 +92,13 @@ def ingest_documents(
         nodes.append(node)
     if not nodes:
         return None
-    if client is None:
-        client, graph = _client()
-    if client is None:
+    try:
+        return _native_ingest_documents(
+            nodes, source=_SOURCE, domain=_DOMAIN, client=client, graph=graph
+        )
+    except NativeIngestError as exc:
+        logger.debug("KG ingest unavailable/failed: %s", exc)
         return None
-    return _write_nodes(client, graph or _DEFAULT_GRAPH, nodes, None)
 
 
 def _person(user: dict[str, Any] | None) -> tuple[str | None, dict[str, Any] | None]:

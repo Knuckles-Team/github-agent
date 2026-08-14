@@ -1,12 +1,25 @@
 """Native epistemic-graph typed-node + document ingestion — Wire-First coverage.
 
 Exercises the real ``ingest_entities`` / ``ingest_documents`` seam and the GitHub
-record mappers with a fake engine client (no engine required), asserting the txn
-add_node/commit + edge calls and the repository/PR/issue/release mappings.
+record mappers with a fake ChangeEnvelope-capable engine client (no engine required),
+asserting the committed nodes/edges and the repository/PR/issue/release mappings.
 CONCEPT:AU-KG.ingest.enterprise-source-extractor.
+
+The fake client mirrors agent-utilities' own sanctioned test double
+(``agent-utilities/tests/knowledge_graph/test_native_ingest.py``) — the
+``txn``-only fake is retired; ``native_ingest`` now hard-requires an injected
+client exposing ``.changes``/``.nodes``/``.rdf``/``.supports()``.
 """
 
 from __future__ import annotations
+
+from typing import Any
+
+import msgpack
+import pytest
+from agent_utilities.knowledge_graph.core.session import GraphSession, use_session
+from agent_utilities.models.company_brain import ActorType
+from agent_utilities.security.brain_context import ActorContext, use_actor
 
 from github_agent.kg_ingest import (
     ingest_entities,
@@ -18,35 +31,92 @@ from github_agent.kg_ingest import (
 )
 
 
-class _FakeTxn:
-    def __init__(self):
-        self.nodes = {}
-        self.committed = False
+@pytest.fixture(autouse=True)
+def _governed_session():
+    actor = ActorContext(
+        actor_id="subject:opaque:synthetic",
+        actor_type=ActorType.AUTOMATED_SERVICE,
+        roles=(),
+        tenant_id="tenant:opaque:synthetic",
+        authenticated=True,
+    )
+    session = GraphSession(
+        actor=actor,
+        tenant=actor.tenant_id,
+        scopes=frozenset({"kg:write"}),
+        graph="graph:opaque:synthetic",
+        policy_version="policy:opaque:synthetic",
+        audience="epistemic-graph",
+    )
+    with use_actor(actor), use_session(session):
+        yield
 
-    def begin(self, graph=None):
-        self.graph = graph
-        return "txn-1"
 
-    def add_node(self, txn, node_id, props):
-        self.nodes[node_id] = props
+class _FakeNodes:
+    def __init__(self) -> None:
+        self.values: dict[str, dict[str, Any]] = {}
 
-    def commit(self, txn):
-        self.committed = True
-        return True
+    def properties(self, node_id: str) -> dict[str, Any] | None:
+        return self.values.get(node_id)
+
+    def list(self) -> list[tuple[str, dict[str, Any]]]:
+        return list(self.values.items())
 
 
-class _FakeEdges:
-    def __init__(self):
-        self.edges = []
+class _FakeChanges:
+    def __init__(self, nodes: _FakeNodes) -> None:
+        self.nodes = nodes
+        self.edges: list[tuple[str, str, dict[str, Any]]] = []
+        self.applied: list[dict[str, Any]] = []
+        self.records: dict[str, dict[str, Any]] = {}
+        self.versions: dict[str, dict[str, Any]] = {}
 
-    def add(self, src, dst, props):
-        self.edges.append((src, dst, props))
+    def get(self, envelope_id: str) -> dict[str, Any] | None:
+        return self.records.get(envelope_id)
+
+    def content_version(self, object_id: str) -> dict[str, Any] | None:
+        return self.versions.get(object_id)
+
+    def cursor(self, _source: str, _partition: str = "") -> None:
+        return None
+
+    def apply(self, envelope: dict[str, Any]) -> dict[str, Any]:
+        self.applied.append(envelope)
+        mutation = envelope["mutation"]
+        for operation in mutation["operations"]:
+            method = operation["method"]
+            params = method["params"]
+            properties = msgpack.unpackb(params["properties_msgpack"], raw=False)
+            if method["method"] == "AddNode":
+                self.nodes.values[params["node_id"]] = properties
+            elif method["method"] == "AddEdge":
+                self.edges.append(
+                    (params["source_id"], params["target_id"], properties)
+                )
+        version = envelope["content_version"]
+        self.versions[version["object_id"]] = version
+        self.records[envelope["envelope_id"]] = envelope
+        return {
+            "batch_id": mutation["batch_id"],
+            "replayed": False,
+            "projection_pending": False,
+        }
+
+
+class _FakeRdf:
+    def validate_shacl(self, _shapes: str, _data_graph: str) -> dict[str, Any]:
+        return {"conforms": True, "results": []}
 
 
 class _FakeClient:
-    def __init__(self):
-        self.txn = _FakeTxn()
-        self.edges = _FakeEdges()
+    def __init__(self) -> None:
+        self.nodes = _FakeNodes()
+        self.changes = _FakeChanges(self.nodes)
+        self.rdf = _FakeRdf()
+
+    @staticmethod
+    def supports(operation: str) -> bool:
+        return operation == "ApplyChangeEnvelope"
 
 
 def test_ingest_entities_writes_nodes_and_edges():
@@ -58,15 +128,14 @@ def test_ingest_entities_writes_nodes_and_edges():
         ],
         [{"source": "a", "target": "b", "relationship": "ownedByOrg"}],
         client=c,
-        graph="__commons__",
     )
     assert res == {"nodes": 2, "edges": 1}
-    assert c.txn.committed is True
-    assert set(c.txn.nodes) == {"a", "b"}
+    assert len(c.changes.applied) == 1
+    assert set(c.nodes.values) == {"a", "b"}
     # provenance is stamped
-    assert c.txn.nodes["a"]["source"] == "github-agent"
-    assert c.txn.nodes["a"]["domain"] == "github"
-    assert c.edges.edges == [("a", "b", {"relationship": "ownedByOrg"})]
+    assert c.nodes.values["a"]["source"] == "github-agent"
+    assert c.nodes.values["a"]["domain"] == "github"
+    assert c.changes.edges == [("a", "b", {"relationship": "ownedByOrg"})]
 
 
 def test_ingest_repositories_maps_repo_and_owner():
@@ -89,17 +158,16 @@ def test_ingest_repositories_maps_repo_and_owner():
             }
         ],
         client=c,
-        graph="__commons__",
     )
     assert res == {"nodes": 2, "edges": 1}
-    repo = c.txn.nodes["github:repository:42"]
+    repo = c.nodes.values["github:repository:42"]
     assert repo["node_type"] == "Repository"
     assert repo["fullName"] == "acme/api"
     assert repo["isPrivate"] is True
     assert repo["externalToolId"] == "42"
-    org = c.txn.nodes["github:organization:acme"]
+    org = c.nodes.values["github:organization:acme"]
     assert org["node_type"] == "Organization"
-    assert c.edges.edges == [
+    assert c.changes.edges == [
         (
             "github:repository:42",
             "github:organization:acme",
@@ -119,9 +187,8 @@ def test_ingest_repositories_user_owner_is_person():
             }
         ],
         client=c,
-        graph="__commons__",
     )
-    assert c.txn.nodes["github:organization:octocat"]["node_type"] == "Person"
+    assert c.nodes.values["github:organization:octocat"]["node_type"] == "Person"
 
 
 def test_ingest_pull_requests_maps_author_and_repo_link():
@@ -139,18 +206,17 @@ def test_ingest_pull_requests_maps_author_and_repo_link():
         ],
         repo_node_id="github:repository:42",
         client=c,
-        graph="__commons__",
     )
     assert res == {"nodes": 2, "edges": 2}
-    pr = c.txn.nodes["github:pullrequest:100"]
+    pr = c.nodes.values["github:pullrequest:100"]
     assert pr["node_type"] == "PullRequest"
     assert pr["number"] == 5
-    assert c.txn.nodes["github:person:octocat"]["node_type"] == "Person"
+    assert c.nodes.values["github:person:octocat"]["node_type"] == "Person"
     assert (
         "github:pullrequest:100",
         "github:repository:42",
         {"relationship": "belongsToRepository"},
-    ) in c.edges.edges
+    ) in c.changes.edges
 
 
 def test_ingest_issues_skips_pull_requests():
@@ -162,12 +228,11 @@ def test_ingest_issues_skips_pull_requests():
         ],
         repo_node_id="github:repository:42",
         client=c,
-        graph="__commons__",
     )
     # Only the real issue is written (+ its repo edge).
     assert res == {"nodes": 1, "edges": 1}
-    assert "github:issue:1" in c.txn.nodes
-    assert "github:issue:2" not in c.txn.nodes
+    assert "github:issue:1" in c.nodes.values
+    assert "github:issue:2" not in c.nodes.values
 
 
 def test_ingest_release_notes_writes_documents():
@@ -185,14 +250,14 @@ def test_ingest_release_notes_writes_documents():
         ],
         repo_full_name="acme/api",
         client=c,
-        graph="__commons__",
     )
     # Empty-body release is skipped.
     assert res == {"nodes": 1, "edges": 0}
-    doc = c.txn.nodes["github:release:500"]
+    doc = c.nodes.values["github:release:500"]
     assert doc["node_type"] == "Document"
     assert doc["text"].startswith("## Highlights")
-    assert doc["source_uri"].endswith("v1.0.0")
+    # native_ingest's governed PII scrubber redacts uri-shaped values.
+    assert doc["source_uri"] == "[REDACTED_LOCATION]"
     assert doc["source"] == "github-agent"
 
 
@@ -229,12 +294,11 @@ def test_ingest_pipeline_runs_maps_run_repo_commit_pr_and_jobs():
             ]
         },
         client=c,
-        graph="__commons__",
     )
     # PipelineRun + Commit + CheckRun nodes; ranFor(repo)+ranFor(commit)+ranFor(PR)+hasJob edges.
     assert res == {"nodes": 3, "edges": 4}
 
-    run = c.txn.nodes["github:pipelinerun:acme/api:555"]
+    run = c.nodes.values["github:pipelinerun:acme/api:555"]
     assert run["node_type"] == "PipelineRun"
     assert run["status"] == "completed"
     assert run["conclusion"] == "success"
@@ -244,11 +308,11 @@ def test_ingest_pipeline_runs_maps_run_repo_commit_pr_and_jobs():
     assert run["durationSeconds"] == 300
     assert run["externalToolId"] == "555"
 
-    commit = c.txn.nodes["github:commit:acme/api:abc123"]
+    commit = c.nodes.values["github:commit:acme/api:abc123"]
     assert commit["node_type"] == "Commit"
     assert commit["sha"] == "abc123"
 
-    job = c.txn.nodes["github:checkrun:acme/api:9001"]
+    job = c.nodes.values["github:checkrun:acme/api:9001"]
     assert job["node_type"] == "CheckRun"
     assert job["name"] == "build"
     assert job["status"] == "completed"
@@ -258,22 +322,22 @@ def test_ingest_pipeline_runs_maps_run_repo_commit_pr_and_jobs():
         "github:pipelinerun:acme/api:555",
         "github:repository:42",
         {"relationship": "ranFor"},
-    ) in c.edges.edges
+    ) in c.changes.edges
     assert (
         "github:pipelinerun:acme/api:555",
         "github:commit:acme/api:abc123",
         {"relationship": "ranFor"},
-    ) in c.edges.edges
+    ) in c.changes.edges
     assert (
         "github:pipelinerun:acme/api:555",
         "github:pullrequest:100",
         {"relationship": "ranFor"},
-    ) in c.edges.edges
+    ) in c.changes.edges
     assert (
         "github:pipelinerun:acme/api:555",
         "github:checkrun:acme/api:9001",
         {"relationship": "hasJob"},
-    ) in c.edges.edges
+    ) in c.changes.edges
 
 
 def test_ingest_pipeline_runs_minimal_no_links():
@@ -281,10 +345,9 @@ def test_ingest_pipeline_runs_minimal_no_links():
     res = ingest_pipeline_runs(
         [{"id": 1, "status": "in_progress"}],
         client=c,
-        graph="__commons__",
     )
     assert res == {"nodes": 1, "edges": 0}
-    run = c.txn.nodes["github:pipelinerun:None:1"]
+    run = c.nodes.values["github:pipelinerun:None:1"]
     assert run["status"] == "in_progress"
     assert "durationSeconds" not in run
 
