@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 2.0.0*
+*Version: 2.2.0*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > CLI interfaces, including the integrated A2A agent server, are maintained in the
@@ -86,14 +86,14 @@ _Auto-generated from the live MCP server — do not edit by hand._
 #### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
 
 <details>
-<summary>90 per-operation tools — one per public API method (click to expand)</summary>
+<summary>95 per-operation tools — one per public API method (click to expand)</summary>
 
 | MCP Tool | Toggle Env Var | Description |
 |----------|----------------|-------------|
 | `github_add_collaborator` | `APITOOL` | Add a collaborator to a repository. |
 | `github_cancel_workflow_run` | `APITOOL` | Cancel a workflow run. |
-| `github_close` | `BASE_API_CLIENTTOOL` | Release transport resources and runtime-only TLS material. |
 | `github_create_branch` | `APITOOL` | Create a new branch in a repository (using git ref creation). |
+| `github_create_commit_comment` | `APITOOL` | Create a comment on a commit. |
 | `github_create_content` | `APITOOL` | Create a file in a repository. |
 | `github_create_issue` | `APITOOL` | Create a new issue in a repository. |
 | `github_create_issue_comment` | `APITOOL` | Create a comment on an issue or pull request. |
@@ -109,6 +109,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_create_review_comment_reply` | `APITOOL` | Reply to an existing pull-request review comment thread. |
 | `github_delete_branch` | `APITOOL` | Delete a branch in a repository. |
 | `github_delete_branch_protection` | `APITOOL` | Delete branch protection configuration. |
+| `github_delete_commit_comment` | `APITOOL` | Permanently delete a commit comment. |
 | `github_delete_content` | `APITOOL` | Delete a file in a repository. |
 | `github_delete_issue_comment` | `APITOOL` | Permanently delete an issue/PR comment. |
 | `github_delete_organization` | `APITOOL` | Schedule an organization for deletion. IRREVERSIBLE. |
@@ -123,6 +124,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_branches` | `APITOOL` | List branches for a repository. |
 | `github_get_collaborators` | `APITOOL` | List collaborators for a repository. |
 | `github_get_commit` | `APITOOL` | Get a single commit in a repository. |
+| `github_get_commit_comment` | `APITOOL` | Get a single commit comment. |
 | `github_get_commits` | `APITOOL` | List commits for a repository. |
 | `github_get_contents` | `APITOOL` | Get contents of a file or directory in a repository. |
 | `github_get_dependabot_alert` | `APITOOL` | Get a single Dependabot alert. |
@@ -152,9 +154,11 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_get_workflow_run_jobs` | `APITOOL` | List the jobs for a workflow run (optional ``filter``: latest/all). |
 | `github_get_workflow_runs` | `APITOOL` | List workflow runs for a repository. |
 | `github_get_workflows` | `APITOOL` | List workflows for a repository. |
+| `github_list_commit_comments` | `APITOOL` | List comments on a single commit. |
 | `github_list_issue_comments` | `APITOOL` | List comments on an issue or pull request. |
 | `github_list_organizations` | `APITOOL` | List organizations. |
 | `github_list_pages_builds` | `APITOOL` | List GitHub Pages builds for a repository (newest first). |
+| `github_list_repo_commit_comments` | `APITOOL` | List every commit comment in a repository. |
 | `github_list_repo_issue_comments` | `APITOOL` | List every issue/PR comment in a repository. |
 | `github_list_repo_review_comments` | `APITOOL` | List every pull-request review comment in a repository. |
 | `github_list_review_comments` | `APITOOL` | List review (inline code) comments on a pull request. |
@@ -170,6 +174,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 | `github_set_organization_membership` | `APITOOL` | Add a user to an organization or update their role. |
 | `github_trigger_workflow_dispatch` | `APITOOL` | Trigger a workflow dispatch event. |
 | `github_update_branch_protection` | `APITOOL` | Update branch protection configuration. |
+| `github_update_commit_comment` | `APITOOL` | Edit a commit comment. |
 | `github_update_content` | `APITOOL` | Update a file in a repository. |
 | `github_update_dependabot_alert` | `APITOOL` | Update the state of a Dependabot alert. |
 | `github_update_issue` | `APITOOL` | Update an issue in a repository. |
@@ -183,7 +188,7 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 </details>
 
-_17 action-routed tool(s) · 90 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (**`intent` default** — the six verb-tools, granular set loaded on demand · `condensed` action-routed · `verbose` 1:1 · `both`). Auto-generated — do not edit._
+_17 action-routed tool(s) · 95 verbose 1:1 tool(s). Each is enabled unless its `<DOMAIN>TOOL` toggle is set false; `MCP_TOOL_MODE` selects the surface (**`intent` default** — the six verb-tools, granular set loaded on demand · `condensed` action-routed · `verbose` 1:1 · `both`). Auto-generated — do not edit._
 <!-- MCP-TOOLS-TABLE:END -->
 
 Detailed tool schemas, parameter shapes, and validation constraints are preserved in [docs/usage.md](docs/usage.md).
