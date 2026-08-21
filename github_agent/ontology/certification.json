@@ -1,8 +1,7 @@
 {
   "api_version": "graphos.io/v1",
   "artifacts": {
-    "a2a.json": "40e3a704317b002caf901c1ff9a9051180e9741ce85526b84ab6bdd262cf9bde",
-    "connector_manifest.yml": "350b69fb04934f74d7ec53962ac1c351675bd4c74b86de783914c274ea3754b8",
+    "connector_manifest.yml": "e1b22394671a379829abd5f29da008e895b363b93b39b4161561105cbd59a65f",
     "github_agent/connectors/mcp_source_presets.json": "907153ae71c042156cc521d11d57a8517fd1a332b9cc7738245f2cd57ac3d964",
     "github_agent/connectors/tool_schema_fingerprints.json": "a91f112bdc54280ccfefe4d475ad51848b94ef668cb6dedaed20ec1404168609",
     "github_agent/ontology/fixtures/records.json": "12f5b54b0ae98770f279f99e136788d063340042a9d6ff4bac0c22a886d2dc7b",
@@ -19,19 +18,19 @@
     "synthetic_fixture_contract": "passed"
   },
   "compatibility": {
-    "agent_utilities": ">=2.1.0,<3",
+    "agent_utilities": ">=2.4.0,<3",
     "bundle_schema": "2",
-    "epistemic_graph": ">=2.23.0,<3"
+    "epistemic_graph": ">=2.26.0,<3"
   },
   "connector": "github-agent",
   "kind": "ConnectorSourceAttestation",
   "live_certified": false,
   "mode": "offline-source",
   "schema_version": "2",
-  "signature": "fLXbVPP7NYjCOokFuvzjtQZyyqNxBqINFJv2WX6Gn_5QMgqvhkAPLpqX28cMK33ZiLMsW2co8MYxSreZxo0JBA",
-  "signature_algorithm": "ed25519",
-  "signer": "ontology-manifest-generator",
-  "signing_public_key": "QkigdPNpcUU7x7NcSkwCsUXIQpaFncMQbYSoiSgI2SY",
+  "signature": null,
+  "signature_algorithm": "none",
+  "signer": "UNSIGNED-PREVIEW",
+  "signing_public_key": "",
   "status": "source-validated",
-  "validated_at": "2026-07-31T04:00:00Z"
+  "validated_at": "2026-08-21T04:30:39Z"
 }
