@@ -198,9 +198,7 @@ async def _repo_get(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.get_repository, owner=owner, repo=repo
-    )
+    response = await run_blocking(client.get_repository, owner=owner, repo=repo)
     return {
         "status": 200,
         "message": "Repository retrieved successfully",
@@ -217,9 +215,7 @@ async def _repo_create(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing required 'name' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.create_repository, name=name, **kwargs
-    )
+    response = await run_blocking(client.create_repository, name=name, **kwargs)
     return {
         "status": 201,
         "message": "Repository created successfully",
@@ -237,9 +233,7 @@ async def _repo_delete(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.delete_repository, owner=owner, repo=repo
-    )
+    response = await run_blocking(client.delete_repository, owner=owner, repo=repo)
     return {
         "status": 200,
         "message": "Repository deleted successfully",
@@ -331,9 +325,7 @@ async def _repo_pages_update(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.update_pages, owner=owner, repo=repo, **kwargs
-    )
+    response = await run_blocking(client.update_pages, owner=owner, repo=repo, **kwargs)
     return {
         "status": 200,
         "message": "Pages site updated successfully",
@@ -351,9 +343,7 @@ async def _repo_pages_delete(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.delete_pages, owner=owner, repo=repo
-    )
+    response = await run_blocking(client.delete_pages, owner=owner, repo=repo)
     return {
         "status": 200,
         "message": "Pages site deleted successfully",
@@ -400,9 +390,7 @@ async def _repo_pages_request_build(client: Any, kwargs: dict, slim: bool) -> di
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.request_pages_build, owner=owner, repo=repo
-    )
+    response = await run_blocking(client.request_pages_build, owner=owner, repo=repo)
     return {
         "status": 201,
         "message": "Pages build requested successfully",
@@ -420,9 +408,7 @@ async def _repo_secrets_list(client: Any, kwargs: dict, slim: bool) -> dict:
             "error": "Missing 'owner' or 'repo' parameter",
             "data": None,
         }
-    response = await run_blocking(
-        client.get_repo_secrets, owner=owner, repo=repo
-    )
+    response = await run_blocking(client.get_repo_secrets, owner=owner, repo=repo)
     return {
         "status": 200,
         "message": "Repository secrets retrieved successfully",
@@ -467,8 +453,7 @@ async def _repo_secrets_set(client: Any, kwargs: dict, slim: bool) -> dict:
         return {
             "status": 400,
             "error": (
-                "Missing 'secret_name', 'encrypted_value', or "
-                "'key_id' parameter"
+                "Missing 'secret_name', 'encrypted_value', or 'key_id' parameter"
             ),
             "data": None,
         }
@@ -1323,13 +1308,7 @@ async def _comment_reply_review(client: Any, kwargs: dict) -> dict:
     pull_number = kwargs.pop("pull_number", None)
     comment_id = kwargs.pop("comment_id", None)
     body = kwargs.pop("body", None)
-    if (
-        not owner
-        or not repo
-        or not pull_number
-        or not comment_id
-        or not body
-    ):
+    if not owner or not repo or not pull_number or not comment_id or not body:
         return {
             "status": 400,
             "error": "Missing 'owner', 'repo', 'pull_number', 'comment_id', or 'body' parameter",
