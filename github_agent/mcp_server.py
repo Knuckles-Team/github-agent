@@ -1001,6 +1001,517 @@ def register_pull_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _comment_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    issue_number = kwargs.pop("issue_number", None)
+    if not owner or not repo or not issue_number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'issue_number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_issue_comments,
+        owner=owner,
+        repo=repo,
+        issue_number=int(issue_number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_list_repo(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list_repo'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_repo_issue_comments, owner=owner, repo=repo, **kwargs
+    )
+    return {
+        "status": 200,
+        "message": "Repository comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_issue_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Comment retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    issue_number = kwargs.pop("issue_number", None)
+    body = kwargs.pop("body", None)
+    if not owner or not repo or not issue_number or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'issue_number', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_issue_comment,
+        owner=owner,
+        repo=repo,
+        issue_number=int(issue_number),
+        body=body,
+    )
+    return {
+        "status": 201,
+        "message": "Comment created successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'update'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    body = kwargs.get("body")
+    if not owner or not repo or not comment_id or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_issue_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+        body=body,
+    )
+    return {
+        "status": 200,
+        "message": "Comment updated successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'delete'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_issue_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Comment deleted successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_list_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list_review'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    pull_number = kwargs.pop("pull_number", None)
+    if not owner or not repo or not pull_number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'pull_number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_review_comments,
+        owner=owner,
+        repo=repo,
+        pull_number=int(pull_number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Review comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_list_repo_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list_repo_review'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_repo_review_comments, owner=owner, repo=repo, **kwargs
+    )
+    return {
+        "status": 200,
+        "message": "Repository review comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_get_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'get_review'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_review_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Review comment retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_create_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'create_review'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    pull_number = kwargs.pop("pull_number", None)
+    body = kwargs.pop("body", None)
+    if not owner or not repo or not pull_number or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'pull_number', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_review_comment,
+        owner=owner,
+        repo=repo,
+        pull_number=int(pull_number),
+        body=body,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Review comment created successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_reply_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'reply_review'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    pull_number = kwargs.pop("pull_number", None)
+    comment_id = kwargs.pop("comment_id", None)
+    body = kwargs.pop("body", None)
+    if (
+        not owner
+        or not repo
+        or not pull_number
+        or not comment_id
+        or not body
+    ):
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'pull_number', 'comment_id', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_review_comment_reply,
+        owner=owner,
+        repo=repo,
+        pull_number=int(pull_number),
+        comment_id=int(comment_id),
+        body=body,
+    )
+    return {
+        "status": 201,
+        "message": "Review comment reply created successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_update_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'update_review'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    body = kwargs.get("body")
+    if not owner or not repo or not comment_id or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_review_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+        body=body,
+    )
+    return {
+        "status": 200,
+        "message": "Review comment updated successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_delete_review(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'delete_review'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_review_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Review comment deleted successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_list_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list_commit'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    sha = kwargs.pop("sha", None)
+    if not owner or not repo or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_commit_comments,
+        owner=owner,
+        repo=repo,
+        sha=sha,
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Commit comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_list_repo_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'list_repo_commit'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.list_repo_commit_comments, owner=owner, repo=repo, **kwargs
+    )
+    return {
+        "status": 200,
+        "message": "Repository commit comments retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_get_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'get_commit'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_commit_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Commit comment retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_create_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'create_commit'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    sha = kwargs.pop("sha", None)
+    body = kwargs.pop("body", None)
+    if not owner or not repo or not sha or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'sha', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_commit_comment,
+        owner=owner,
+        repo=repo,
+        sha=sha,
+        body=body,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Commit comment created successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_update_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'update_commit'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    body = kwargs.get("body")
+    if not owner or not repo or not comment_id or not body:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_commit_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+        body=body,
+    )
+    return {
+        "status": 200,
+        "message": "Commit comment updated successfully",
+        "data": response.data,
+    }
+
+
+async def _comment_delete_commit(client: Any, kwargs: dict) -> dict:
+    """Handle github_comments action 'delete_commit'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    comment_id = kwargs.get("comment_id")
+    if not owner or not repo or not comment_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_commit_comment,
+        owner=owner,
+        repo=repo,
+        comment_id=int(comment_id),
+    )
+    return {
+        "status": 200,
+        "message": "Commit comment deleted successfully",
+        "data": response.data,
+    }
+
+
+def _comment_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is destructive and not confirmed, else None."""
+    if action in DESTRUCTIVE_COMMENT_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is a guarded write and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_COMMENT_ACTION_HANDLERS = {
+    "list": _comment_list,
+    "list_repo": _comment_list_repo,
+    "get": _comment_get,
+    "create": _comment_create,
+    "update": _comment_update,
+    "delete": _comment_delete,
+    "list_review": _comment_list_review,
+    "list_repo_review": _comment_list_repo_review,
+    "get_review": _comment_get_review,
+    "create_review": _comment_create_review,
+    "reply_review": _comment_reply_review,
+    "update_review": _comment_update_review,
+    "delete_review": _comment_delete_review,
+    "list_commit": _comment_list_commit,
+    "list_repo_commit": _comment_list_repo_commit,
+    "get_commit": _comment_get_commit,
+    "create_commit": _comment_create_commit,
+    "update_commit": _comment_update_commit,
+    "delete_commit": _comment_delete_commit,
+}
+
+
 def register_comment_tools(mcp: FastMCP):
     @mcp.tool(tags={"comments"})
     async def github_comments(
@@ -1111,440 +1622,19 @@ def register_comment_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_COMMENT_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is a guarded write and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _comment_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "list":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                issue_number = kwargs.pop("issue_number", None)
-                if not owner or not repo or not issue_number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'issue_number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_issue_comments,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=int(issue_number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "list_repo":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_repo_issue_comments, owner=owner, repo=repo, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Repository comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_issue_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Comment retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                issue_number = kwargs.pop("issue_number", None)
-                body = kwargs.pop("body", None)
-                if not owner or not repo or not issue_number or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'issue_number', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_issue_comment,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=int(issue_number),
-                    body=body,
-                )
-                return {
-                    "status": 201,
-                    "message": "Comment created successfully",
-                    "data": response.data,
-                }
-            elif action == "update":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                body = kwargs.get("body")
-                if not owner or not repo or not comment_id or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_issue_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                    body=body,
-                )
-                return {
-                    "status": 200,
-                    "message": "Comment updated successfully",
-                    "data": response.data,
-                }
-            elif action == "delete":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_issue_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Comment deleted successfully",
-                    "data": response.data,
-                }
-            elif action == "list_review":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                pull_number = kwargs.pop("pull_number", None)
-                if not owner or not repo or not pull_number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'pull_number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_review_comments,
-                    owner=owner,
-                    repo=repo,
-                    pull_number=int(pull_number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Review comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "list_repo_review":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_repo_review_comments, owner=owner, repo=repo, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Repository review comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "get_review":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_review_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Review comment retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "create_review":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                pull_number = kwargs.pop("pull_number", None)
-                body = kwargs.pop("body", None)
-                if not owner or not repo or not pull_number or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'pull_number', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_review_comment,
-                    owner=owner,
-                    repo=repo,
-                    pull_number=int(pull_number),
-                    body=body,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Review comment created successfully",
-                    "data": response.data,
-                }
-            elif action == "reply_review":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                pull_number = kwargs.pop("pull_number", None)
-                comment_id = kwargs.pop("comment_id", None)
-                body = kwargs.pop("body", None)
-                if (
-                    not owner
-                    or not repo
-                    or not pull_number
-                    or not comment_id
-                    or not body
-                ):
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'pull_number', 'comment_id', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_review_comment_reply,
-                    owner=owner,
-                    repo=repo,
-                    pull_number=int(pull_number),
-                    comment_id=int(comment_id),
-                    body=body,
-                )
-                return {
-                    "status": 201,
-                    "message": "Review comment reply created successfully",
-                    "data": response.data,
-                }
-            elif action == "update_review":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                body = kwargs.get("body")
-                if not owner or not repo or not comment_id or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_review_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                    body=body,
-                )
-                return {
-                    "status": 200,
-                    "message": "Review comment updated successfully",
-                    "data": response.data,
-                }
-            elif action == "delete_review":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_review_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Review comment deleted successfully",
-                    "data": response.data,
-                }
-            elif action == "list_commit":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                sha = kwargs.pop("sha", None)
-                if not owner or not repo or not sha:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_commit_comments,
-                    owner=owner,
-                    repo=repo,
-                    sha=sha,
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "list_repo_commit":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.list_repo_commit_comments, owner=owner, repo=repo, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Repository commit comments retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "get_commit":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_commit_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit comment retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "create_commit":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                sha = kwargs.pop("sha", None)
-                body = kwargs.pop("body", None)
-                if not owner or not repo or not sha or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'sha', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_commit_comment,
-                    owner=owner,
-                    repo=repo,
-                    sha=sha,
-                    body=body,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Commit comment created successfully",
-                    "data": response.data,
-                }
-            elif action == "update_commit":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                body = kwargs.get("body")
-                if not owner or not repo or not comment_id or not body:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'comment_id', or 'body' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_commit_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                    body=body,
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit comment updated successfully",
-                    "data": response.data,
-                }
-            elif action == "delete_commit":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                comment_id = kwargs.get("comment_id")
-                if not owner or not repo or not comment_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'comment_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_commit_comment,
-                    owner=owner,
-                    repo=repo,
-                    comment_id=int(comment_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit comment deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _COMMENT_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
