@@ -638,16 +638,132 @@ def register_repo_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _REPO_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. REPO_ACTIONS and
+            # _REPO_ACTION_HANDLERS' keys are identical sets, and resolve_action()
+            # above either raised for an unrecognised action or returned a member
+            # of REPO_ACTIONS -- so `action` is always a valid key by this point.
+            handler = _REPO_ACTION_HANDLERS[action]
             return await handler(client, kwargs, slim)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _issue_list_org_wide(client: Any, org: str, kwargs: dict) -> dict:
+    """Org-wide issue list: ONE /search/issues call (org:<org> is:issue) instead
+    of enumerate-repos + page-issues-per-repo (N+1 calls). Translates the list
+    filters into search qualifiers.
+    """
+    state = str(kwargs.get("state", "open")).lower()
+    qualifiers = [f"org:{org}", "is:issue"]
+    if state in ("open", "closed"):
+        qualifiers.append(f"state:{state}")
+    if kwargs.get("assignee"):
+        qualifiers.append(f"assignee:{kwargs['assignee']}")
+    for label in str(kwargs.get("labels", "")).split(","):
+        label = label.strip()
+        if label:
+            qualifiers.append(f'label:"{label}"')
+    search_kwargs: dict = {"q": " ".join(qualifiers)}
+    for k in ("sort", "order", "per_page", "max_pages"):
+        if kwargs.get(k) is not None:
+            search_kwargs[k] = kwargs[k]
+    response = await run_blocking(client.search_issues, **search_kwargs)
+    return {
+        "status": 200,
+        "message": f"Org-wide issues for '{org}' via search (1 call)",
+        "data": response.data.items,
+    }
+
+
+async def _issue_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'list'.
+
+    list params: EITHER repo-scoped (owner + repo) OR org-wide (org, no repo).
+    """
+    org = kwargs.get("org")
+    if org and not kwargs.get("repo"):
+        return await _issue_list_org_wide(client, org, kwargs)
+    response = await run_blocking(client.get_issues, **kwargs)
+    return {
+        "status": 200,
+        "message": "Issues retrieved successfully",
+        "data": [issue.model_dump() for issue in response.data],
+    }
+
+
+async def _issue_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_issue, owner=owner, repo=repo, number=int(number)
+    )
+    return {
+        "status": 200,
+        "message": "Issue retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _issue_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    title = kwargs.pop("title", None)
+    if not owner or not repo or not title:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'title' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_issue, owner=owner, repo=repo, title=title, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Issue created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _issue_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    number = kwargs.pop("number", None)
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_issue,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Issue updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+_ISSUE_ACTION_HANDLERS = {
+    "list": _issue_list,
+    "get": _issue_get,
+    "create": _issue_create,
+    "update": _issue_update,
+}
 
 
 def register_issue_tools(mcp: FastMCP):
@@ -697,104 +813,283 @@ def register_issue_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                org = kwargs.get("org")
-                if org and not kwargs.get("repo"):
-                    # Org-wide: ONE /search/issues call (org:<org> is:issue) instead
-                    # of enumerate-repos + page-issues-per-repo (N+1 calls). Translate
-                    # the list filters into search qualifiers.
-                    state = str(kwargs.get("state", "open")).lower()
-                    qualifiers = [f"org:{org}", "is:issue"]
-                    if state in ("open", "closed"):
-                        qualifiers.append(f"state:{state}")
-                    if kwargs.get("assignee"):
-                        qualifiers.append(f"assignee:{kwargs['assignee']}")
-                    for label in str(kwargs.get("labels", "")).split(","):
-                        label = label.strip()
-                        if label:
-                            qualifiers.append(f'label:"{label}"')
-                    search_kwargs: dict = {"q": " ".join(qualifiers)}
-                    for k in ("sort", "order", "per_page", "max_pages"):
-                        if kwargs.get(k) is not None:
-                            search_kwargs[k] = kwargs[k]
-                    response = await run_blocking(client.search_issues, **search_kwargs)
-                    return {
-                        "status": 200,
-                        "message": f"Org-wide issues for '{org}' via search (1 call)",
-                        "data": response.data.items,
-                    }
-                response = await run_blocking(client.get_issues, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Issues retrieved successfully",
-                    "data": [issue.model_dump() for issue in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_issue, owner=owner, repo=repo, number=int(number)
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                title = kwargs.pop("title", None)
-                if not owner or not repo or not title:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'title' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_issue, owner=owner, repo=repo, title=title, **kwargs
-                )
-                return {
-                    "status": 201,
-                    "message": "Issue created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                number = kwargs.pop("number", None)
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_issue,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            else:
+            handler = _ISSUE_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _pull_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'list'."""
+    response = await run_blocking(client.get_pull_requests, **kwargs)
+    return {
+        "status": 200,
+        "message": "Pull requests retrieved successfully",
+        "data": [pr.model_dump() for pr in response.data],
+    }
+
+
+async def _pull_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_pull_request, owner=owner, repo=repo, number=int(number)
+    )
+    return {
+        "status": 200,
+        "message": "Pull request retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    title = kwargs.pop("title", None)
+    head = kwargs.pop("head", None)
+    base = kwargs.pop("base", None)
+    if not owner or not repo or not title or not head or not base:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_pull_request,
+        owner=owner,
+        repo=repo,
+        title=title,
+        head=head,
+        base=base,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Pull request created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    number = kwargs.pop("number", None)
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_pull_request,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Pull request updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_approve(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'approve'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_pull_request_review,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        event=kwargs.get("event", "APPROVE"),
+        body=kwargs.get("body"),
+    )
+    return {
+        "status": 200,
+        "message": "Pull request review submitted successfully",
+        "data": response.data,
+    }
+
+
+async def _pull_request_reviewers(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'request_reviewers'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.request_reviewers,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        reviewers=kwargs.get("reviewers"),
+        team_reviewers=kwargs.get("team_reviewers"),
+    )
+    return {
+        "status": 200,
+        "message": "Reviewers requested successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'merge'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.merge_pull_request,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        merge_method=kwargs.get("merge_method", "merge"),
+        commit_title=kwargs.get("commit_title"),
+        commit_message=kwargs.get("commit_message"),
+        sha=kwargs.get("sha"),
+    )
+    return {
+        "status": 200,
+        "message": "Pull request merged successfully",
+        "data": response.data,
+    }
+
+
+async def _pull_auto_merge_node_id(client: Any, kwargs: dict) -> dict | str:
+    """Resolve the pull request's GraphQL node id for an auto-merge action.
+
+    Returns the node id string, or an error dict if it cannot be resolved.
+    """
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    node_id = kwargs.get("pull_request_id")
+    if node_id:
+        return node_id
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Provide 'pull_request_id' (node id) or 'owner'+'repo'+'number'",
+            "data": None,
+        }
+    pr = await run_blocking(
+        client.get_pull_request, owner=owner, repo=repo, number=int(number)
+    )
+    return pr.data.node_id
+
+
+async def _pull_enable_auto_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'enable_auto_merge'.
+
+    GraphQL-only action: resolve the gql client lazily, here and only here, so
+    a construction failure (e.g. no token, unreachable endpoint) can never
+    break the REST actions, which don't need a GraphQL client at all.
+    """
+    try:
+        gql_client = await run_blocking(get_graphql_client)
+    except Exception as e:
+        return {
+            "status": 500,
+            "error": f"GraphQL client unavailable: {type(e).__name__}",
+            "data": None,
+        }
+    node_id = await _pull_auto_merge_node_id(client, kwargs)
+    if isinstance(node_id, dict):
+        return node_id
+    data = await run_blocking(
+        gql_client.enable_pull_request_auto_merge,
+        pull_request_id=node_id,
+        merge_method=kwargs.get("merge_method", "MERGE"),
+    )
+    return {"status": 200, "message": "Auto-merge enabled successfully", "data": data}
+
+
+async def _pull_disable_auto_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'disable_auto_merge'. See enable's docstring."""
+    try:
+        gql_client = await run_blocking(get_graphql_client)
+    except Exception as e:
+        return {
+            "status": 500,
+            "error": f"GraphQL client unavailable: {type(e).__name__}",
+            "data": None,
+        }
+    node_id = await _pull_auto_merge_node_id(client, kwargs)
+    if isinstance(node_id, dict):
+        return node_id
+    data = await run_blocking(
+        gql_client.disable_pull_request_auto_merge, pull_request_id=node_id
+    )
+    return {
+        "status": 200,
+        "message": "Auto-merge disabled successfully",
+        "data": data,
+    }
+
+
+def _pull_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is a guarded write and not confirmed, else None."""
+    if action in DESTRUCTIVE_PULL_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is a guarded write and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_PULL_ACTION_HANDLERS = {
+    "list": _pull_list,
+    "get": _pull_get,
+    "create": _pull_create,
+    "update": _pull_update,
+    "approve": _pull_approve,
+    "request_reviewers": _pull_request_reviewers,
+    "merge": _pull_merge,
+    "enable_auto_merge": _pull_enable_auto_merge,
+    "disable_auto_merge": _pull_disable_auto_merge,
+}
 
 
 def register_pull_tools(mcp: FastMCP):
@@ -846,216 +1141,19 @@ def register_pull_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_PULL_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is a guarded write and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _pull_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_pull_requests, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Pull requests retrieved successfully",
-                    "data": [pr.model_dump() for pr in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_pull_request, owner=owner, repo=repo, number=int(number)
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                title = kwargs.pop("title", None)
-                head = kwargs.pop("head", None)
-                base = kwargs.pop("base", None)
-                if not owner or not repo or not title or not head or not base:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    title=title,
-                    head=head,
-                    base=base,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Pull request created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                number = kwargs.pop("number", None)
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "approve":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_pull_request_review,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    event=kwargs.get("event", "APPROVE"),
-                    body=kwargs.get("body"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request review submitted successfully",
-                    "data": response.data,
-                }
-            elif action == "request_reviewers":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.request_reviewers,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    reviewers=kwargs.get("reviewers"),
-                    team_reviewers=kwargs.get("team_reviewers"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Reviewers requested successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "merge":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.merge_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    merge_method=kwargs.get("merge_method", "merge"),
-                    commit_title=kwargs.get("commit_title"),
-                    commit_message=kwargs.get("commit_message"),
-                    sha=kwargs.get("sha"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request merged successfully",
-                    "data": response.data,
-                }
-            elif action in ("enable_auto_merge", "disable_auto_merge"):
-                # GraphQL-only actions: resolve the gql client lazily, here
-                # and only here, so a construction failure (e.g. no token,
-                # unreachable endpoint) can never break the REST actions
-                # above (list/get/create/update/approve/request_reviewers/
-                # merge), which don't need a GraphQL client at all.
-                try:
-                    gql_client = await run_blocking(get_graphql_client)
-                except Exception as e:
-                    return {
-                        "status": 500,
-                        "error": f"GraphQL client unavailable: {type(e).__name__}",
-                        "data": None,
-                    }
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                node_id = kwargs.get("pull_request_id")
-                if not node_id:
-                    if not owner or not repo or not number:
-                        return {
-                            "status": 400,
-                            "error": "Provide 'pull_request_id' (node id) or 'owner'+'repo'+'number'",
-                            "data": None,
-                        }
-                    pr = await run_blocking(
-                        client.get_pull_request,
-                        owner=owner,
-                        repo=repo,
-                        number=int(number),
-                    )
-                    node_id = pr.data.node_id
-                if action == "enable_auto_merge":
-                    data = await run_blocking(
-                        gql_client.enable_pull_request_auto_merge,
-                        pull_request_id=node_id,
-                        merge_method=kwargs.get("merge_method", "MERGE"),
-                    )
-                    message = "Auto-merge enabled successfully"
-                else:
-                    data = await run_blocking(
-                        gql_client.disable_pull_request_auto_merge,
-                        pull_request_id=node_id,
-                    )
-                    message = "Auto-merge disabled successfully"
-                return {"status": 200, "message": message, "data": data}
-            else:
+            handler = _PULL_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
@@ -1680,16 +1778,126 @@ def register_comment_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _COMMENT_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. COMMENT_ACTIONS
+            # and _COMMENT_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of COMMENT_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _COMMENT_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _content_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_contents action 'get'."""
+    response = await run_blocking(client.get_contents, **kwargs)
+    if isinstance(response.data, list):
+        data = [item.model_dump() for item in response.data]
+    else:
+        data = response.data.model_dump()
+    return {
+        "status": 200,
+        "message": "Contents retrieved successfully",
+        "data": data,
+    }
+
+
+async def _content_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_contents action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    content = kwargs.pop("content", None)
+    if not owner or not repo or not path or not message or not content:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        content=content,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Content created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _content_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_contents action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    content = kwargs.pop("content", None)
+    sha = kwargs.pop("sha", None)
+    if not owner or not repo or not path or not message or not content or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        content=content,
+        sha=sha,
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Content updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _content_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_contents action 'delete'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    sha = kwargs.pop("sha", None)
+    if not owner or not repo or not path or not message or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        sha=sha,
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Content deleted successfully",
+        "data": response.data,
+    }
+
+
+_CONTENT_ACTION_HANDLERS = {
+    "get": _content_get,
+    "create": _content_create,
+    "update": _content_update,
+    "delete": _content_delete,
+}
 
 
 def register_content_tools(mcp: FastMCP):
@@ -1728,112 +1936,172 @@ def register_content_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "get":
-                response = await run_blocking(client.get_contents, **kwargs)
-                if isinstance(response.data, list):
-                    data = [item.model_dump() for item in response.data]
-                else:
-                    data = response.data.model_dump()
-                return {
-                    "status": 200,
-                    "message": "Contents retrieved successfully",
-                    "data": data,
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                content = kwargs.pop("content", None)
-                if not owner or not repo or not path or not message or not content:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    content=content,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Content created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                content = kwargs.pop("content", None)
-                sha = kwargs.pop("sha", None)
-                if (
-                    not owner
-                    or not repo
-                    or not path
-                    or not message
-                    or not content
-                    or not sha
-                ):
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    content=content,
-                    sha=sha,
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Content updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                sha = kwargs.pop("sha", None)
-                if not owner or not repo or not path or not message or not sha:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    sha=sha,
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Content deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _CONTENT_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _branch_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'list'."""
+    response = await run_blocking(client.get_branches, **kwargs)
+    return {
+        "status": 200,
+        "message": "Branches retrieved successfully",
+        "data": [branch.model_dump() for branch in response.data],
+    }
+
+
+async def _branch_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_branch, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _branch_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'create'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    ref = kwargs.get("ref")
+    if not owner or not repo or not branch or not ref:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
+    )
+    return {
+        "status": 201,
+        "message": "Branch created successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'delete'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_branch, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch deleted successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_get_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'get_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_branch_protection, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_update_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'update_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    protection_config = kwargs.get("protection_config")
+    if not owner or not repo or not branch or protection_config is None:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_branch_protection,
+        owner=owner,
+        repo=repo,
+        branch=branch,
+        protection_config=protection_config,
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection updated successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_delete_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'delete_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_branch_protection,
+        owner=owner,
+        repo=repo,
+        branch=branch,
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection deleted successfully",
+        "data": response.data,
+    }
+
+
+_BRANCH_ACTION_HANDLERS = {
+    "list": _branch_list,
+    "get": _branch_get,
+    "create": _branch_create,
+    "delete": _branch_delete,
+    "get_protection": _branch_get_protection,
+    "update_protection": _branch_update_protection,
+    "delete_protection": _branch_delete_protection,
+}
 
 
 def register_branch_tools(mcp: FastMCP):
@@ -1872,138 +2140,51 @@ def register_branch_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_branches, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Branches retrieved successfully",
-                    "data": [branch.model_dump() for branch in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_branch, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                ref = kwargs.get("ref")
-                if not owner or not repo or not branch or not ref:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
-                )
-                return {
-                    "status": 201,
-                    "message": "Branch created successfully",
-                    "data": response.data,
-                }
-            elif action == "delete":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_branch, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch deleted successfully",
-                    "data": response.data,
-                }
-            elif action == "get_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_branch_protection, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "update_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                protection_config = kwargs.get("protection_config")
-                if not owner or not repo or not branch or protection_config is None:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_branch_protection,
-                    owner=owner,
-                    repo=repo,
-                    branch=branch,
-                    protection_config=protection_config,
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection updated successfully",
-                    "data": response.data,
-                }
-            elif action == "delete_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_branch_protection,
-                    owner=owner,
-                    repo=repo,
-                    branch=branch,
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _BRANCH_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _commit_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_commits action 'list'."""
+    response = await run_blocking(client.get_commits, **kwargs)
+    return {
+        "status": 200,
+        "message": "Commits retrieved successfully",
+        "data": [commit.model_dump() for commit in response.data],
+    }
+
+
+async def _commit_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_commits action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    sha = kwargs.get("sha")
+    if not owner or not repo or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_commit, owner=owner, repo=repo, sha=sha)
+    return {
+        "status": 200,
+        "message": "Commit retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+_COMMIT_ACTION_HANDLERS = {
+    "list": _commit_list,
+    "get": _commit_get,
+}
 
 
 def register_commit_tools(mcp: FastMCP):
@@ -2042,37 +2223,14 @@ def register_commit_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_commits, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Commits retrieved successfully",
-                    "data": [commit.model_dump() for commit in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                sha = kwargs.get("sha")
-                if not owner or not repo or not sha:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_commit, owner=owner, repo=repo, sha=sha
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            else:
+            handler = _COMMIT_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
@@ -2142,6 +2300,246 @@ def register_search_tools(mcp: FastMCP):
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _org_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'get'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_organization, org=org)
+    return {
+        "status": 200,
+        "message": "Organization retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'list'."""
+    response = await run_blocking(client.list_organizations, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organizations retrieved successfully",
+        "data": [org.model_dump() for org in response.data],
+    }
+
+
+async def _org_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'update'."""
+    org = kwargs.pop("org", None)
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.update_organization, org=org, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'delete'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.delete_organization, org=org)
+    return {
+        "status": 202,
+        "message": "Organization deletion scheduled (irreversible)",
+        "data": response.data,
+    }
+
+
+async def _org_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'create'."""
+    login = kwargs.get("login")
+    admin = kwargs.get("admin")
+    if not login or not admin:
+        return {
+            "status": 400,
+            "error": "Missing 'login' or 'admin' parameter",
+            "data": None,
+        }
+    try:
+        response = await run_blocking(
+            client.create_organization,
+            login=login,
+            admin=admin,
+            profile_name=kwargs.get("profile_name"),
+        )
+    except OrganizationCreationNotSupportedError as e:
+        return {"status": 400, "error": str(e), "data": None}
+    return {
+        "status": 201,
+        "message": "Organization created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_create_repository(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'create_repository'."""
+    org = kwargs.pop("org", None)
+    name = kwargs.pop("name", None)
+    if not org or not name:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'name' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_organization_repository, org=org, name=name, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Organization repository created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_repos(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'repos'."""
+    response = await run_blocking(client.get_org_repos, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization repositories retrieved successfully",
+        "data": [repo.model_dump() for repo in response.data],
+    }
+
+
+async def _org_members(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'members'."""
+    response = await run_blocking(client.get_org_members, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization members retrieved successfully",
+        "data": [member.model_dump() for member in response.data],
+    }
+
+
+async def _org_get_membership(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'get_membership'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_organization_membership, org=org, username=username
+    )
+    return {
+        "status": 200,
+        "message": "Organization membership retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_set_membership(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'set_membership'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.set_organization_membership,
+        org=org,
+        username=username,
+        role=kwargs.get("role", "member"),
+    )
+    return {
+        "status": 200,
+        "message": "Organization membership set successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_remove_member(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'remove_member'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.remove_organization_member, org=org, username=username
+    )
+    return {
+        "status": 200,
+        "message": "Organization member removed successfully",
+        "data": response.data,
+    }
+
+
+async def _org_teams(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'teams'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_org_teams, org=org)
+    return {
+        "status": 200,
+        "message": "Organization teams retrieved successfully",
+        "data": response.data,
+    }
+
+
+def _org_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is destructive and not confirmed, else None."""
+    if action in DESTRUCTIVE_ORG_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is destructive and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_ORG_ACTION_HANDLERS = {
+    "get": _org_get,
+    "list": _org_list,
+    "update": _org_update,
+    "delete": _org_delete,
+    "create": _org_create,
+    "create_repository": _org_create_repository,
+    "repos": _org_repos,
+    "members": _org_members,
+    "get_membership": _org_get_membership,
+    "set_membership": _org_set_membership,
+    "remove_member": _org_remove_member,
+    "teams": _org_teams,
+}
 
 
 def register_org_tools(mcp: FastMCP):
@@ -2220,201 +2618,88 @@ def register_org_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_ORG_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is destructive and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _org_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "get":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.get_organization, org=org)
-                return {
-                    "status": 200,
-                    "message": "Organization retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "list":
-                response = await run_blocking(client.list_organizations, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organizations retrieved successfully",
-                    "data": [org.model_dump() for org in response.data],
-                }
-            elif action == "update":
-                org = kwargs.pop("org", None)
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_organization, org=org, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.delete_organization, org=org)
-                return {
-                    "status": 202,
-                    "message": "Organization deletion scheduled (irreversible)",
-                    "data": response.data,
-                }
-            elif action == "create":
-                login = kwargs.get("login")
-                admin = kwargs.get("admin")
-                if not login or not admin:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'login' or 'admin' parameter",
-                        "data": None,
-                    }
-                try:
-                    response = await run_blocking(
-                        client.create_organization,
-                        login=login,
-                        admin=admin,
-                        profile_name=kwargs.get("profile_name"),
-                    )
-                except OrganizationCreationNotSupportedError as e:
-                    return {"status": 400, "error": str(e), "data": None}
-                return {
-                    "status": 201,
-                    "message": "Organization created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create_repository":
-                org = kwargs.pop("org", None)
-                name = kwargs.pop("name", None)
-                if not org or not name:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'name' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_organization_repository, org=org, name=name, **kwargs
-                )
-                return {
-                    "status": 201,
-                    "message": "Organization repository created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "repos":
-                response = await run_blocking(client.get_org_repos, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organization repositories retrieved successfully",
-                    "data": [repo.model_dump() for repo in response.data],
-                }
-            elif action == "members":
-                response = await run_blocking(client.get_org_members, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organization members retrieved successfully",
-                    "data": [member.model_dump() for member in response.data],
-                }
-            elif action == "get_membership":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_organization_membership, org=org, username=username
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization membership retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "set_membership":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.set_organization_membership,
-                    org=org,
-                    username=username,
-                    role=kwargs.get("role", "member"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization membership set successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "remove_member":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.remove_organization_member, org=org, username=username
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization member removed successfully",
-                    "data": response.data,
-                }
-            elif action == "teams":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.get_org_teams, org=org)
-                return {
-                    "status": 200,
-                    "message": "Organization teams retrieved successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _ORG_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _collaborator_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_collaborators action 'list'."""
+    response = await run_blocking(client.get_collaborators, **kwargs)
+    return {
+        "status": 200,
+        "message": "Collaborators retrieved successfully",
+        "data": [c.model_dump() for c in response.data],
+    }
+
+
+async def _collaborator_add(client: Any, kwargs: dict) -> dict:
+    """Handle github_collaborators action 'add'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    username = kwargs.get("username")
+    permission = kwargs.get("permission")
+    if not owner or not repo or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.add_collaborator,
+        owner=owner,
+        repo=repo,
+        username=username,
+        permission=permission,
+    )
+    return {
+        "status": 200,
+        "message": "Collaborator added successfully",
+        "data": response.data,
+    }
+
+
+async def _collaborator_remove(client: Any, kwargs: dict) -> dict:
+    """Handle github_collaborators action 'remove'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    username = kwargs.get("username")
+    if not owner or not repo or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.remove_collaborator,
+        owner=owner,
+        repo=repo,
+        username=username,
+    )
+    return {
+        "status": 200,
+        "message": "Collaborator removed successfully",
+        "data": response.data,
+    }
+
+
+_COLLABORATOR_ACTION_HANDLERS = {
+    "list": _collaborator_list,
+    "add": _collaborator_add,
+    "remove": _collaborator_remove,
+}
 
 
 def register_collaborator_tools(mcp: FastMCP):
@@ -2453,65 +2738,230 @@ def register_collaborator_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_collaborators, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Collaborators retrieved successfully",
-                    "data": [c.model_dump() for c in response.data],
-                }
-            elif action == "add":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                username = kwargs.get("username")
-                permission = kwargs.get("permission")
-                if not owner or not repo or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.add_collaborator,
-                    owner=owner,
-                    repo=repo,
-                    username=username,
-                    permission=permission,
-                )
-                return {
-                    "status": 200,
-                    "message": "Collaborator added successfully",
-                    "data": response.data,
-                }
-            elif action == "remove":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                username = kwargs.get("username")
-                if not owner or not repo or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.remove_collaborator,
-                    owner=owner,
-                    repo=repo,
-                    username=username,
-                )
-                return {
-                    "status": 200,
-                    "message": "Collaborator removed successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _COLLABORATOR_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _action_list_workflows(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_workflows'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_workflows, owner=owner, repo=repo)
+    return {
+        "status": 200,
+        "message": "Workflows retrieved successfully",
+        "data": [w.model_dump() for w in response.data],
+    }
+
+
+async def _action_list_runs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_runs'."""
+    response = await run_blocking(client.get_workflow_runs, **kwargs)
+    data = [r.model_dump() for r in response.data]
+    return {
+        "status": 200,
+        "message": "Workflow runs retrieved successfully",
+        "data": _slim(data) if slim else data,
+    }
+
+
+async def _action_get_run(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'get_run'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _action_list_jobs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_jobs'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
+    response = await run_blocking(
+        client.get_workflow_run_jobs,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+        **extra,
+    )
+    data = response.data
+    return {
+        "status": 200,
+        "message": "Workflow run jobs retrieved successfully",
+        "data": _slim(data) if slim else data,
+    }
+
+
+async def _action_job_logs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'job_logs'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    job_id = kwargs.get("job_id")
+    if not owner or not repo or not job_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_workflow_job_logs,
+        owner=owner,
+        repo=repo,
+        job_id=int(job_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow job logs retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _action_trigger_dispatch(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'trigger_dispatch'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    workflow_id = kwargs.get("workflow_id")
+    ref = kwargs.get("ref")
+    inputs = kwargs.get("inputs")
+    if not owner or not repo or not workflow_id or not ref:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.trigger_workflow_dispatch,
+        owner=owner,
+        repo=repo,
+        workflow_id=workflow_id,
+        ref=ref,
+        inputs=inputs,
+    )
+    return {
+        "status": 200,
+        "message": "Workflow dispatch triggered successfully",
+        "data": response.data,
+    }
+
+
+async def _action_rerun(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'rerun'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.rerun_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run rerun triggered",
+        "data": response.data,
+    }
+
+
+async def _action_cancel(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'cancel'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.cancel_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run cancellation triggered",
+        "data": response.data,
+    }
+
+
+async def _action_delete_run(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'delete_run'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run deleted successfully",
+        "data": response.data,
+    }
+
+
+_ACTION_HANDLERS = {
+    "list_workflows": _action_list_workflows,
+    "list_runs": _action_list_runs,
+    "get_run": _action_get_run,
+    "list_jobs": _action_list_jobs,
+    "job_logs": _action_job_logs,
+    "trigger_dispatch": _action_trigger_dispatch,
+    "rerun": _action_rerun,
+    "cancel": _action_cancel,
+    "delete_run": _action_delete_run,
+}
 
 
 def register_action_tools(mcp: FastMCP):
@@ -2559,190 +3009,141 @@ def register_action_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list_workflows":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflows, owner=owner, repo=repo
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflows retrieved successfully",
-                    "data": [w.model_dump() for w in response.data],
-                }
-            elif action == "list_runs":
-                response = await run_blocking(client.get_workflow_runs, **kwargs)
-                data = [r.model_dump() for r in response.data]
-                return {
-                    "status": 200,
-                    "message": "Workflow runs retrieved successfully",
-                    "data": _slim(data) if slim else data,
-                }
-            elif action == "get_run":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "list_jobs":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
-                response = await run_blocking(
-                    client.get_workflow_run_jobs,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                    **extra,
-                )
-                data = response.data
-                return {
-                    "status": 200,
-                    "message": "Workflow run jobs retrieved successfully",
-                    "data": _slim(data) if slim else data,
-                }
-            elif action == "job_logs":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                job_id = kwargs.get("job_id")
-                if not owner or not repo or not job_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflow_job_logs,
-                    owner=owner,
-                    repo=repo,
-                    job_id=int(job_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow job logs retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "trigger_dispatch":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                workflow_id = kwargs.get("workflow_id")
-                ref = kwargs.get("ref")
-                inputs = kwargs.get("inputs")
-                if not owner or not repo or not workflow_id or not ref:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.trigger_workflow_dispatch,
-                    owner=owner,
-                    repo=repo,
-                    workflow_id=workflow_id,
-                    ref=ref,
-                    inputs=inputs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow dispatch triggered successfully",
-                    "data": response.data,
-                }
-            elif action == "rerun":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.rerun_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run rerun triggered",
-                    "data": response.data,
-                }
-            elif action == "cancel":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.cancel_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run cancellation triggered",
-                    "data": response.data,
-                }
-            elif action == "delete_run":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs, slim)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _release_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_releases action 'list'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_releases, owner=owner, repo=repo)
+    return {
+        "status": 200,
+        "message": "Releases retrieved successfully",
+        "data": [r.model_dump() for r in response.data],
+    }
+
+
+async def _release_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_releases action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    release_id = kwargs.get("release_id")
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_release,
+        owner=owner,
+        repo=repo,
+        release_id=int(release_id),
+    )
+    return {
+        "status": 200,
+        "message": "Release retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _release_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_releases action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    tag_name = kwargs.pop("tag_name", None)
+    if not owner or not repo or not tag_name:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_release,
+        owner=owner,
+        repo=repo,
+        tag_name=tag_name,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Release created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _release_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_releases action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    release_id = kwargs.pop("release_id", None)
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_release,
+        owner=owner,
+        repo=repo,
+        release_id=int(release_id),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Release updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _release_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_releases action 'delete'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    release_id = kwargs.get("release_id")
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_release,
+        owner=owner,
+        repo=repo,
+        release_id=int(release_id),
+    )
+    return {
+        "status": 200,
+        "message": "Release deleted successfully",
+        "data": response.data,
+    }
+
+
+_RELEASE_ACTION_HANDLERS = {
+    "list": _release_list,
+    "get": _release_get,
+    "create": _release_create,
+    "update": _release_update,
+    "delete": _release_delete,
+}
 
 
 def register_release_tools(mcp: FastMCP):
@@ -2781,117 +3182,130 @@ def register_release_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_releases, owner=owner, repo=repo
-                )
-                return {
-                    "status": 200,
-                    "message": "Releases retrieved successfully",
-                    "data": [r.model_dump() for r in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                release_id = kwargs.get("release_id")
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Release retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                tag_name = kwargs.pop("tag_name", None)
-                if not owner or not repo or not tag_name:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_release,
-                    owner=owner,
-                    repo=repo,
-                    tag_name=tag_name,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Release created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                release_id = kwargs.pop("release_id", None)
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Release updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                release_id = kwargs.get("release_id")
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Release deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _RELEASE_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _dependabot_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_dependabot action 'list'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_dependabot_alerts, owner=owner, repo=repo, **kwargs
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alerts retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _dependabot_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_dependabot action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    alert_number = kwargs.get("alert_number")
+    if not owner or not repo or not alert_number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'alert_number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_dependabot_alert,
+        owner=owner,
+        repo=repo,
+        alert_number=int(alert_number),
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alert retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _dependabot_list_org(client: Any, kwargs: dict) -> dict:
+    """Handle github_dependabot action 'list_org'."""
+    org = kwargs.pop("org", None)
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_org_dependabot_alerts, org=org, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization Dependabot alerts retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _dependabot_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_dependabot action 'update'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    alert_number = kwargs.get("alert_number")
+    state = kwargs.get("state")
+    if not owner or not repo or not alert_number or not state:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'alert_number', or 'state' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_dependabot_alert,
+        owner=owner,
+        repo=repo,
+        alert_number=int(alert_number),
+        state=state,
+        dismissed_reason=kwargs.get("dismissed_reason"),
+        dismissed_comment=kwargs.get("dismissed_comment"),
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alert updated successfully",
+        "data": response.data,
+    }
+
+
+def _dependabot_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is a guarded write and not confirmed, else None."""
+    if action in DESTRUCTIVE_DEPENDABOT_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is a guarded write and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_DEPENDABOT_ACTION_HANDLERS = {
+    "list": _dependabot_list,
+    "get": _dependabot_get,
+    "list_org": _dependabot_list_org,
+    "update": _dependabot_update,
+}
 
 
 def register_dependabot_tools(mcp: FastMCP):
@@ -2950,107 +3364,73 @@ def register_dependabot_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_DEPENDABOT_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is a guarded write and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _dependabot_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "list":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_dependabot_alerts, owner=owner, repo=repo, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alerts retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                alert_number = kwargs.get("alert_number")
-                if not owner or not repo or not alert_number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'alert_number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_dependabot_alert,
-                    owner=owner,
-                    repo=repo,
-                    alert_number=int(alert_number),
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alert retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "list_org":
-                org = kwargs.pop("org", None)
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_org_dependabot_alerts, org=org, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization Dependabot alerts retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "update":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                alert_number = kwargs.get("alert_number")
-                state = kwargs.get("state")
-                if not owner or not repo or not alert_number or not state:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'alert_number', or 'state' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_dependabot_alert,
-                    owner=owner,
-                    repo=repo,
-                    alert_number=int(alert_number),
-                    state=state,
-                    dismissed_reason=kwargs.get("dismissed_reason"),
-                    dismissed_comment=kwargs.get("dismissed_comment"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alert updated successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _DEPENDABOT_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+_PIPELINE_LIST_KEYS = ("owner", "repo", "status", "branch", "per_page", "max_pages")
+
+
+def _ingest_pipeline_list_kwargs(kwargs: dict) -> dict:
+    """Keep only the github_actions 'list_runs' filter keys, dropping None values."""
+    return {
+        k: v for k, v in kwargs.items() if k in _PIPELINE_LIST_KEYS and v is not None
+    }
+
+
+def _ingest_pipeline_normalize_runs(records: list) -> list[dict]:
+    """Coerce each API run record to a plain dict, dropping any None entries."""
+    return [
+        run.model_dump() if hasattr(run, "model_dump") else run
+        for run in records
+        if run is not None
+    ]
+
+
+async def _ingest_pipeline_jobs_by_run(
+    client: Any, owner: str, repo: str, runs: list[dict], include_jobs: bool
+) -> dict[int, Any]:
+    """Best-effort fetch of each run's jobs, keyed by run id.
+
+    Returns an empty dict immediately when `include_jobs` is false. A single
+    run's jobs fetch failing is logged and skipped rather than aborting the
+    whole ingest.
+    """
+    jobs_by_run: dict[int, Any] = {}
+    if not include_jobs:
+        return jobs_by_run
+    for run in runs:
+        run_id = run.get("id")
+        if run_id is None:
+            continue
+        try:
+            jobs_response = await run_blocking(
+                client.get_workflow_run_jobs,
+                owner=owner,
+                repo=repo,
+                run_id=run_id,
+            )
+            jobs_by_run[run_id] = jobs_response.data
+        except Exception as e:
+            logger.debug(
+                "github_ingest_pipelines: jobs fetch failed for run %s: %s",
+                run_id,
+                e,
+            )
+    return jobs_by_run
 
 
 def register_ingest_tools(mcp: FastMCP):
@@ -3151,40 +3531,14 @@ def register_ingest_tools(mcp: FastMCP):
 
         include_jobs = kwargs.get("include_jobs", True)
         repo_node_id = kwargs.get("repo_node_id")
-        list_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k in ("owner", "repo", "status", "branch", "per_page", "max_pages")
-            and v is not None
-        }
+        list_kwargs = _ingest_pipeline_list_kwargs(kwargs)
 
         response = await run_blocking(client.get_workflow_runs, **list_kwargs)
-        runs = [
-            run.model_dump() if hasattr(run, "model_dump") else run
-            for run in response.data
-            if run is not None
-        ]
+        runs = _ingest_pipeline_normalize_runs(response.data)
 
-        jobs_by_run: dict[int, Any] = {}
-        if include_jobs:
-            for run in runs:
-                run_id = run.get("id")
-                if run_id is None:
-                    continue
-                try:
-                    jobs_response = await run_blocking(
-                        client.get_workflow_run_jobs,
-                        owner=owner,
-                        repo=repo,
-                        run_id=run_id,
-                    )
-                    jobs_by_run[run_id] = jobs_response.data
-                except Exception as e:
-                    logger.debug(
-                        "github_ingest_pipelines: jobs fetch failed for run %s: %s",
-                        run_id,
-                        e,
-                    )
+        jobs_by_run = await _ingest_pipeline_jobs_by_run(
+            client, owner, repo, runs, include_jobs
+        )
 
         result = ingest_pipeline_runs(
             runs,
