@@ -2155,6 +2155,41 @@ def register_branch_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _commit_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_commits action 'list'."""
+    response = await run_blocking(client.get_commits, **kwargs)
+    return {
+        "status": 200,
+        "message": "Commits retrieved successfully",
+        "data": [commit.model_dump() for commit in response.data],
+    }
+
+
+async def _commit_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_commits action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    sha = kwargs.get("sha")
+    if not owner or not repo or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_commit, owner=owner, repo=repo, sha=sha)
+    return {
+        "status": 200,
+        "message": "Commit retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+_COMMIT_ACTION_HANDLERS = {
+    "list": _commit_list,
+    "get": _commit_get,
+}
+
+
 def register_commit_tools(mcp: FastMCP):
     @mcp.tool(tags={"commits"})
     async def github_commits(
@@ -2191,37 +2226,14 @@ def register_commit_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_commits, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Commits retrieved successfully",
-                    "data": [commit.model_dump() for commit in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                sha = kwargs.get("sha")
-                if not owner or not repo or not sha:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_commit, owner=owner, repo=repo, sha=sha
-                )
-                return {
-                    "status": 200,
-                    "message": "Commit retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            else:
+            handler = _COMMIT_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
