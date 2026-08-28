@@ -28,6 +28,116 @@ def allow_destructive_default() -> bool:
     return setting("GITHUB_ALLOW_DESTRUCTIVE", False)
 
 
+def _require_delegation_user_token() -> str:
+    """Fetch the caller's OIDC user token for delegation, or raise."""
+    user_token = getattr(local, "user_token", None)
+    if not user_token:
+        logger.error("No user token available for delegation")
+        raise ValueError("No user token available for delegation")
+    return user_token
+
+
+def _validate_delegation_config(config: dict) -> tuple[str, str, str, str, str]:
+    """Validate the OAuth delegation settings on ``config`` and return them."""
+    token_endpoint = config.get("token_endpoint")
+    client_id = config.get("oidc_client_id")
+    client_secret = config.get("oidc_client_secret")
+    audience = config.get("audience")
+    delegated_scopes = config.get("delegated_scopes")
+
+    if (
+        not isinstance(token_endpoint, str)
+        or not isinstance(client_id, str)
+        or not isinstance(client_secret, str)
+        or not isinstance(audience, str)
+        or not isinstance(delegated_scopes, str)
+    ):
+        raise ValueError("Invalid OAuth configuration parameters")
+
+    return token_endpoint, client_id, client_secret, audience, delegated_scopes
+
+
+def _exchange_delegated_token(
+    token_endpoint: str,
+    client_id: str,
+    client_secret: str,
+    audience: str,
+    delegated_scopes: str,
+    user_token: str,
+) -> str:
+    """Perform the OIDC token-exchange call and return the new bearer token."""
+    logger.info(
+        "Initiating OAuth token exchange for GitHub",
+        extra={
+            "audience": audience,
+            "scopes": delegated_scopes,
+        },
+    )
+
+    exchange_data = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": user_token,
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
+        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
+        "audience": audience,
+        "scope": delegated_scopes,
+    }
+    auth = (client_id, client_secret)
+    token_tls = resolve_configured_tls_profile(
+        "oauth2_token",
+        profile_name=agent_config.oauth2_token_tls_profile,
+        profile_ref=agent_config.oauth2_token_tls_profile_ref,
+        config=agent_config,
+    )
+    try:
+        response = requests.post(
+            token_endpoint,
+            data=exchange_data,
+            auth=auth,
+            timeout=30,
+            **token_tls.requests_kwargs(),
+        )
+        response.raise_for_status()
+        new_token = response.json()["access_token"]
+        logger.info("Token exchange successful")
+        return new_token
+    except Exception as e:
+        logger.error("Token exchange failed: error_type=%s", type(e).__name__)
+        raise RuntimeError("Token exchange failed") from e
+    finally:
+        token_tls.cleanup()
+
+
+def _build_delegated_client(instance: str, new_token: str, profile: ResolvedTLSProfile) -> Api:
+    """Build the Api client from an exchanged delegated token."""
+    try:
+        return Api(
+            url=instance,
+            token=new_token,
+            tls_profile=profile,
+        )
+    except (AuthError, UnauthorizedError) as e:
+        raise RuntimeError(
+            "AUTHENTICATION ERROR: The delegated GitHub credentials are not valid."
+        ) from e
+
+
+def _build_fixed_client(instance: str, token: str | None, profile: ResolvedTLSProfile) -> Api:
+    """Build the Api client from a fixed configured credential."""
+    logger.info("Using fixed credentials for GitHub API")
+    try:
+        return Api(
+            url=instance,
+            token=token,
+            tls_profile=profile,
+        )
+    except (AuthError, UnauthorizedError) as e:
+        raise RuntimeError(
+            "AUTHENTICATION ERROR: The GitHub credentials provided are not valid. "
+            "Please check the configured credential and endpoint references."
+        ) from e
+
+
 def get_client(
     config: dict | None = None,
     tls_profile: ResolvedTLSProfile | None = None,
@@ -45,90 +155,17 @@ def get_client(
 
         config = default_config
 
-    if config.get("enable_delegation"):
-        user_token = getattr(local, "user_token", None)
-        if not user_token:
-            logger.error("No user token available for delegation")
-            raise ValueError("No user token available for delegation")
+    if not config.get("enable_delegation"):
+        return _build_fixed_client(instance, token, profile)
 
-        token_endpoint = config.get("token_endpoint")
-        client_id = config.get("oidc_client_id")
-        client_secret = config.get("oidc_client_secret")
-        audience = config.get("audience")
-        delegated_scopes = config.get("delegated_scopes")
-
-        if (
-            not isinstance(token_endpoint, str)
-            or not isinstance(client_id, str)
-            or not isinstance(client_secret, str)
-            or not isinstance(audience, str)
-            or not isinstance(delegated_scopes, str)
-        ):
-            raise ValueError("Invalid OAuth configuration parameters")
-
-        logger.info(
-            "Initiating OAuth token exchange for GitHub",
-            extra={
-                "audience": audience,
-                "scopes": delegated_scopes,
-            },
-        )
-
-        exchange_data = {
-            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-            "subject_token": user_token,
-            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
-            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
-            "audience": audience,
-            "scope": delegated_scopes,
-        }
-        auth = (client_id, client_secret)
-        token_tls = resolve_configured_tls_profile(
-            "oauth2_token",
-            profile_name=agent_config.oauth2_token_tls_profile,
-            profile_ref=agent_config.oauth2_token_tls_profile_ref,
-            config=agent_config,
-        )
-        try:
-            response = requests.post(
-                token_endpoint,
-                data=exchange_data,
-                auth=auth,
-                timeout=30,
-                **token_tls.requests_kwargs(),
-            )
-            response.raise_for_status()
-            new_token = response.json()["access_token"]
-            logger.info("Token exchange successful")
-        except Exception as e:
-            logger.error("Token exchange failed: error_type=%s", type(e).__name__)
-            raise RuntimeError("Token exchange failed") from e
-        finally:
-            token_tls.cleanup()
-
-        try:
-            return Api(
-                url=instance,
-                token=new_token,
-                tls_profile=profile,
-            )
-        except (AuthError, UnauthorizedError) as e:
-            raise RuntimeError(
-                "AUTHENTICATION ERROR: The delegated GitHub credentials are not valid."
-            ) from e
-    else:
-        logger.info("Using fixed credentials for GitHub API")
-        try:
-            return Api(
-                url=instance,
-                token=token,
-                tls_profile=profile,
-            )
-        except (AuthError, UnauthorizedError) as e:
-            raise RuntimeError(
-                "AUTHENTICATION ERROR: The GitHub credentials provided are not valid. "
-                "Please check the configured credential and endpoint references."
-            ) from e
+    user_token = _require_delegation_user_token()
+    token_endpoint, client_id, client_secret, audience, delegated_scopes = (
+        _validate_delegation_config(config)
+    )
+    new_token = _exchange_delegated_token(
+        token_endpoint, client_id, client_secret, audience, delegated_scopes, user_token
+    )
+    return _build_delegated_client(instance, new_token, profile)
 
 
 def get_graphql_client(
