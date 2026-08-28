@@ -18,6 +18,100 @@ DESTRUCTIVE_DEPENDABOT_ACTIONS = {"update"}
 DEPENDABOT_ACTIONS = ("list", "get", "list_org", "update")
 
 
+async def _list_dependabot_alerts(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_dependabot_alerts, owner=owner, repo=repo, **kwargs
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alerts retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _get_dependabot_alert(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    alert_number = kwargs.get("alert_number")
+    if not owner or not repo or not alert_number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'alert_number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_dependabot_alert,
+        owner=owner,
+        repo=repo,
+        alert_number=int(alert_number),
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alert retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _list_org_dependabot_alerts(client, kwargs: dict) -> dict:
+    org = kwargs.pop("org", None)
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_org_dependabot_alerts, org=org, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization Dependabot alerts retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _update_dependabot_alert(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    alert_number = kwargs.get("alert_number")
+    state = kwargs.get("state")
+    if not owner or not repo or not alert_number or not state:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'alert_number', or 'state' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_dependabot_alert,
+        owner=owner,
+        repo=repo,
+        alert_number=int(alert_number),
+        state=state,
+        dismissed_reason=kwargs.get("dismissed_reason"),
+        dismissed_comment=kwargs.get("dismissed_comment"),
+    )
+    return {
+        "status": 200,
+        "message": "Dependabot alert updated successfully",
+        "data": response.data,
+    }
+
+
+#: Dispatch table for the resolved Dependabot action -> its async handler.
+_DEPENDABOT_ACTION_HANDLERS = {
+    "list": _list_dependabot_alerts,
+    "get": _get_dependabot_alert,
+    "list_org": _list_org_dependabot_alerts,
+    "update": _update_dependabot_alert,
+}
+
+
 def register_dependabot_tools(mcp: FastMCP):
     @mcp.tool(tags={"dependabot"})
     async def github_dependabot(
@@ -87,91 +181,11 @@ def register_dependabot_tools(mcp: FastMCP):
                 "data": None,
             }
 
+        handler = _DEPENDABOT_ACTION_HANDLERS.get(action)
+        if handler is None:
+            return {"status": 400, "error": f"Unknown action: {action}", "data": None}
+
         try:
-            if action == "list":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_dependabot_alerts, owner=owner, repo=repo, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alerts retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                alert_number = kwargs.get("alert_number")
-                if not owner or not repo or not alert_number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'alert_number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_dependabot_alert,
-                    owner=owner,
-                    repo=repo,
-                    alert_number=int(alert_number),
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alert retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "list_org":
-                org = kwargs.pop("org", None)
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_org_dependabot_alerts, org=org, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization Dependabot alerts retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "update":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                alert_number = kwargs.get("alert_number")
-                state = kwargs.get("state")
-                if not owner or not repo or not alert_number or not state:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'alert_number', or 'state' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_dependabot_alert,
-                    owner=owner,
-                    repo=repo,
-                    alert_number=int(alert_number),
-                    state=state,
-                    dismissed_reason=kwargs.get("dismissed_reason"),
-                    dismissed_comment=kwargs.get("dismissed_comment"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Dependabot alert updated successfully",
-                    "data": response.data,
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
