@@ -313,6 +313,14 @@ def create_mock_client():
     client.update_release.return_value = MagicMock(data=mock_release)
     client.delete_release.return_value = MagicMock(data={"status": "deleted"})
 
+    # Mock Dependabot alerts
+    client.get_dependabot_alerts.return_value = MagicMock(data=[{"number": 1}])
+    client.get_dependabot_alert.return_value = MagicMock(data={"number": 1})
+    client.get_org_dependabot_alerts.return_value = MagicMock(data=[{"number": 1}])
+    client.update_dependabot_alert.return_value = MagicMock(
+        data={"number": 1, "state": "dismissed"}
+    )
+
     return client
 
 
@@ -811,6 +819,78 @@ async def test_mcp_collaborators():
 
     with pytest.raises(ValueError, match="list_actions"):
         await github_collaborators(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
+
+
+@pytest.mark.anyio
+async def test_mcp_dependabot():
+    tools = await get_registered_tools()
+    github_dependabot = tools["github_dependabot"]
+    client = create_mock_client()
+    ctx = AsyncMockContext()
+
+    res = await github_dependabot(
+        action="list",
+        params_json='{"owner": "o", "repo": "r"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_dependabot(action="list", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_dependabot(
+        action="get",
+        params_json='{"owner": "o", "repo": "r", "alert_number": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_dependabot(action="get", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_dependabot(
+        action="list_org", params_json='{"org": "acme"}', client=client, ctx=ctx
+    )
+    assert res["status"] == 200
+
+    res = await github_dependabot(
+        action="list_org", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    # 'update' is a guarded write: blocked without allow_destructive.
+    res = await github_dependabot(
+        action="update",
+        params_json='{"owner": "o", "repo": "r", "alert_number": 1, "state": "dismissed"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 403
+
+    res = await github_dependabot(
+        action="update",
+        params_json='{"owner": "o", "repo": "r", "alert_number": 1, "state": "dismissed"}',
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_dependabot(
+        action="update",
+        params_json="{}",
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 400
+
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_dependabot(
             action="invalid", params_json="{}", client=client, ctx=ctx
         )
 
