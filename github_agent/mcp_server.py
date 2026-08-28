@@ -650,6 +650,124 @@ def register_repo_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _issue_list_org_wide(client: Any, org: str, kwargs: dict) -> dict:
+    """Org-wide issue list: ONE /search/issues call (org:<org> is:issue) instead
+    of enumerate-repos + page-issues-per-repo (N+1 calls). Translates the list
+    filters into search qualifiers.
+    """
+    state = str(kwargs.get("state", "open")).lower()
+    qualifiers = [f"org:{org}", "is:issue"]
+    if state in ("open", "closed"):
+        qualifiers.append(f"state:{state}")
+    if kwargs.get("assignee"):
+        qualifiers.append(f"assignee:{kwargs['assignee']}")
+    for label in str(kwargs.get("labels", "")).split(","):
+        label = label.strip()
+        if label:
+            qualifiers.append(f'label:"{label}"')
+    search_kwargs: dict = {"q": " ".join(qualifiers)}
+    for k in ("sort", "order", "per_page", "max_pages"):
+        if kwargs.get(k) is not None:
+            search_kwargs[k] = kwargs[k]
+    response = await run_blocking(client.search_issues, **search_kwargs)
+    return {
+        "status": 200,
+        "message": f"Org-wide issues for '{org}' via search (1 call)",
+        "data": response.data.items,
+    }
+
+
+async def _issue_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'list'.
+
+    list params: EITHER repo-scoped (owner + repo) OR org-wide (org, no repo).
+    """
+    org = kwargs.get("org")
+    if org and not kwargs.get("repo"):
+        return await _issue_list_org_wide(client, org, kwargs)
+    response = await run_blocking(client.get_issues, **kwargs)
+    return {
+        "status": 200,
+        "message": "Issues retrieved successfully",
+        "data": [issue.model_dump() for issue in response.data],
+    }
+
+
+async def _issue_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_issue, owner=owner, repo=repo, number=int(number)
+    )
+    return {
+        "status": 200,
+        "message": "Issue retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _issue_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    title = kwargs.pop("title", None)
+    if not owner or not repo or not title:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'title' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_issue, owner=owner, repo=repo, title=title, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Issue created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _issue_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_issues action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    number = kwargs.pop("number", None)
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_issue,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Issue updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+_ISSUE_ACTION_HANDLERS = {
+    "list": _issue_list,
+    "get": _issue_get,
+    "create": _issue_create,
+    "update": _issue_update,
+}
+
+
 def register_issue_tools(mcp: FastMCP):
     @mcp.tool(tags={"issues"})
     async def github_issues(
@@ -697,104 +815,283 @@ def register_issue_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                org = kwargs.get("org")
-                if org and not kwargs.get("repo"):
-                    # Org-wide: ONE /search/issues call (org:<org> is:issue) instead
-                    # of enumerate-repos + page-issues-per-repo (N+1 calls). Translate
-                    # the list filters into search qualifiers.
-                    state = str(kwargs.get("state", "open")).lower()
-                    qualifiers = [f"org:{org}", "is:issue"]
-                    if state in ("open", "closed"):
-                        qualifiers.append(f"state:{state}")
-                    if kwargs.get("assignee"):
-                        qualifiers.append(f"assignee:{kwargs['assignee']}")
-                    for label in str(kwargs.get("labels", "")).split(","):
-                        label = label.strip()
-                        if label:
-                            qualifiers.append(f'label:"{label}"')
-                    search_kwargs: dict = {"q": " ".join(qualifiers)}
-                    for k in ("sort", "order", "per_page", "max_pages"):
-                        if kwargs.get(k) is not None:
-                            search_kwargs[k] = kwargs[k]
-                    response = await run_blocking(client.search_issues, **search_kwargs)
-                    return {
-                        "status": 200,
-                        "message": f"Org-wide issues for '{org}' via search (1 call)",
-                        "data": response.data.items,
-                    }
-                response = await run_blocking(client.get_issues, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Issues retrieved successfully",
-                    "data": [issue.model_dump() for issue in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_issue, owner=owner, repo=repo, number=int(number)
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                title = kwargs.pop("title", None)
-                if not owner or not repo or not title:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'title' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_issue, owner=owner, repo=repo, title=title, **kwargs
-                )
-                return {
-                    "status": 201,
-                    "message": "Issue created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                number = kwargs.pop("number", None)
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_issue,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            else:
+            handler = _ISSUE_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
+
+
+async def _pull_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'list'."""
+    response = await run_blocking(client.get_pull_requests, **kwargs)
+    return {
+        "status": 200,
+        "message": "Pull requests retrieved successfully",
+        "data": [pr.model_dump() for pr in response.data],
+    }
+
+
+async def _pull_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_pull_request, owner=owner, repo=repo, number=int(number)
+    )
+    return {
+        "status": 200,
+        "message": "Pull request retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'create'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    title = kwargs.pop("title", None)
+    head = kwargs.pop("head", None)
+    base = kwargs.pop("base", None)
+    if not owner or not repo or not title or not head or not base:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_pull_request,
+        owner=owner,
+        repo=repo,
+        title=title,
+        head=head,
+        base=base,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Pull request created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'update'."""
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    number = kwargs.pop("number", None)
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_pull_request,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Pull request updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_approve(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'approve'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_pull_request_review,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        event=kwargs.get("event", "APPROVE"),
+        body=kwargs.get("body"),
+    )
+    return {
+        "status": 200,
+        "message": "Pull request review submitted successfully",
+        "data": response.data,
+    }
+
+
+async def _pull_request_reviewers(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'request_reviewers'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.request_reviewers,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        reviewers=kwargs.get("reviewers"),
+        team_reviewers=kwargs.get("team_reviewers"),
+    )
+    return {
+        "status": 200,
+        "message": "Reviewers requested successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _pull_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'merge'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.merge_pull_request,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        merge_method=kwargs.get("merge_method", "merge"),
+        commit_title=kwargs.get("commit_title"),
+        commit_message=kwargs.get("commit_message"),
+        sha=kwargs.get("sha"),
+    )
+    return {
+        "status": 200,
+        "message": "Pull request merged successfully",
+        "data": response.data,
+    }
+
+
+async def _pull_auto_merge_node_id(client: Any, kwargs: dict) -> dict | str:
+    """Resolve the pull request's GraphQL node id for an auto-merge action.
+
+    Returns the node id string, or an error dict if it cannot be resolved.
+    """
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    node_id = kwargs.get("pull_request_id")
+    if node_id:
+        return node_id
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Provide 'pull_request_id' (node id) or 'owner'+'repo'+'number'",
+            "data": None,
+        }
+    pr = await run_blocking(
+        client.get_pull_request, owner=owner, repo=repo, number=int(number)
+    )
+    return pr.data.node_id
+
+
+async def _pull_enable_auto_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'enable_auto_merge'.
+
+    GraphQL-only action: resolve the gql client lazily, here and only here, so
+    a construction failure (e.g. no token, unreachable endpoint) can never
+    break the REST actions, which don't need a GraphQL client at all.
+    """
+    try:
+        gql_client = await run_blocking(get_graphql_client)
+    except Exception as e:
+        return {
+            "status": 500,
+            "error": f"GraphQL client unavailable: {type(e).__name__}",
+            "data": None,
+        }
+    node_id = await _pull_auto_merge_node_id(client, kwargs)
+    if isinstance(node_id, dict):
+        return node_id
+    data = await run_blocking(
+        gql_client.enable_pull_request_auto_merge,
+        pull_request_id=node_id,
+        merge_method=kwargs.get("merge_method", "MERGE"),
+    )
+    return {"status": 200, "message": "Auto-merge enabled successfully", "data": data}
+
+
+async def _pull_disable_auto_merge(client: Any, kwargs: dict) -> dict:
+    """Handle github_pulls action 'disable_auto_merge'. See enable's docstring."""
+    try:
+        gql_client = await run_blocking(get_graphql_client)
+    except Exception as e:
+        return {
+            "status": 500,
+            "error": f"GraphQL client unavailable: {type(e).__name__}",
+            "data": None,
+        }
+    node_id = await _pull_auto_merge_node_id(client, kwargs)
+    if isinstance(node_id, dict):
+        return node_id
+    data = await run_blocking(
+        gql_client.disable_pull_request_auto_merge, pull_request_id=node_id
+    )
+    return {
+        "status": 200,
+        "message": "Auto-merge disabled successfully",
+        "data": data,
+    }
+
+
+def _pull_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is a guarded write and not confirmed, else None."""
+    if action in DESTRUCTIVE_PULL_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is a guarded write and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_PULL_ACTION_HANDLERS = {
+    "list": _pull_list,
+    "get": _pull_get,
+    "create": _pull_create,
+    "update": _pull_update,
+    "approve": _pull_approve,
+    "request_reviewers": _pull_request_reviewers,
+    "merge": _pull_merge,
+    "enable_auto_merge": _pull_enable_auto_merge,
+    "disable_auto_merge": _pull_disable_auto_merge,
+}
 
 
 def register_pull_tools(mcp: FastMCP):
@@ -846,216 +1143,19 @@ def register_pull_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_PULL_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is a guarded write and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _pull_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_pull_requests, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Pull requests retrieved successfully",
-                    "data": [pr.model_dump() for pr in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_pull_request, owner=owner, repo=repo, number=int(number)
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                title = kwargs.pop("title", None)
-                head = kwargs.pop("head", None)
-                base = kwargs.pop("base", None)
-                if not owner or not repo or not title or not head or not base:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'title', 'head', or 'base' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    title=title,
-                    head=head,
-                    base=base,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Pull request created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                number = kwargs.pop("number", None)
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "approve":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_pull_request_review,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    event=kwargs.get("event", "APPROVE"),
-                    body=kwargs.get("body"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request review submitted successfully",
-                    "data": response.data,
-                }
-            elif action == "request_reviewers":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.request_reviewers,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    reviewers=kwargs.get("reviewers"),
-                    team_reviewers=kwargs.get("team_reviewers"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Reviewers requested successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "merge":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.merge_pull_request,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    merge_method=kwargs.get("merge_method", "merge"),
-                    commit_title=kwargs.get("commit_title"),
-                    commit_message=kwargs.get("commit_message"),
-                    sha=kwargs.get("sha"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Pull request merged successfully",
-                    "data": response.data,
-                }
-            elif action in ("enable_auto_merge", "disable_auto_merge"):
-                # GraphQL-only actions: resolve the gql client lazily, here
-                # and only here, so a construction failure (e.g. no token,
-                # unreachable endpoint) can never break the REST actions
-                # above (list/get/create/update/approve/request_reviewers/
-                # merge), which don't need a GraphQL client at all.
-                try:
-                    gql_client = await run_blocking(get_graphql_client)
-                except Exception as e:
-                    return {
-                        "status": 500,
-                        "error": f"GraphQL client unavailable: {type(e).__name__}",
-                        "data": None,
-                    }
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                node_id = kwargs.get("pull_request_id")
-                if not node_id:
-                    if not owner or not repo or not number:
-                        return {
-                            "status": 400,
-                            "error": "Provide 'pull_request_id' (node id) or 'owner'+'repo'+'number'",
-                            "data": None,
-                        }
-                    pr = await run_blocking(
-                        client.get_pull_request,
-                        owner=owner,
-                        repo=repo,
-                        number=int(number),
-                    )
-                    node_id = pr.data.node_id
-                if action == "enable_auto_merge":
-                    data = await run_blocking(
-                        gql_client.enable_pull_request_auto_merge,
-                        pull_request_id=node_id,
-                        merge_method=kwargs.get("merge_method", "MERGE"),
-                    )
-                    message = "Auto-merge enabled successfully"
-                else:
-                    data = await run_blocking(
-                        gql_client.disable_pull_request_auto_merge,
-                        pull_request_id=node_id,
-                    )
-                    message = "Auto-merge disabled successfully"
-                return {"status": 200, "message": message, "data": data}
-            else:
+            handler = _PULL_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
