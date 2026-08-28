@@ -638,13 +638,11 @@ def register_repo_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _REPO_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. REPO_ACTIONS and
+            # _REPO_ACTION_HANDLERS' keys are identical sets, and resolve_action()
+            # above either raised for an unrecognised action or returned a member
+            # of REPO_ACTIONS -- so `action` is always a valid key by this point.
+            handler = _REPO_ACTION_HANDLERS[action]
             return await handler(client, kwargs, slim)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -1780,13 +1778,12 @@ def register_comment_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _COMMENT_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. COMMENT_ACTIONS
+            # and _COMMENT_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of COMMENT_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _COMMENT_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
