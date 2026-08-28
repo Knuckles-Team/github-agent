@@ -1951,6 +1951,162 @@ def register_content_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _branch_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'list'."""
+    response = await run_blocking(client.get_branches, **kwargs)
+    return {
+        "status": 200,
+        "message": "Branches retrieved successfully",
+        "data": [branch.model_dump() for branch in response.data],
+    }
+
+
+async def _branch_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'get'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_branch, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _branch_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'create'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    ref = kwargs.get("ref")
+    if not owner or not repo or not branch or not ref:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
+    )
+    return {
+        "status": 201,
+        "message": "Branch created successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'delete'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_branch, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch deleted successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_get_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'get_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_branch_protection, owner=owner, repo=repo, branch=branch
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_update_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'update_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    protection_config = kwargs.get("protection_config")
+    if not owner or not repo or not branch or protection_config is None:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_branch_protection,
+        owner=owner,
+        repo=repo,
+        branch=branch,
+        protection_config=protection_config,
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection updated successfully",
+        "data": response.data,
+    }
+
+
+async def _branch_delete_protection(client: Any, kwargs: dict) -> dict:
+    """Handle github_branches action 'delete_protection'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    branch = kwargs.get("branch")
+    if not owner or not repo or not branch:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'branch' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_branch_protection,
+        owner=owner,
+        repo=repo,
+        branch=branch,
+    )
+    return {
+        "status": 200,
+        "message": "Branch protection deleted successfully",
+        "data": response.data,
+    }
+
+
+_BRANCH_ACTION_HANDLERS = {
+    "list": _branch_list,
+    "get": _branch_get,
+    "create": _branch_create,
+    "delete": _branch_delete,
+    "get_protection": _branch_get_protection,
+    "update_protection": _branch_update_protection,
+    "delete_protection": _branch_delete_protection,
+}
+
+
 def register_branch_tools(mcp: FastMCP):
     @mcp.tool(tags={"branches"})
     async def github_branches(
@@ -1987,136 +2143,14 @@ def register_branch_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list":
-                response = await run_blocking(client.get_branches, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Branches retrieved successfully",
-                    "data": [branch.model_dump() for branch in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_branch, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                ref = kwargs.get("ref")
-                if not owner or not repo or not branch or not ref:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'branch', or 'ref' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_branch, owner=owner, repo=repo, branch=branch, ref=ref
-                )
-                return {
-                    "status": 201,
-                    "message": "Branch created successfully",
-                    "data": response.data,
-                }
-            elif action == "delete":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_branch, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch deleted successfully",
-                    "data": response.data,
-                }
-            elif action == "get_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_branch_protection, owner=owner, repo=repo, branch=branch
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "update_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                protection_config = kwargs.get("protection_config")
-                if not owner or not repo or not branch or protection_config is None:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'branch', or 'protection_config' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_branch_protection,
-                    owner=owner,
-                    repo=repo,
-                    branch=branch,
-                    protection_config=protection_config,
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection updated successfully",
-                    "data": response.data,
-                }
-            elif action == "delete_protection":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                branch = kwargs.get("branch")
-                if not owner or not repo or not branch:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'branch' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_branch_protection,
-                    owner=owner,
-                    repo=repo,
-                    branch=branch,
-                )
-                return {
-                    "status": 200,
-                    "message": "Branch protection deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _BRANCH_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
