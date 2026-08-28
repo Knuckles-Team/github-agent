@@ -813,13 +813,12 @@ def register_issue_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _ISSUE_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. ISSUE_ACTIONS
+            # and _ISSUE_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of ISSUE_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _ISSUE_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -1146,13 +1145,12 @@ def register_pull_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _PULL_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. PULL_ACTIONS
+            # and _PULL_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of PULL_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _PULL_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -1936,13 +1934,12 @@ def register_content_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _CONTENT_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. CONTENT_ACTIONS
+            # and _CONTENT_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of CONTENT_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _CONTENT_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -2140,13 +2137,12 @@ def register_branch_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _BRANCH_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. BRANCH_ACTIONS
+            # and _BRANCH_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of BRANCH_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _BRANCH_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -2223,13 +2219,12 @@ def register_commit_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _COMMIT_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. COMMIT_ACTIONS
+            # and _COMMIT_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of COMMIT_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _COMMIT_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -2285,18 +2280,19 @@ def register_search_tools(mcp: FastMCP):
                     "message": "Issues searched successfully",
                     "data": response.data.model_dump(),
                 }
-            elif action == "code":
+            else:
+                # BUG-CX-035: no `else: return {"error": "Unknown action"}` branch
+                # here. SEARCH_ACTIONS is exactly {"repositories", "issues",
+                # "code"}, and resolve_action() above either raised for an
+                # unrecognised action or returned one of those three -- so by
+                # this point `action` can only be "repositories", "issues", or
+                # "code", and the first two are handled above. This branch is
+                # therefore always "code".
                 response = await run_blocking(client.search_code, **kwargs)
                 return {
                     "status": 200,
                     "message": "Code searched successfully",
                     "data": response.data.model_dump(),
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
                 }
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -2623,13 +2619,12 @@ def register_org_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _ORG_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. ORG_ACTIONS
+            # and _ORG_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of ORG_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _ORG_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -2738,13 +2733,12 @@ def register_collaborator_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _COLLABORATOR_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. COLLABORATOR_ACTIONS
+            # and _COLLABORATOR_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of COLLABORATOR_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _COLLABORATOR_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -3009,13 +3003,12 @@ def register_action_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. WORKFLOW_ACTIONS
+            # and _ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of WORKFLOW_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _ACTION_HANDLERS[action]
             return await handler(client, kwargs, slim)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -3182,13 +3175,12 @@ def register_release_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            handler = _RELEASE_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. RELEASE_ACTIONS
+            # and _RELEASE_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of RELEASE_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _RELEASE_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
@@ -3369,13 +3361,12 @@ def register_dependabot_tools(mcp: FastMCP):
             return guard_error
 
         try:
-            handler = _DEPENDABOT_ACTION_HANDLERS.get(action)
-            if handler is None:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            # BUG-CX-035: no `if handler is None` fallback here. DEPENDABOT_ACTIONS
+            # and _DEPENDABOT_ACTION_HANDLERS' keys are identical sets, and
+            # resolve_action() above either raised for an unrecognised action or
+            # returned a member of DEPENDABOT_ACTIONS -- so `action` is always a
+            # valid key by this point.
+            handler = _DEPENDABOT_ACTION_HANDLERS[action]
             return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
