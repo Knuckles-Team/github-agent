@@ -66,6 +66,20 @@ def ingest_entities(
         return None
 
 
+def _document_node(doc: dict[str, Any], now: str) -> dict[str, Any] | None:
+    """Map one raw document dict to a ``:Document`` node, or ``None`` if unmappable."""
+    did = doc.get("id")
+    text = doc.get("text") or doc.get("content")
+    if not did or not text:
+        return None
+    node = {k: v for k, v in doc.items() if k != "content" and v is not None}
+    node["id"] = did
+    node["node_type"] = "Document"
+    node["text"] = text
+    node.setdefault("created_at", now)
+    return node
+
+
 def ingest_documents(
     documents: list[dict[str, Any]],
     *,
@@ -78,18 +92,11 @@ def ingest_documents(
     Returns ``{"nodes":n, "edges":0}`` or ``None``.
     """
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    nodes: list[dict[str, Any]] = []
-    for doc in documents or []:
-        did = doc.get("id")
-        text = doc.get("text") or doc.get("content")
-        if not did or not text:
-            continue
-        node = {k: v for k, v in doc.items() if k != "content" and v is not None}
-        node["id"] = did
-        node["node_type"] = "Document"
-        node["text"] = text
-        node.setdefault("created_at", now)
-        nodes.append(node)
+    nodes = [
+        node
+        for doc in (documents or [])
+        if (node := _document_node(doc, now)) is not None
+    ]
     if not nodes:
         return None
     try:
@@ -306,6 +313,129 @@ def _duration_seconds(start: Any, end: Any) -> int | None:
         return None
 
 
+def _pipeline_run_entity(
+    run: dict[str, Any], node_id: str, run_id: Any
+) -> dict[str, Any]:
+    """Map one workflow-run record to its ``:PipelineRun`` entity."""
+    run_started = run.get("run_started_at")
+    run_updated = run.get("updated_at")
+    return {
+        "id": node_id,
+        "node_type": "PipelineRun",
+        "status": run.get("status"),
+        "conclusion": run.get("conclusion"),
+        "headSha": run.get("head_sha"),
+        "headBranch": run.get("head_branch"),
+        "event": run.get("event"),
+        "htmlUrl": _str(run.get("html_url")),
+        "runStartedAt": run_started,
+        "runUpdatedAt": run_updated,
+        "durationSeconds": _duration_seconds(run_started, run_updated),
+        "externalToolId": str(run_id),
+    }
+
+
+def _commit_node_and_relationship(
+    repo: str | None, head_sha: str | None, node_id: str
+) -> tuple[dict[str, Any], dict[str, Any]] | tuple[None, None]:
+    """Map a run's head commit to a ``:Commit`` node + its ``ranFor`` edge, if known."""
+    if not (repo and head_sha):
+        return None, None
+    commit_id = f"github:commit:{repo}:{head_sha}"
+    commit = {
+        "id": commit_id,
+        "node_type": "Commit",
+        "sha": head_sha,
+        "externalToolId": head_sha,
+    }
+    relationship = {"source": node_id, "target": commit_id, "relationship": "ranFor"}
+    return commit, relationship
+
+
+def _pipeline_run_pr_relationships(
+    run: dict[str, Any], node_id: str
+) -> list[dict[str, Any]]:
+    """``ranFor`` edges from a run to each pull request it lists."""
+    return [
+        {
+            "source": node_id,
+            "target": f"github:pullrequest:{pr['id']}",
+            "relationship": "ranFor",
+        }
+        for pr in (run.get("pull_requests") or [])
+        if pr.get("id") is not None
+    ]
+
+
+def _pipeline_run_job_entities_and_relationships(
+    jobs: list[dict[str, Any]], repo: str | None, node_id: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Map a run's jobs/check-runs to ``:CheckRun`` nodes + ``hasJob`` edges."""
+    entities: list[dict[str, Any]] = []
+    relationships: list[dict[str, Any]] = []
+    for job in jobs:
+        job_id = job.get("id")
+        if job_id is None:
+            continue
+        job_node_id = f"github:checkrun:{repo}:{job_id}"
+        entities.append(
+            {
+                "id": job_node_id,
+                "node_type": "CheckRun",
+                "name": job.get("name"),
+                "status": job.get("status"),
+                "conclusion": job.get("conclusion"),
+                "startedAt": job.get("started_at"),
+                "completedAt": job.get("completed_at"),
+                "htmlUrl": _str(job.get("html_url")),
+                "externalToolId": str(job_id),
+            }
+        )
+        relationships.append(
+            {"source": node_id, "target": job_node_id, "relationship": "hasJob"}
+        )
+    return entities, relationships
+
+
+def _pipeline_run_graph(
+    run: dict[str, Any],
+    repo_full_name: str | None,
+    repo_node_id: str | None,
+    jobs: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]] | None:
+    """Map one workflow run (+ its jobs) to its full entity/relationship set."""
+    run_id = run.get("id")
+    if run_id is None:
+        return None
+    repo = repo_full_name or (run.get("repository") or {}).get("full_name")
+    node_id = f"github:pipelinerun:{repo}:{run_id}"
+
+    entities = [_pipeline_run_entity(run, node_id, run_id)]
+    relationships: list[dict[str, Any]] = []
+
+    if repo_node_id:
+        relationships.append(
+            {"source": node_id, "target": repo_node_id, "relationship": "ranFor"}
+        )
+
+    commit, commit_relationship = _commit_node_and_relationship(
+        repo, run.get("head_sha"), node_id
+    )
+    if commit is not None:
+        entities.append(commit)
+        relationships.append(commit_relationship)
+
+    relationships.extend(_pipeline_run_pr_relationships(run, node_id))
+
+    job_entities, job_relationships = _pipeline_run_job_entities_and_relationships(
+        jobs, repo, node_id
+    )
+    entities.extend(job_entities)
+    relationships.extend(job_relationships)
+
+    return entities, relationships
+
+
 def ingest_pipeline_runs(
     runs: list[dict[str, Any]],
     *,
@@ -332,81 +462,12 @@ def ingest_pipeline_runs(
     relationships: list[dict[str, Any]] = []
     jobs_by_run = jobs_by_run or {}
     for run in runs or []:
-        run_id = run.get("id")
-        if run_id is None:
-            continue
-        repo = repo_full_name or (run.get("repository") or {}).get("full_name")
-        node_id = f"github:pipelinerun:{repo}:{run_id}"
-        run_started = run.get("run_started_at")
-        run_updated = run.get("updated_at")
-        entities.append(
-            {
-                "id": node_id,
-                "node_type": "PipelineRun",
-                "status": run.get("status"),
-                "conclusion": run.get("conclusion"),
-                "headSha": run.get("head_sha"),
-                "headBranch": run.get("head_branch"),
-                "event": run.get("event"),
-                "htmlUrl": _str(run.get("html_url")),
-                "runStartedAt": run_started,
-                "runUpdatedAt": run_updated,
-                "durationSeconds": _duration_seconds(run_started, run_updated),
-                "externalToolId": str(run_id),
-            }
+        run_graph = _pipeline_run_graph(
+            run, repo_full_name, repo_node_id, jobs_by_run.get(run.get("id")) or []
         )
-
-        if repo_node_id:
-            relationships.append(
-                {"source": node_id, "target": repo_node_id, "relationship": "ranFor"}
-            )
-
-        head_sha = run.get("head_sha")
-        if repo and head_sha:
-            commit_id = f"github:commit:{repo}:{head_sha}"
-            entities.append(
-                {
-                    "id": commit_id,
-                    "node_type": "Commit",
-                    "sha": head_sha,
-                    "externalToolId": head_sha,
-                }
-            )
-            relationships.append(
-                {"source": node_id, "target": commit_id, "relationship": "ranFor"}
-            )
-
-        for pr in run.get("pull_requests") or []:
-            pr_id = pr.get("id")
-            if pr_id is None:
-                continue
-            relationships.append(
-                {
-                    "source": node_id,
-                    "target": f"github:pullrequest:{pr_id}",
-                    "relationship": "ranFor",
-                }
-            )
-
-        for job in jobs_by_run.get(run_id) or []:
-            job_id = job.get("id")
-            if job_id is None:
-                continue
-            job_node_id = f"github:checkrun:{repo}:{job_id}"
-            entities.append(
-                {
-                    "id": job_node_id,
-                    "node_type": "CheckRun",
-                    "name": job.get("name"),
-                    "status": job.get("status"),
-                    "conclusion": job.get("conclusion"),
-                    "startedAt": job.get("started_at"),
-                    "completedAt": job.get("completed_at"),
-                    "htmlUrl": _str(job.get("html_url")),
-                    "externalToolId": str(job_id),
-                }
-            )
-            relationships.append(
-                {"source": node_id, "target": job_node_id, "relationship": "hasJob"}
-            )
+        if run_graph is None:
+            continue
+        run_entities, run_relationships = run_graph
+        entities.extend(run_entities)
+        relationships.extend(run_relationships)
     return ingest_entities(entities, relationships, client=client, graph=graph)
