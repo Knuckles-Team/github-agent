@@ -2753,6 +2753,220 @@ def register_collaborator_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _action_list_workflows(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_workflows'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_workflows, owner=owner, repo=repo)
+    return {
+        "status": 200,
+        "message": "Workflows retrieved successfully",
+        "data": [w.model_dump() for w in response.data],
+    }
+
+
+async def _action_list_runs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_runs'."""
+    response = await run_blocking(client.get_workflow_runs, **kwargs)
+    data = [r.model_dump() for r in response.data]
+    return {
+        "status": 200,
+        "message": "Workflow runs retrieved successfully",
+        "data": _slim(data) if slim else data,
+    }
+
+
+async def _action_get_run(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'get_run'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _action_list_jobs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'list_jobs'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
+    response = await run_blocking(
+        client.get_workflow_run_jobs,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+        **extra,
+    )
+    data = response.data
+    return {
+        "status": 200,
+        "message": "Workflow run jobs retrieved successfully",
+        "data": _slim(data) if slim else data,
+    }
+
+
+async def _action_job_logs(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'job_logs'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    job_id = kwargs.get("job_id")
+    if not owner or not repo or not job_id:
+        return {
+            "status": 400,
+            "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_workflow_job_logs,
+        owner=owner,
+        repo=repo,
+        job_id=int(job_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow job logs retrieved successfully",
+        "data": response.data,
+    }
+
+
+async def _action_trigger_dispatch(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'trigger_dispatch'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    workflow_id = kwargs.get("workflow_id")
+    ref = kwargs.get("ref")
+    inputs = kwargs.get("inputs")
+    if not owner or not repo or not workflow_id or not ref:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.trigger_workflow_dispatch,
+        owner=owner,
+        repo=repo,
+        workflow_id=workflow_id,
+        ref=ref,
+        inputs=inputs,
+    )
+    return {
+        "status": 200,
+        "message": "Workflow dispatch triggered successfully",
+        "data": response.data,
+    }
+
+
+async def _action_rerun(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'rerun'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.rerun_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run rerun triggered",
+        "data": response.data,
+    }
+
+
+async def _action_cancel(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'cancel'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.cancel_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run cancellation triggered",
+        "data": response.data,
+    }
+
+
+async def _action_delete_run(client: Any, kwargs: dict, slim: bool) -> dict:
+    """Handle github_actions action 'delete_run'."""
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    run_id = kwargs.get("run_id")
+    if not owner or not repo or not run_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'run_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_workflow_run,
+        owner=owner,
+        repo=repo,
+        run_id=int(run_id),
+    )
+    return {
+        "status": 200,
+        "message": "Workflow run deleted successfully",
+        "data": response.data,
+    }
+
+
+_ACTION_HANDLERS = {
+    "list_workflows": _action_list_workflows,
+    "list_runs": _action_list_runs,
+    "get_run": _action_get_run,
+    "list_jobs": _action_list_jobs,
+    "job_logs": _action_job_logs,
+    "trigger_dispatch": _action_trigger_dispatch,
+    "rerun": _action_rerun,
+    "cancel": _action_cancel,
+    "delete_run": _action_delete_run,
+}
+
+
 def register_action_tools(mcp: FastMCP):
     @mcp.tool(tags={"actions"})
     async def github_actions(
@@ -2798,188 +3012,14 @@ def register_action_tools(mcp: FastMCP):
         action = resolved
 
         try:
-            if action == "list_workflows":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflows, owner=owner, repo=repo
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflows retrieved successfully",
-                    "data": [w.model_dump() for w in response.data],
-                }
-            elif action == "list_runs":
-                response = await run_blocking(client.get_workflow_runs, **kwargs)
-                data = [r.model_dump() for r in response.data]
-                return {
-                    "status": 200,
-                    "message": "Workflow runs retrieved successfully",
-                    "data": _slim(data) if slim else data,
-                }
-            elif action == "get_run":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflow_run, owner=owner, repo=repo, run_id=int(run_id)
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "list_jobs":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                extra = {"filter": kwargs["filter"]} if kwargs.get("filter") else {}
-                response = await run_blocking(
-                    client.get_workflow_run_jobs,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                    **extra,
-                )
-                data = response.data
-                return {
-                    "status": 200,
-                    "message": "Workflow run jobs retrieved successfully",
-                    "data": _slim(data) if slim else data,
-                }
-            elif action == "job_logs":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                job_id = kwargs.get("job_id")
-                if not owner or not repo or not job_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'owner', 'repo', or 'job_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_workflow_job_logs,
-                    owner=owner,
-                    repo=repo,
-                    job_id=int(job_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow job logs retrieved successfully",
-                    "data": response.data,
-                }
-            elif action == "trigger_dispatch":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                workflow_id = kwargs.get("workflow_id")
-                ref = kwargs.get("ref")
-                inputs = kwargs.get("inputs")
-                if not owner or not repo or not workflow_id or not ref:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'workflow_id', or 'ref' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.trigger_workflow_dispatch,
-                    owner=owner,
-                    repo=repo,
-                    workflow_id=workflow_id,
-                    ref=ref,
-                    inputs=inputs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow dispatch triggered successfully",
-                    "data": response.data,
-                }
-            elif action == "rerun":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.rerun_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run rerun triggered",
-                    "data": response.data,
-                }
-            elif action == "cancel":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.cancel_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run cancellation triggered",
-                    "data": response.data,
-                }
-            elif action == "delete_run":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                run_id = kwargs.get("run_id")
-                if not owner or not repo or not run_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'run_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_workflow_run,
-                    owner=owner,
-                    repo=repo,
-                    run_id=int(run_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Workflow run deleted successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs, slim)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
