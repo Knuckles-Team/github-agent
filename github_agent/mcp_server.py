@@ -3384,6 +3384,58 @@ def register_dependabot_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+_PIPELINE_LIST_KEYS = ("owner", "repo", "status", "branch", "per_page", "max_pages")
+
+
+def _ingest_pipeline_list_kwargs(kwargs: dict) -> dict:
+    """Keep only the github_actions 'list_runs' filter keys, dropping None values."""
+    return {
+        k: v for k, v in kwargs.items() if k in _PIPELINE_LIST_KEYS and v is not None
+    }
+
+
+def _ingest_pipeline_normalize_runs(records: list) -> list[dict]:
+    """Coerce each API run record to a plain dict, dropping any None entries."""
+    return [
+        run.model_dump() if hasattr(run, "model_dump") else run
+        for run in records
+        if run is not None
+    ]
+
+
+async def _ingest_pipeline_jobs_by_run(
+    client: Any, owner: str, repo: str, runs: list[dict], include_jobs: bool
+) -> dict[int, Any]:
+    """Best-effort fetch of each run's jobs, keyed by run id.
+
+    Returns an empty dict immediately when `include_jobs` is false. A single
+    run's jobs fetch failing is logged and skipped rather than aborting the
+    whole ingest.
+    """
+    jobs_by_run: dict[int, Any] = {}
+    if not include_jobs:
+        return jobs_by_run
+    for run in runs:
+        run_id = run.get("id")
+        if run_id is None:
+            continue
+        try:
+            jobs_response = await run_blocking(
+                client.get_workflow_run_jobs,
+                owner=owner,
+                repo=repo,
+                run_id=run_id,
+            )
+            jobs_by_run[run_id] = jobs_response.data
+        except Exception as e:
+            logger.debug(
+                "github_ingest_pipelines: jobs fetch failed for run %s: %s",
+                run_id,
+                e,
+            )
+    return jobs_by_run
+
+
 def register_ingest_tools(mcp: FastMCP):
     @mcp.tool(tags={"kg"})
     async def github_ingest_repos(
@@ -3482,40 +3534,14 @@ def register_ingest_tools(mcp: FastMCP):
 
         include_jobs = kwargs.get("include_jobs", True)
         repo_node_id = kwargs.get("repo_node_id")
-        list_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k in ("owner", "repo", "status", "branch", "per_page", "max_pages")
-            and v is not None
-        }
+        list_kwargs = _ingest_pipeline_list_kwargs(kwargs)
 
         response = await run_blocking(client.get_workflow_runs, **list_kwargs)
-        runs = [
-            run.model_dump() if hasattr(run, "model_dump") else run
-            for run in response.data
-            if run is not None
-        ]
+        runs = _ingest_pipeline_normalize_runs(response.data)
 
-        jobs_by_run: dict[int, Any] = {}
-        if include_jobs:
-            for run in runs:
-                run_id = run.get("id")
-                if run_id is None:
-                    continue
-                try:
-                    jobs_response = await run_blocking(
-                        client.get_workflow_run_jobs,
-                        owner=owner,
-                        repo=repo,
-                        run_id=run_id,
-                    )
-                    jobs_by_run[run_id] = jobs_response.data
-                except Exception as e:
-                    logger.debug(
-                        "github_ingest_pipelines: jobs fetch failed for run %s: %s",
-                        run_id,
-                        e,
-                    )
+        jobs_by_run = await _ingest_pipeline_jobs_by_run(
+            client, owner, repo, runs, include_jobs
+        )
 
         result = ingest_pipeline_runs(
             runs,
