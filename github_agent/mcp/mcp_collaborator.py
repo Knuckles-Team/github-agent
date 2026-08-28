@@ -15,6 +15,71 @@ from github_agent.auth import get_client
 COLLABORATOR_ACTIONS = ("list", "add", "remove")
 
 
+async def _list_collaborators(client, kwargs: dict) -> dict:
+    response = await run_blocking(client.get_collaborators, **kwargs)
+    return {
+        "status": 200,
+        "message": "Collaborators retrieved successfully",
+        "data": [c.model_dump() for c in response.data],
+    }
+
+
+async def _add_collaborator(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    username = kwargs.get("username")
+    permission = kwargs.get("permission")
+    if not owner or not repo or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.add_collaborator,
+        owner=owner,
+        repo=repo,
+        username=username,
+        permission=permission,
+    )
+    return {
+        "status": 200,
+        "message": "Collaborator added successfully",
+        "data": response.data,
+    }
+
+
+async def _remove_collaborator(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    username = kwargs.get("username")
+    if not owner or not repo or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.remove_collaborator,
+        owner=owner,
+        repo=repo,
+        username=username,
+    )
+    return {
+        "status": 200,
+        "message": "Collaborator removed successfully",
+        "data": response.data,
+    }
+
+
+#: Dispatch table for the resolved collaborator action -> its async handler.
+_COLLABORATOR_ACTION_HANDLERS = {
+    "list": _list_collaborators,
+    "add": _add_collaborator,
+    "remove": _remove_collaborator,
+}
+
+
 def register_collaborator_tools(mcp: FastMCP):
     @mcp.tool(tags={"collaborators"})
     async def github_collaborators(
@@ -50,63 +115,11 @@ def register_collaborator_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
+        handler = _COLLABORATOR_ACTION_HANDLERS.get(action)
+        if handler is None:
+            return {"status": 400, "error": f"Unknown action: {action}", "data": None}
+
         try:
-            if action == "list":
-                response = await run_blocking(client.get_collaborators, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Collaborators retrieved successfully",
-                    "data": [c.model_dump() for c in response.data],
-                }
-            elif action == "add":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                username = kwargs.get("username")
-                permission = kwargs.get("permission")
-                if not owner or not repo or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.add_collaborator,
-                    owner=owner,
-                    repo=repo,
-                    username=username,
-                    permission=permission,
-                )
-                return {
-                    "status": 200,
-                    "message": "Collaborator added successfully",
-                    "data": response.data,
-                }
-            elif action == "remove":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                username = kwargs.get("username")
-                if not owner or not repo or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.remove_collaborator,
-                    owner=owner,
-                    repo=repo,
-                    username=username,
-                )
-                return {
-                    "status": 200,
-                    "message": "Collaborator removed successfully",
-                    "data": response.data,
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
