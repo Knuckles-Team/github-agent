@@ -15,6 +15,114 @@ from github_agent.auth import get_client
 CONTENT_ACTIONS = ("get", "create", "update", "delete")
 
 
+async def _get_content(client, kwargs: dict) -> dict:
+    response = await run_blocking(client.get_contents, **kwargs)
+    if isinstance(response.data, list):
+        data = [item.model_dump() for item in response.data]
+    else:
+        data = response.data.model_dump()
+    return {
+        "status": 200,
+        "message": "Contents retrieved successfully",
+        "data": data,
+    }
+
+
+async def _create_content(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    content = kwargs.pop("content", None)
+    if not owner or not repo or not path or not message or not content:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        content=content,
+        **kwargs,
+    )
+    return {
+        "status": 201,
+        "message": "Content created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _update_content(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    content = kwargs.pop("content", None)
+    sha = kwargs.pop("sha", None)
+    if not owner or not repo or not path or not message or not content or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        content=content,
+        sha=sha,
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Content updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _delete_content(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    path = kwargs.pop("path", None)
+    message = kwargs.pop("message", None)
+    sha = kwargs.pop("sha", None)
+    if not owner or not repo or not path or not message or not sha:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_content,
+        owner=owner,
+        repo=repo,
+        path=path,
+        message=message,
+        sha=sha,
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Content deleted successfully",
+        "data": response.data,
+    }
+
+
+#: Dispatch table for the resolved content action -> its async handler.
+_CONTENT_ACTION_HANDLERS = {
+    "get": _get_content,
+    "create": _create_content,
+    "update": _update_content,
+    "delete": _delete_content,
+}
+
+
 def register_content_tools(mcp: FastMCP):
     @mcp.tool(tags={"contents"})
     async def github_contents(
@@ -50,110 +158,11 @@ def register_content_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
+        handler = _CONTENT_ACTION_HANDLERS.get(action)
+        if handler is None:
+            return {"status": 400, "error": f"Unknown action: {action}", "data": None}
+
         try:
-            if action == "get":
-                response = await run_blocking(client.get_contents, **kwargs)
-                if isinstance(response.data, list):
-                    data = [item.model_dump() for item in response.data]
-                else:
-                    data = response.data.model_dump()
-                return {
-                    "status": 200,
-                    "message": "Contents retrieved successfully",
-                    "data": data,
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                content = kwargs.pop("content", None)
-                if not owner or not repo or not path or not message or not content:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'content' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    content=content,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Content created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                content = kwargs.pop("content", None)
-                sha = kwargs.pop("sha", None)
-                if (
-                    not owner
-                    or not repo
-                    or not path
-                    or not message
-                    or not content
-                    or not sha
-                ):
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', 'content', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    content=content,
-                    sha=sha,
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Content updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                path = kwargs.pop("path", None)
-                message = kwargs.pop("message", None)
-                sha = kwargs.pop("sha", None)
-                if not owner or not repo or not path or not message or not sha:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', 'path', 'message', or 'sha' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_content,
-                    owner=owner,
-                    repo=repo,
-                    path=path,
-                    message=message,
-                    sha=sha,
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Content deleted successfully",
-                    "data": response.data,
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
