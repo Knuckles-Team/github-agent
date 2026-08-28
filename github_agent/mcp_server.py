@@ -2305,6 +2305,246 @@ def register_search_tools(mcp: FastMCP):
             return {"status": 500, "error": str(e), "data": None}
 
 
+async def _org_get(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'get'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_organization, org=org)
+    return {
+        "status": 200,
+        "message": "Organization retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_list(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'list'."""
+    response = await run_blocking(client.list_organizations, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organizations retrieved successfully",
+        "data": [org.model_dump() for org in response.data],
+    }
+
+
+async def _org_update(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'update'."""
+    org = kwargs.pop("org", None)
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.update_organization, org=org, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_delete(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'delete'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.delete_organization, org=org)
+    return {
+        "status": 202,
+        "message": "Organization deletion scheduled (irreversible)",
+        "data": response.data,
+    }
+
+
+async def _org_create(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'create'."""
+    login = kwargs.get("login")
+    admin = kwargs.get("admin")
+    if not login or not admin:
+        return {
+            "status": 400,
+            "error": "Missing 'login' or 'admin' parameter",
+            "data": None,
+        }
+    try:
+        response = await run_blocking(
+            client.create_organization,
+            login=login,
+            admin=admin,
+            profile_name=kwargs.get("profile_name"),
+        )
+    except OrganizationCreationNotSupportedError as e:
+        return {"status": 400, "error": str(e), "data": None}
+    return {
+        "status": 201,
+        "message": "Organization created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_create_repository(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'create_repository'."""
+    org = kwargs.pop("org", None)
+    name = kwargs.pop("name", None)
+    if not org or not name:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'name' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_organization_repository, org=org, name=name, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Organization repository created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_repos(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'repos'."""
+    response = await run_blocking(client.get_org_repos, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization repositories retrieved successfully",
+        "data": [repo.model_dump() for repo in response.data],
+    }
+
+
+async def _org_members(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'members'."""
+    response = await run_blocking(client.get_org_members, **kwargs)
+    return {
+        "status": 200,
+        "message": "Organization members retrieved successfully",
+        "data": [member.model_dump() for member in response.data],
+    }
+
+
+async def _org_get_membership(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'get_membership'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_organization_membership, org=org, username=username
+    )
+    return {
+        "status": 200,
+        "message": "Organization membership retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_set_membership(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'set_membership'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.set_organization_membership,
+        org=org,
+        username=username,
+        role=kwargs.get("role", "member"),
+    )
+    return {
+        "status": 200,
+        "message": "Organization membership set successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _org_remove_member(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'remove_member'."""
+    org = kwargs.get("org")
+    username = kwargs.get("username")
+    if not org or not username:
+        return {
+            "status": 400,
+            "error": "Missing 'org' or 'username' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.remove_organization_member, org=org, username=username
+    )
+    return {
+        "status": 200,
+        "message": "Organization member removed successfully",
+        "data": response.data,
+    }
+
+
+async def _org_teams(client: Any, kwargs: dict) -> dict:
+    """Handle github_orgs action 'teams'."""
+    org = kwargs.get("org")
+    if not org:
+        return {
+            "status": 400,
+            "error": "Missing required 'org' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_org_teams, org=org)
+    return {
+        "status": 200,
+        "message": "Organization teams retrieved successfully",
+        "data": response.data,
+    }
+
+
+def _org_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error dict if `action` is destructive and not confirmed, else None."""
+    if action in DESTRUCTIVE_ORG_ACTIONS and not (
+        allow_destructive is True or allow_destructive_default()
+    ):
+        return {
+            "status": 403,
+            "error": (
+                f"Action '{action}' is destructive and blocked by default. "
+                "Re-run with allow_destructive=true (or set "
+                "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+            ),
+            "data": None,
+        }
+    return None
+
+
+_ORG_ACTION_HANDLERS = {
+    "get": _org_get,
+    "list": _org_list,
+    "update": _org_update,
+    "delete": _org_delete,
+    "create": _org_create,
+    "create_repository": _org_create_repository,
+    "repos": _org_repos,
+    "members": _org_members,
+    "get_membership": _org_get_membership,
+    "set_membership": _org_set_membership,
+    "remove_member": _org_remove_member,
+    "teams": _org_teams,
+}
+
+
 def register_org_tools(mcp: FastMCP):
     @mcp.tool(tags={"orgs"})
     async def github_orgs(
@@ -2381,199 +2621,19 @@ def register_org_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_ORG_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is destructive and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard_error = _org_destructive_guard(action, allow_destructive)
+        if guard_error is not None:
+            return guard_error
 
         try:
-            if action == "get":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.get_organization, org=org)
-                return {
-                    "status": 200,
-                    "message": "Organization retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "list":
-                response = await run_blocking(client.list_organizations, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organizations retrieved successfully",
-                    "data": [org.model_dump() for org in response.data],
-                }
-            elif action == "update":
-                org = kwargs.pop("org", None)
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_organization, org=org, **kwargs
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.delete_organization, org=org)
-                return {
-                    "status": 202,
-                    "message": "Organization deletion scheduled (irreversible)",
-                    "data": response.data,
-                }
-            elif action == "create":
-                login = kwargs.get("login")
-                admin = kwargs.get("admin")
-                if not login or not admin:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'login' or 'admin' parameter",
-                        "data": None,
-                    }
-                try:
-                    response = await run_blocking(
-                        client.create_organization,
-                        login=login,
-                        admin=admin,
-                        profile_name=kwargs.get("profile_name"),
-                    )
-                except OrganizationCreationNotSupportedError as e:
-                    return {"status": 400, "error": str(e), "data": None}
-                return {
-                    "status": 201,
-                    "message": "Organization created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create_repository":
-                org = kwargs.pop("org", None)
-                name = kwargs.pop("name", None)
-                if not org or not name:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'name' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_organization_repository, org=org, name=name, **kwargs
-                )
-                return {
-                    "status": 201,
-                    "message": "Organization repository created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "repos":
-                response = await run_blocking(client.get_org_repos, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organization repositories retrieved successfully",
-                    "data": [repo.model_dump() for repo in response.data],
-                }
-            elif action == "members":
-                response = await run_blocking(client.get_org_members, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Organization members retrieved successfully",
-                    "data": [member.model_dump() for member in response.data],
-                }
-            elif action == "get_membership":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_organization_membership, org=org, username=username
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization membership retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "set_membership":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.set_organization_membership,
-                    org=org,
-                    username=username,
-                    role=kwargs.get("role", "member"),
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization membership set successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "remove_member":
-                org = kwargs.get("org")
-                username = kwargs.get("username")
-                if not org or not username:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'org' or 'username' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.remove_organization_member, org=org, username=username
-                )
-                return {
-                    "status": 200,
-                    "message": "Organization member removed successfully",
-                    "data": response.data,
-                }
-            elif action == "teams":
-                org = kwargs.get("org")
-                if not org:
-                    return {
-                        "status": 400,
-                        "error": "Missing required 'org' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(client.get_org_teams, org=org)
-                return {
-                    "status": 200,
-                    "message": "Organization teams retrieved successfully",
-                    "data": response.data,
-                }
-            else:
+            handler = _ORG_ACTION_HANDLERS.get(action)
+            if handler is None:
                 return {
                     "status": 400,
                     "error": f"Unknown action: {action}",
                     "data": None,
                 }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
 
