@@ -29,18 +29,30 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+def _list_of_dicts(value: Any) -> list[dict] | None:
+    """``value`` filtered to its dict elements, if it is a list; else ``None``."""
+    if not isinstance(value, list):
+        return None
+    return [p for p in value if isinstance(p, dict)]
+
+
+def _is_single_pr(blob: dict) -> bool:
+    return "number" in blob and ("title" in blob or "head" in blob)
+
+
 def _extract(blob: Any) -> list[dict]:
     """Pull the list of PR objects out of whatever shape we were handed."""
-    if isinstance(blob, list):
-        return [p for p in blob if isinstance(p, dict)]
-    if isinstance(blob, dict):
-        for key in ("data", "pull_requests", "pulls", "items"):
-            v = blob.get(key)
-            if isinstance(v, list):
-                return [p for p in v if isinstance(p, dict)]
-        # a single PR object
-        if "number" in blob and ("title" in blob or "head" in blob):
-            return [blob]
+    direct = _list_of_dicts(blob)
+    if direct is not None:
+        return direct
+    if not isinstance(blob, dict):
+        return []
+    for key in ("data", "pull_requests", "pulls", "items"):
+        found = _list_of_dicts(blob.get(key))
+        if found is not None:
+            return found
+    if _is_single_pr(blob):
+        return [blob]
     return []
 
 
@@ -113,6 +125,27 @@ def reduce_prs(pulls: list[dict], detail: list[dict]) -> list[dict]:
     return rows
 
 
+def _repo_header_lines(repo: str) -> list[str]:
+    return [
+        f"\n### {repo}\n",
+        "| PR | Title | Author | Base←Head | Age | Draft | Mergeable | Size |",
+        "|----|-------|--------|-----------|-----|-------|-----------|------|",
+    ]
+
+
+def _pr_row_line(r: dict) -> str:
+    title = (r["title"][:50] + "…") if len(r["title"]) > 51 else r["title"]
+    size = (
+        f"+{r['additions']}/-{r['deletions']}" if r.get("additions") is not None else "—"
+    )
+    age = f"{r['age_days']}d" if r["age_days"] is not None else "—"
+    return (
+        f"| #{r['number']} | {title} | {r['author'] or '—'} | "
+        f"{r['base'] or '?'}←{r['head'] or '?'} | {age} | "
+        f"{'yes' if r['draft'] else ''} | {r.get('mergeable_state') or '?'} | {size} |"
+    )
+
+
 def to_md(rows: list[dict]) -> str:
     if not rows:
         return "✅ No open pull requests found across the swept accounts."
@@ -121,25 +154,8 @@ def to_md(rows: list[dict]) -> str:
     for r in rows:
         if r["repo"] != repo:
             repo = r["repo"]
-            out.append(f"\n### {repo}\n")
-            out.append(
-                "| PR | Title | Author | Base←Head | Age | Draft | Mergeable | Size |"
-            )
-            out.append(
-                "|----|-------|--------|-----------|-----|-------|-----------|------|"
-            )
-        title = (r["title"][:50] + "…") if len(r["title"]) > 51 else r["title"]
-        size = (
-            f"+{r['additions']}/-{r['deletions']}"
-            if r.get("additions") is not None
-            else "—"
-        )
-        age = f"{r['age_days']}d" if r["age_days"] is not None else "—"
-        out.append(
-            f"| #{r['number']} | {title} | {r['author'] or '—'} | "
-            f"{r['base'] or '?'}←{r['head'] or '?'} | {age} | "
-            f"{'yes' if r['draft'] else ''} | {r.get('mergeable_state') or '?'} | {size} |"
-        )
+            out.extend(_repo_header_lines(repo))
+        out.append(_pr_row_line(r))
     out.append(
         f"\n**{len(rows)} open PR(s)** across {len({r['repo'] for r in rows})} repo(s)."
     )
