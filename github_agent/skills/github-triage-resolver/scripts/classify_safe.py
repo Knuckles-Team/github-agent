@@ -209,7 +209,7 @@ def classify(item: dict, stale_days: int, allow_major: bool, classes: set[str]) 
     return {"repo": repo, "number": num, **verdict}
 
 
-def main() -> None:
+def _build_arg_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("files", nargs="*", help="item JSON file(s); omit for stdin")
     ap.add_argument("--stale-days", type=int, default=60)
@@ -224,21 +224,21 @@ def main() -> None:
         help="comma list of auto-merge classes",
     )
     ap.add_argument("--format", choices=["json", "md"], default="md")
-    args = ap.parse_args()
-    classes = {c.strip() for c in args.allow_classes.split(",") if c.strip()}
+    return ap
 
+
+def _load_blobs(files: list[str]) -> list[dict]:
     blobs: list[dict] = []
-    if args.files:
-        for f in args.files:
+    if files:
+        for f in files:
             with open(f) as fh:
                 blobs.extend(_items(json.load(fh)))
     else:
         blobs.extend(_items(json.load(sys.stdin)))
+    return blobs
 
-    verdicts = [classify(i, args.stale_days, args.allow_major, classes) for i in blobs]
-    if args.format == "json":
-        print(json.dumps(verdicts, indent=2))
-        return
+
+def _print_markdown_report(verdicts: list[dict]) -> None:
     icon = {"safe_merge": "✅ merge", "safe_close": "🗑️ close", "skip": "⏭️ skip"}
     print("| Item | Verdict | Reason |")
     print("|------|---------|--------|")
@@ -253,6 +253,18 @@ def main() -> None:
         f"\n**{n_m} safe-merge · {n_c} safe-close · {n_s} skip** "
         f"(of {len(verdicts)}). Writes require explicit confirmation."
     )
+
+
+def main() -> None:
+    args = _build_arg_parser().parse_args()
+    classes = {c.strip() for c in args.allow_classes.split(",") if c.strip()}
+
+    blobs = _load_blobs(args.files)
+    verdicts = [classify(i, args.stale_days, args.allow_major, classes) for i in blobs]
+    if args.format == "json":
+        print(json.dumps(verdicts, indent=2))
+        return
+    _print_markdown_report(verdicts)
 
 
 if __name__ == "__main__":
