@@ -28,6 +28,22 @@ def mock_session():  # vulture: ignore
         yield session
 
 
+def _synthesize_api_kwargs(
+    sig: inspect.Signature, common_kwargs: dict[str, Any]
+) -> dict[str, Any]:
+    """Best-effort kwargs for an ``Api`` method's signature from a shared pool."""
+    has_kwargs = any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    )
+    if has_kwargs:
+        return common_kwargs.copy()
+    kwargs = {k: v for k, v in common_kwargs.items() if k in sig.parameters}
+    for p_name, p in sig.parameters.items():
+        if p.default == inspect.Parameter.empty and p_name not in kwargs:
+            kwargs[p_name] = "test"
+    return kwargs
+
+
 @pytest.mark.usefixtures("mock_session")
 def test_github_api_brute_force():
     from github_agent.api_client import Api
@@ -52,21 +68,30 @@ def test_github_api_brute_force():
         if name.startswith("_"):
             continue
         print(f"Calling Api.{name}...")
-        sig = inspect.signature(method)
-        has_kwargs = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-        )
-        if has_kwargs:
-            kwargs: dict[str, Any] = common_kwargs.copy()
-        else:
-            kwargs = {k: v for k, v in common_kwargs.items() if k in sig.parameters}
-            for p_name, p in sig.parameters.items():
-                if p.default == inspect.Parameter.empty and p_name not in kwargs:
-                    kwargs[p_name] = "test"
+        kwargs = _synthesize_api_kwargs(inspect.signature(method), common_kwargs)
         try:
             method(**kwargs)
         except:
             pass
+
+
+def _synthesize_tool_params(sig: inspect.Signature) -> dict[str, Any]:
+    """Best-effort call params for an MCP tool's signature."""
+    target_params = {"owner": "test", "repo": "test"}
+    for p_name, p in sig.parameters.items():
+        if (
+            p.default == inspect.Parameter.empty
+            and p_name not in ("_client", "context")
+            and p_name not in target_params
+        ):
+            target_params[p_name] = "test"
+
+    has_kwargs = any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    )
+    if not has_kwargs:
+        target_params = {k: v for k, v in target_params.items() if k in sig.parameters}
+    return target_params
 
 
 @pytest.mark.usefixtures("mock_session")
@@ -85,27 +110,7 @@ def test_mcp_server_coverage():
             )
             for tool in tool_objs:
                 try:
-                    target_params = {"owner": "test", "repo": "test"}
-                    sig = inspect.signature(tool.fn)
-                    for p_name, p in sig.parameters.items():
-                        if p.default == inspect.Parameter.empty and p_name not in [
-                            "_client",
-                            "context",
-                        ]:
-                            if p_name not in target_params:
-                                target_params[p_name] = "test"
-
-                    has_kwargs = any(
-                        p.kind == inspect.Parameter.VAR_KEYWORD
-                        for p in sig.parameters.values()
-                    )
-                    if not has_kwargs:
-                        target_params = {
-                            k: v
-                            for k, v in target_params.items()
-                            if k in sig.parameters
-                        }
-
+                    target_params = _synthesize_tool_params(inspect.signature(tool.fn))
                     await mcp.call_tool(tool.name, target_params)
                 except:
                     pass
