@@ -64,15 +64,24 @@ DEFAULT_INFRA_PATTERNS = [
 ]
 
 
+def _list_of_dicts(value: Any) -> list[dict] | None:
+    """``value`` filtered to its dict elements, if it is a list; else ``None``."""
+    if not isinstance(value, list):
+        return None
+    return [i for i in value if isinstance(i, dict)]
+
+
 def _items(blob: Any) -> list[dict]:
-    if isinstance(blob, list):
-        return [i for i in blob if isinstance(i, dict)]
-    if isinstance(blob, dict):
-        for k in ("data", "items"):
-            if isinstance(blob.get(k), list):
-                return [i for i in blob[k] if isinstance(i, dict)]
-        return [blob]
-    return []
+    direct = _list_of_dicts(blob)
+    if direct is not None:
+        return direct
+    if not isinstance(blob, dict):
+        return []
+    for k in ("data", "items"):
+        found = _list_of_dicts(blob.get(k))
+        if found is not None:
+            return found
+    return [blob]
 
 
 def _infra_hits(touched_paths: list[str], patterns: list[str]) -> list[str]:
@@ -85,16 +94,10 @@ def _infra_hits(touched_paths: list[str], patterns: list[str]) -> list[str]:
     return hits
 
 
-def classify(item: dict, max_files: int, max_lines: int, patterns: list[str]) -> dict:
-    repo, num = item.get("repo", "?"), item.get("number", "?")
-    out = {"repo": repo, "number": num, "verdict": "elevated_risk", "reason": ""}
-
+def _size_and_verifier_reasons(item: dict, max_files: int, max_lines: int) -> list[str]:
     files_changed = item.get("files_changed")
     lines_changed = item.get("lines_changed")
-    touched_paths = item.get("touched_paths") or []
     verifier_pass = bool(item.get("verifier_pass"))
-    checks_state = (item.get("checks_state") or "").lower()
-    evidence_confirmed = bool(item.get("evidence_confirmed"))
 
     why = []
     if not verifier_pass:
@@ -103,6 +106,15 @@ def classify(item: dict, max_files: int, max_lines: int, patterns: list[str]) ->
         why.append(f"files_changed={files_changed} exceeds max_files={max_files}")
     if not isinstance(lines_changed, int) or lines_changed > max_lines:
         why.append(f"lines_changed={lines_changed} exceeds max_lines={max_lines}")
+    return why
+
+
+def _surface_and_evidence_reasons(item: dict, patterns: list[str]) -> list[str]:
+    touched_paths = item.get("touched_paths") or []
+    checks_state = (item.get("checks_state") or "").lower()
+    evidence_confirmed = bool(item.get("evidence_confirmed"))
+
+    why = []
     infra_hits = _infra_hits(touched_paths, patterns)
     if infra_hits:
         why.append(f"touches infra surface: {', '.join(infra_hits)}")
@@ -110,7 +122,21 @@ def classify(item: dict, max_files: int, max_lines: int, patterns: list[str]) ->
         why.append(f"checks_state={checks_state or 'unknown'} (need success)")
     if not evidence_confirmed:
         why.append("fix not confirmed by a regression test / CI rerun")
+    return why
 
+
+def _risk_reasons(item: dict, max_files: int, max_lines: int, patterns: list[str]) -> list[str]:
+    """Every gate that failed for ``item``; empty means low_risk."""
+    return _size_and_verifier_reasons(item, max_files, max_lines) + _surface_and_evidence_reasons(
+        item, patterns
+    )
+
+
+def classify(item: dict, max_files: int, max_lines: int, patterns: list[str]) -> dict:
+    repo, num = item.get("repo", "?"), item.get("number", "?")
+    out = {"repo": repo, "number": num, "verdict": "elevated_risk", "reason": ""}
+
+    why = _risk_reasons(item, max_files, max_lines, patterns)
     if not why:
         out.update(
             verdict="low_risk",
