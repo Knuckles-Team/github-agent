@@ -256,3 +256,31 @@ def test_classify_carries_repo_and_number(classify_safe):
     result = _classify(classify_safe, _pr(repo="x/y", number=99))
     assert result["repo"] == "x/y"
     assert result["number"] == 99
+
+
+# ---- main (CLI wiring) -------------------------------------------------------
+
+
+def test_main_reads_stdin_and_prints_markdown_table(classify_safe, monkeypatch, capsys):
+    import io
+    import json as _json
+
+    monkeypatch.setattr("sys.argv", ["classify_safe.py"])
+    monkeypatch.setattr("sys.stdin", io.StringIO(_json.dumps([_pr()])))
+    classify_safe.main()
+    out = capsys.readouterr().out
+    assert "| Item | Verdict | Reason |" in out
+    assert "acme/widgets#1" in out
+    assert "1 safe-merge" in out
+
+
+def test_main_json_format_from_file(classify_safe, monkeypatch, capsys, tmp_path):
+    import json as _json
+
+    item_file = tmp_path / "items.json"
+    item_file.write_text(_json.dumps([_issue(resolved_evidence="fixed by #1")]))
+    monkeypatch.setattr("sys.argv", ["classify_safe.py", str(item_file), "--format", "json"])
+    classify_safe.main()
+    out = capsys.readouterr().out
+    parsed = _json.loads(out)
+    assert parsed[0]["verdict"] == "safe_close"
