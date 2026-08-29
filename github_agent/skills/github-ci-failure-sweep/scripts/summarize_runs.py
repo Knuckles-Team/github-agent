@@ -34,17 +34,36 @@ FAILURE_CONCLUSIONS = {
 }
 
 
+def _dict_items(value: Any) -> list[dict] | None:
+    """``value`` filtered to its dict elements, if it is a list; else ``None``."""
+    if not isinstance(value, list):
+        return None
+    return [r for r in value if isinstance(r, dict)]
+
+
+def _runs_under_key(blob: dict, key: str) -> list[dict] | None:
+    """Runs found at ``blob[key]``, directly or one level deeper under
+    ``workflow_runs`` (the GitHub-native shape), or ``None`` if absent."""
+    val = blob.get(key)
+    direct = _dict_items(val)
+    if direct is not None:
+        return direct
+    if isinstance(val, dict):
+        return _dict_items(val.get("workflow_runs"))
+    return None
+
+
 def _extract_runs(blob: Any) -> list[dict]:
     """Pull the list of run objects out of whatever shape we were handed."""
-    if isinstance(blob, list):
-        return [r for r in blob if isinstance(r, dict)]
-    if isinstance(blob, dict):
-        for key in ("data", "workflow_runs"):
-            val = blob.get(key)
-            if isinstance(val, list):
-                return [r for r in val if isinstance(r, dict)]
-            if isinstance(val, dict) and isinstance(val.get("workflow_runs"), list):
-                return [r for r in val["workflow_runs"] if isinstance(r, dict)]
+    direct = _dict_items(blob)
+    if direct is not None:
+        return direct
+    if not isinstance(blob, dict):
+        return []
+    for key in ("data", "workflow_runs"):
+        found = _runs_under_key(blob, key)
+        if found is not None:
+            return found
     return []
 
 
@@ -64,40 +83,56 @@ def _workflow_label(run: dict) -> str:
     return name.split(" #", 1)[0].strip() or f"workflow {run.get('workflow_id')}"
 
 
-def reduce_runs(runs: list[dict]) -> list[dict]:
-    """Latest run per (repo, workflow, branch); keep only failing ones."""
+def _is_completed(run: dict) -> bool:
+    return (run.get("status") or "").lower() == "completed"
+
+
+def _run_group_key(run: dict) -> tuple:
+    return (
+        _repo_of(run),
+        run.get("workflow_id") or _workflow_label(run),
+        run.get("head_branch"),
+    )
+
+
+def _latest_by_group(runs: list[dict]) -> dict[tuple, dict]:
+    """Most-recently-updated completed run per (repo, workflow, branch)."""
     latest: dict[tuple, dict] = {}
     for run in runs:
-        if (run.get("status") or "").lower() != "completed":
+        if not _is_completed(run):
             continue  # in-progress/queued runs have no final conclusion yet
-        key = (
-            _repo_of(run),
-            run.get("workflow_id") or _workflow_label(run),
-            run.get("head_branch"),
-        )
+        key = _run_group_key(run)
         prev = latest.get(key)
         if prev is None or str(run.get("updated_at") or "") > str(
             prev.get("updated_at") or ""
         ):
             latest[key] = run
+    return latest
 
-    failing = []
-    for run in latest.values():
-        if (run.get("conclusion") or "").lower() in FAILURE_CONCLUSIONS:
-            failing.append(
-                {
-                    "repo": _repo_of(run),
-                    "workflow": _workflow_label(run),
-                    "branch": run.get("head_branch"),
-                    "conclusion": run.get("conclusion"),
-                    "run_id": run.get("id"),
-                    "run_number": run.get("run_number"),
-                    "event": run.get("event"),
-                    "updated_at": run.get("updated_at"),
-                    "html_url": run.get("html_url"),
-                    "head_sha": (run.get("head_sha") or "")[:8],
-                }
-            )
+
+def _is_failing(run: dict) -> bool:
+    return (run.get("conclusion") or "").lower() in FAILURE_CONCLUSIONS
+
+
+def _failing_record(run: dict) -> dict:
+    return {
+        "repo": _repo_of(run),
+        "workflow": _workflow_label(run),
+        "branch": run.get("head_branch"),
+        "conclusion": run.get("conclusion"),
+        "run_id": run.get("id"),
+        "run_number": run.get("run_number"),
+        "event": run.get("event"),
+        "updated_at": run.get("updated_at"),
+        "html_url": run.get("html_url"),
+        "head_sha": (run.get("head_sha") or "")[:8],
+    }
+
+
+def reduce_runs(runs: list[dict]) -> list[dict]:
+    """Latest run per (repo, workflow, branch); keep only failing ones."""
+    latest = _latest_by_group(runs)
+    failing = [_failing_record(run) for run in latest.values() if _is_failing(run)]
     failing.sort(key=lambda r: (r["repo"], r["workflow"], r["branch"] or ""))
     return failing
 
