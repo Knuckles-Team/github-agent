@@ -244,6 +244,39 @@ _ORG_ACTION_HANDLERS = {
 }
 
 
+def _parse_org_params(params_json: str) -> tuple[dict, None] | tuple[None, dict]:
+    """Parse ``params_json`` and strip ``None`` values. Returns ``(kwargs, None)`` on
+    success or ``(None, error_response)`` on a malformed payload."""
+    import json
+
+    try:
+        raw = json.loads(params_json)
+    except Exception as e:
+        return None, {
+            "status": 400,
+            "error": f"Invalid params_json: {type(e).__name__}",
+            "data": None,
+        }
+    return {k: v for k, v in raw.items() if v is not None}, None
+
+
+def _org_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error response if ``action`` is a blocked destructive write, else ``None``."""
+    if action not in DESTRUCTIVE_ORG_ACTIONS:
+        return None
+    if allow_destructive is True or allow_destructive_default():
+        return None
+    return {
+        "status": 403,
+        "error": (
+            f"Action '{action}' is destructive and blocked by default. "
+            "Re-run with allow_destructive=true (or set "
+            "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+        ),
+        "data": None,
+    }
+
+
 def register_org_tools(mcp: FastMCP):
     @mcp.tool(tags={"orgs"})
     async def github_orgs(
@@ -302,36 +335,19 @@ def register_org_tools(mcp: FastMCP):
         """
         if ctx:
             await ctx.info("Executing github_orgs action...")
-        import json
 
-        try:
-            kwargs = json.loads(params_json)
-        except Exception as e:
-            return {
-                "status": 400,
-                "error": f"Invalid params_json: {type(e).__name__}",
-                "data": None,
-            }
-
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        kwargs, parse_error = _parse_org_params(params_json)
+        if parse_error is not None:
+            return parse_error
 
         resolved = resolve_action(action, ORG_ACTIONS, service="github-agent")
         if isinstance(resolved, dict):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_ORG_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is destructive and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard = _org_destructive_guard(action, allow_destructive)
+        if guard is not None:
+            return guard
 
         handler = _ORG_ACTION_HANDLERS.get(action)
         if handler is None:

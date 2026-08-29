@@ -112,6 +112,39 @@ _DEPENDABOT_ACTION_HANDLERS = {
 }
 
 
+def _parse_dependabot_params(params_json: str) -> tuple[dict, None] | tuple[None, dict]:
+    """Parse ``params_json`` and strip ``None`` values. Returns ``(kwargs, None)`` on
+    success or ``(None, error_response)`` on a malformed payload."""
+    import json
+
+    try:
+        raw = json.loads(params_json)
+    except Exception as e:
+        return None, {
+            "status": 400,
+            "error": f"Invalid params_json: {type(e).__name__}",
+            "data": None,
+        }
+    return {k: v for k, v in raw.items() if v is not None}, None
+
+
+def _dependabot_destructive_guard(action: str, allow_destructive: bool) -> dict | None:
+    """Return a 403 error response if ``action`` is a blocked guarded write, else ``None``."""
+    if action not in DESTRUCTIVE_DEPENDABOT_ACTIONS:
+        return None
+    if allow_destructive is True or allow_destructive_default():
+        return None
+    return {
+        "status": 403,
+        "error": (
+            f"Action '{action}' is a guarded write and blocked by default. "
+            "Re-run with allow_destructive=true (or set "
+            "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
+        ),
+        "data": None,
+    }
+
+
 def register_dependabot_tools(mcp: FastMCP):
     @mcp.tool(tags={"dependabot"})
     async def github_dependabot(
@@ -150,36 +183,19 @@ def register_dependabot_tools(mcp: FastMCP):
         """
         if ctx:
             await ctx.info("Executing github_dependabot action...")
-        import json
 
-        try:
-            kwargs = json.loads(params_json)
-        except Exception as e:
-            return {
-                "status": 400,
-                "error": f"Invalid params_json: {type(e).__name__}",
-                "data": None,
-            }
-
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        kwargs, parse_error = _parse_dependabot_params(params_json)
+        if parse_error is not None:
+            return parse_error
 
         resolved = resolve_action(action, DEPENDABOT_ACTIONS, service="github-agent")
         if isinstance(resolved, dict):
             return resolved
         action = resolved
 
-        if action in DESTRUCTIVE_DEPENDABOT_ACTIONS and not (
-            allow_destructive is True or allow_destructive_default()
-        ):
-            return {
-                "status": 403,
-                "error": (
-                    f"Action '{action}' is a guarded write and blocked by default. "
-                    "Re-run with allow_destructive=true (or set "
-                    "GITHUB_ALLOW_DESTRUCTIVE=True) to confirm."
-                ),
-                "data": None,
-            }
+        guard = _dependabot_destructive_guard(action, allow_destructive)
+        if guard is not None:
+            return guard
 
         handler = _DEPENDABOT_ACTION_HANDLERS.get(action)
         if handler is None:
