@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
+from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.api_client import Api
 from github_agent.github_response_models import Release, WorkflowRun
 
@@ -281,6 +282,21 @@ def create_mock_client():
     mock_member.model_dump.return_value = {"login": "test"}
     client.get_org_members.return_value = MagicMock(data=[mock_member])
     client.get_org_teams.return_value = MagicMock(data=[{"id": 1}])
+    mock_org = MagicMock()
+    mock_org.model_dump.return_value = {"login": "acme"}
+    client.get_organization.return_value = MagicMock(data=mock_org)
+    client.list_organizations.return_value = MagicMock(data=[mock_org])
+    client.update_organization.return_value = MagicMock(data=mock_org)
+    client.delete_organization.return_value = MagicMock(data={"status": "scheduled"})
+    client.create_organization.return_value = MagicMock(data=mock_org)
+    client.create_organization_repository.return_value = MagicMock(data=mock_repo)
+    mock_membership = MagicMock()
+    mock_membership.model_dump.return_value = {"role": "member", "state": "active"}
+    client.get_organization_membership.return_value = MagicMock(data=mock_membership)
+    client.set_organization_membership.return_value = MagicMock(data=mock_membership)
+    client.remove_organization_member.return_value = MagicMock(
+        data={"status": "removed"}
+    )
 
     # Mock collaborators
     mock_c = MagicMock()
@@ -773,6 +789,131 @@ async def test_mcp_orgs():
     assert res["status"] == 200
 
     res = await github_orgs(action="teams", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_orgs(
+        action="get", params_json='{"org": "acme"}', client=client, ctx=ctx
+    )
+    assert res["status"] == 200
+
+    res = await github_orgs(action="get", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_orgs(action="list", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 200
+
+    res = await github_orgs(
+        action="update",
+        params_json='{"org": "acme", "company": "Acme"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_orgs(action="update", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_orgs(
+        action="create_repository",
+        params_json='{"org": "acme", "name": "repo"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 201
+
+    res = await github_orgs(
+        action="create_repository", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_orgs(
+        action="get_membership",
+        params_json='{"org": "acme", "username": "u"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_orgs(
+        action="get_membership", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_orgs(
+        action="set_membership",
+        params_json='{"org": "acme", "username": "u", "role": "admin"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_orgs(
+        action="set_membership", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    # 'create' translates the client's domain error into a clean 400.
+    with patch.object(
+        client,
+        "create_organization",
+        side_effect=OrganizationCreationNotSupportedError("not supported"),
+    ):
+        res = await github_orgs(
+            action="create",
+            params_json='{"login": "acme", "admin": "u"}',
+            client=client,
+            ctx=ctx,
+        )
+    assert res["status"] == 400
+    assert "not supported" in res["error"]
+
+    res = await github_orgs(action="create", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    # 'delete'/'remove_member' are guarded writes: blocked without allow_destructive.
+    res = await github_orgs(
+        action="delete", params_json='{"org": "acme"}', client=client, ctx=ctx
+    )
+    assert res["status"] == 403
+
+    res = await github_orgs(
+        action="delete",
+        params_json='{"org": "acme"}',
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 202
+
+    res = await github_orgs(
+        action="delete", params_json="{}", allow_destructive=True, client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_orgs(
+        action="remove_member",
+        params_json='{"org": "acme", "username": "u"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 403
+
+    res = await github_orgs(
+        action="remove_member",
+        params_json='{"org": "acme", "username": "u"}',
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_orgs(
+        action="remove_member",
+        params_json="{}",
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
+    )
     assert res["status"] == 400
 
     with pytest.raises(ValueError, match="list_actions"):
