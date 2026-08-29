@@ -171,6 +171,30 @@ def gh_api_graphql(
     return _run_json(cmd, stdin=QUERY)
 
 
+def _raise_if_graphql_errors(payload: dict[str, Any]) -> None:
+    if payload.get("errors"):
+        raise RuntimeError(
+            f"GitHub GraphQL errors:\n{json.dumps(payload['errors'], indent=2)}"
+        )
+
+
+def _pr_meta(pr: dict[str, Any], owner: str, repo: str) -> dict[str, Any]:
+    return {
+        "number": pr["number"],
+        "url": pr["url"],
+        "title": pr["title"],
+        "state": pr["state"],
+        "owner": owner,
+        "repo": repo,
+    }
+
+
+def _page_cursor(connection: dict[str, Any]) -> str | None:
+    """Next-page cursor for a paginated GraphQL connection, or ``None`` if done."""
+    page_info = connection["pageInfo"]
+    return page_info["endCursor"] if page_info["hasNextPage"] else None
+
+
 def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
     conversation_comments: list[dict[str, Any]] = []
     reviews: list[dict[str, Any]] = []
@@ -191,40 +215,20 @@ def fetch_all(owner: str, repo: str, number: int) -> dict[str, Any]:
             reviews_cursor=reviews_cursor,
             threads_cursor=threads_cursor,
         )
-
-        if "errors" in payload and payload["errors"]:
-            raise RuntimeError(
-                f"GitHub GraphQL errors:\n{json.dumps(payload['errors'], indent=2)}"
-            )
+        _raise_if_graphql_errors(payload)
 
         pr = payload["data"]["repository"]["pullRequest"]
         if pr_meta is None:
-            pr_meta = {
-                "number": pr["number"],
-                "url": pr["url"],
-                "title": pr["title"],
-                "state": pr["state"],
-                "owner": owner,
-                "repo": repo,
-            }
+            pr_meta = _pr_meta(pr, owner, repo)
 
-        c = pr["comments"]
-        r = pr["reviews"]
-        t = pr["reviewThreads"]
-
+        c, r, t = pr["comments"], pr["reviews"], pr["reviewThreads"]
         conversation_comments.extend(c.get("nodes") or [])
         reviews.extend(r.get("nodes") or [])
         review_threads.extend(t.get("nodes") or [])
 
-        comments_cursor = (
-            c["pageInfo"]["endCursor"] if c["pageInfo"]["hasNextPage"] else None
-        )
-        reviews_cursor = (
-            r["pageInfo"]["endCursor"] if r["pageInfo"]["hasNextPage"] else None
-        )
-        threads_cursor = (
-            t["pageInfo"]["endCursor"] if t["pageInfo"]["hasNextPage"] else None
-        )
+        comments_cursor = _page_cursor(c)
+        reviews_cursor = _page_cursor(r)
+        threads_cursor = _page_cursor(t)
 
         if not (comments_cursor or reviews_cursor or threads_cursor):
             break
