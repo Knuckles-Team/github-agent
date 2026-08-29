@@ -15,6 +15,117 @@ from github_agent.auth import get_client
 RELEASE_ACTIONS = ("list", "get", "create", "update", "delete")
 
 
+async def _list_releases(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    if not owner or not repo:
+        return {
+            "status": 400,
+            "error": "Missing 'owner' or 'repo' parameter",
+            "data": None,
+        }
+    response = await run_blocking(client.get_releases, owner=owner, repo=repo)
+    return {
+        "status": 200,
+        "message": "Releases retrieved successfully",
+        "data": [r.model_dump() for r in response.data],
+    }
+
+
+async def _get_release(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    release_id = kwargs.get("release_id")
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_release, owner=owner, repo=repo, release_id=int(release_id)
+    )
+    return {
+        "status": 200,
+        "message": "Release retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _create_release(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    tag_name = kwargs.pop("tag_name", None)
+    if not owner or not repo or not tag_name:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_release, owner=owner, repo=repo, tag_name=tag_name, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Release created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _update_release(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    release_id = kwargs.pop("release_id", None)
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_release,
+        owner=owner,
+        repo=repo,
+        release_id=int(release_id),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Release updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _delete_release(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    release_id = kwargs.get("release_id")
+    if not owner or not repo or not release_id:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'release_id' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.delete_release, owner=owner, repo=repo, release_id=int(release_id)
+    )
+    return {
+        "status": 200,
+        "message": "Release deleted successfully",
+        "data": response.data,
+    }
+
+
+#: Dispatch table for the resolved release action -> its async handler.
+_RELEASE_ACTION_HANDLERS = {
+    "list": _list_releases,
+    "get": _get_release,
+    "create": _create_release,
+    "update": _update_release,
+    "delete": _delete_release,
+}
+
+
 def register_release_tools(mcp: FastMCP):
     @mcp.tool(tags={"releases"})
     async def github_releases(
@@ -50,115 +161,11 @@ def register_release_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
+        handler = _RELEASE_ACTION_HANDLERS.get(action)
+        if handler is None:
+            return {"status": 400, "error": f"Unknown action: {action}", "data": None}
+
         try:
-            if action == "list":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                if not owner or not repo:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner' or 'repo' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_releases, owner=owner, repo=repo
-                )
-                return {
-                    "status": 200,
-                    "message": "Releases retrieved successfully",
-                    "data": [r.model_dump() for r in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                release_id = kwargs.get("release_id")
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Release retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                tag_name = kwargs.pop("tag_name", None)
-                if not owner or not repo or not tag_name:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'tag_name' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_release,
-                    owner=owner,
-                    repo=repo,
-                    tag_name=tag_name,
-                    **kwargs,
-                )
-                return {
-                    "status": 201,
-                    "message": "Release created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                release_id = kwargs.pop("release_id", None)
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Release updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "delete":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                release_id = kwargs.get("release_id")
-                if not owner or not repo or not release_id:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'release_id' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.delete_release,
-                    owner=owner,
-                    repo=repo,
-                    release_id=int(release_id),
-                )
-                return {
-                    "status": 200,
-                    "message": "Release deleted successfully",
-                    "data": response.data,
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
