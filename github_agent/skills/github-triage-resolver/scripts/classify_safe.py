@@ -43,15 +43,24 @@ SEMVER = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 BUMP = re.compile(r"bump .+ from (\S+) to (\S+)", re.I)
 
 
+def _list_of_dicts(value: Any) -> list[dict] | None:
+    """``value`` filtered to its dict elements, if it is a list; else ``None``."""
+    if not isinstance(value, list):
+        return None
+    return [i for i in value if isinstance(i, dict)]
+
+
 def _items(blob: Any) -> list[dict]:
-    if isinstance(blob, list):
-        return [i for i in blob if isinstance(i, dict)]
-    if isinstance(blob, dict):
-        for k in ("data", "items"):
-            if isinstance(blob.get(k), list):
-                return [i for i in blob[k] if isinstance(i, dict)]
-        return [blob]
-    return []
+    direct = _list_of_dicts(blob)
+    if direct is not None:
+        return direct
+    if not isinstance(blob, dict):
+        return []
+    for k in ("data", "items"):
+        found = _list_of_dicts(blob.get(k))
+        if found is not None:
+            return found
+    return [blob]
 
 
 def _author(item: dict) -> str:
@@ -82,75 +91,86 @@ def _bump_level(title: str) -> str | None:
     return "patch"
 
 
-def classify(item: dict, stale_days: int, allow_major: bool, classes: set[str]) -> dict:
-    repo, num = item.get("repo", "?"), item.get("number", "?")
-    out = {
-        "repo": repo,
-        "number": num,
+def _classify_issue(item: dict) -> dict:
+    ev = item.get("resolved_evidence")
+    if ev:
+        return {
+            "verdict": "safe_close",
+            "action": "close",
+            "reason": f"resolved — evidence: {ev}",
+        }
+    return {
         "verdict": "skip",
-        "reason": "",
         "action": "none",
+        "reason": "issue not verified resolved (no resolved_evidence) — human triage",
     }
 
-    if not _is_pr(item):  # ----- ISSUE -----
-        ev = item.get("resolved_evidence")
-        if ev:
-            out.update(
-                verdict="safe_close",
-                action="close",
-                reason=f"resolved — evidence: {ev}",
-            )
-        else:
-            out["reason"] = (
-                "issue not verified resolved (no resolved_evidence) — human triage"
-            )
-        return out
 
-    # ----- PULL REQUEST -----
-    if item.get("draft"):
-        out["reason"] = "draft PR"
-        return out
-    ms = (item.get("mergeable_state") or "").lower()
-    checks = (item.get("checks_state") or "").lower()
+def _pr_context(item: dict) -> dict[str, Any]:
+    """Precompute the fields every PR gate below reads."""
     author = _author(item).lower()
     title = item.get("title") or ""
     bot = ("dependabot" in author) or ("renovate" in author)
-    level = _bump_level(title)
-    allow = item.get("allow_class") or ""
+    return {
+        "mergeable_state": (item.get("mergeable_state") or "").lower(),
+        "checks_state": (item.get("checks_state") or "").lower(),
+        "author": author,
+        "bot": bot,
+        "level": _bump_level(title),
+        "allow": item.get("allow_class") or "",
+    }
 
-    # safe_merge gate — ALL must hold
-    merge_class_ok = (
+
+def _pr_class_permitted(ctx: dict[str, Any], allow_major: bool) -> bool:
+    bot, level, allow = ctx["bot"], ctx["level"], ctx["allow"]
+    return (
         (bot and level in ("patch", "minor"))
         or (bot and level == "major" and allow_major)
         or (allow == "approved")
-    ) and ((f"dependabot-{level}" in classes) if bot and level else allow == "approved")
-    if ms == "clean" and checks == "success" and merge_class_ok:
-        cls = f"{author} {level} bump" if bot else allow
-        out.update(
-            verdict="safe_merge",
-            action="merge",
-            reason=f"clean + checks green + allow-class ({cls})",
-        )
-        return out
+    )
 
-    # safe_close gate — abandoned/superseded
+
+def _pr_class_registered(ctx: dict[str, Any], classes: set[str]) -> bool:
+    bot, level, allow = ctx["bot"], ctx["level"], ctx["allow"]
+    if bot and level:
+        return f"dependabot-{level}" in classes
+    return allow == "approved"
+
+
+def _pr_merge_class_ok(ctx: dict[str, Any], allow_major: bool, classes: set[str]) -> bool:
+    return _pr_class_permitted(ctx, allow_major) and _pr_class_registered(ctx, classes)
+
+
+def _pr_safe_merge_verdict(ctx: dict[str, Any], merge_class_ok: bool) -> dict | None:
+    if not (ctx["mergeable_state"] == "clean" and ctx["checks_state"] == "success" and merge_class_ok):
+        return None
+    cls = f"{ctx['author']} {ctx['level']} bump" if ctx["bot"] else ctx["allow"]
+    return {
+        "verdict": "safe_merge",
+        "action": "merge",
+        "reason": f"clean + checks green + allow-class ({cls})",
+    }
+
+
+def _pr_safe_close_verdict(item: dict, ctx: dict[str, Any], stale_days: int) -> dict | None:
     if item.get("superseded_by"):
-        out.update(
-            verdict="safe_close",
-            action="close",
-            reason=f"superseded by {item['superseded_by']}",
-        )
-        return out
+        return {
+            "verdict": "safe_close",
+            "action": "close",
+            "reason": f"superseded by {item['superseded_by']}",
+        }
     age = item.get("age_days")
-    if ms == "dirty" and isinstance(age, int) and age > stale_days:
-        out.update(
-            verdict="safe_close",
-            action="close",
-            reason=f"stale {age}d + merge conflicts (abandoned) — confirm before close",
-        )
-        return out
+    if ctx["mergeable_state"] == "dirty" and isinstance(age, int) and age > stale_days:
+        return {
+            "verdict": "safe_close",
+            "action": "close",
+            "reason": f"stale {age}d + merge conflicts (abandoned) — confirm before close",
+        }
+    return None
 
-    # otherwise skip with the blocking reason
+
+def _pr_skip_reason(ctx: dict[str, Any], merge_class_ok: bool) -> str:
+    ms, checks = ctx["mergeable_state"], ctx["checks_state"]
     why = []
     if ms and ms != "clean":
         why.append(f"mergeable_state={ms}")
@@ -158,8 +178,35 @@ def classify(item: dict, stale_days: int, allow_major: bool, classes: set[str]) 
         why.append(f"checks={checks}")
     if not merge_class_ok:
         why.append("not in auto-merge allow-class")
-    out["reason"] = "; ".join(why) or "needs human review"
-    return out
+    return "; ".join(why) or "needs human review"
+
+
+def _classify_pr(item: dict, stale_days: int, allow_major: bool, classes: set[str]) -> dict:
+    if item.get("draft"):
+        return {"verdict": "skip", "action": "none", "reason": "draft PR"}
+
+    ctx = _pr_context(item)
+    merge_class_ok = _pr_merge_class_ok(ctx, allow_major, classes)
+
+    verdict = _pr_safe_merge_verdict(ctx, merge_class_ok)
+    if verdict is not None:
+        return verdict
+
+    verdict = _pr_safe_close_verdict(item, ctx, stale_days)
+    if verdict is not None:
+        return verdict
+
+    return {"verdict": "skip", "action": "none", "reason": _pr_skip_reason(ctx, merge_class_ok)}
+
+
+def classify(item: dict, stale_days: int, allow_major: bool, classes: set[str]) -> dict:
+    repo, num = item.get("repo", "?"), item.get("number", "?")
+    verdict = (
+        _classify_pr(item, stale_days, allow_major, classes)
+        if _is_pr(item)
+        else _classify_issue(item)
+    )
+    return {"repo": repo, "number": num, **verdict}
 
 
 def main() -> None:
