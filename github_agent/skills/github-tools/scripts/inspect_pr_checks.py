@@ -186,52 +186,50 @@ def resolve_pr(pr_value: str | None, repo_root: Path) -> str | None:
     return str(number)
 
 
-def fetch_checks(pr_value: str, repo_root: Path) -> list[dict[str, Any]] | None:
-    primary_fields = [
+def _run_pr_checks(pr_value: str, repo_root: Path, fields: list[str]) -> GhResult:
+    return run_gh_command(
+        ["pr", "checks", pr_value, "--json", ",".join(fields)], cwd=repo_root
+    )
+
+
+def _select_fallback_fields(available_fields: list[str]) -> list[str]:
+    fallback_fields = [
         "name",
         "state",
-        "conclusion",
-        "detailsUrl",
+        "bucket",
+        "link",
         "startedAt",
         "completedAt",
+        "workflow",
     ]
-    result = run_gh_command(
-        ["pr", "checks", pr_value, "--json", ",".join(primary_fields)],
-        cwd=repo_root,
-    )
+    return [field for field in fallback_fields if field in available_fields]
+
+
+def _fetch_checks_via_fallback(
+    pr_value: str, repo_root: Path, message: str
+) -> GhResult | None:
+    """Retry ``gh pr checks`` with only fields the CLI reports as available.
+
+    Prints the appropriate error and returns ``None`` when no retry is
+    possible, or the retry also fails.
+    """
+    available_fields = parse_available_fields(message)
+    if not available_fields:
+        print(message or "Error: gh pr checks failed.", file=sys.stderr)
+        return None
+    selected_fields = _select_fallback_fields(available_fields)
+    if not selected_fields:
+        print("Error: no usable fields available for gh pr checks.", file=sys.stderr)
+        return None
+    result = _run_pr_checks(pr_value, repo_root, selected_fields)
     if result.returncode != 0:
-        message = "\n".join(filter(None, [result.stderr, result.stdout])).strip()
-        available_fields = parse_available_fields(message)
-        if available_fields:
-            fallback_fields = [
-                "name",
-                "state",
-                "bucket",
-                "link",
-                "startedAt",
-                "completedAt",
-                "workflow",
-            ]
-            selected_fields = [
-                field for field in fallback_fields if field in available_fields
-            ]
-            if not selected_fields:
-                print(
-                    "Error: no usable fields available for gh pr checks.",
-                    file=sys.stderr,
-                )
-                return None
-            result = run_gh_command(
-                ["pr", "checks", pr_value, "--json", ",".join(selected_fields)],
-                cwd=repo_root,
-            )
-            if result.returncode != 0:
-                message = (result.stderr or result.stdout or "").strip()
-                print(message or "Error: gh pr checks failed.", file=sys.stderr)
-                return None
-        else:
-            print(message or "Error: gh pr checks failed.", file=sys.stderr)
-            return None
+        retry_message = (result.stderr or result.stdout or "").strip()
+        print(retry_message or "Error: gh pr checks failed.", file=sys.stderr)
+        return None
+    return result
+
+
+def _parse_checks_payload(result: GhResult) -> list[dict[str, Any]] | None:
     try:
         data = json.loads(result.stdout or "[]")
     except json.JSONDecodeError:
@@ -241,6 +239,24 @@ def fetch_checks(pr_value: str, repo_root: Path) -> list[dict[str, Any]] | None:
         print("Error: unexpected checks JSON shape.", file=sys.stderr)
         return None
     return data
+
+
+def fetch_checks(pr_value: str, repo_root: Path) -> list[dict[str, Any]] | None:
+    primary_fields = [
+        "name",
+        "state",
+        "conclusion",
+        "detailsUrl",
+        "startedAt",
+        "completedAt",
+    ]
+    result = _run_pr_checks(pr_value, repo_root, primary_fields)
+    if result.returncode != 0:
+        message = "\n".join(filter(None, [result.stderr, result.stdout])).strip()
+        result = _fetch_checks_via_fallback(pr_value, repo_root, message)
+        if result is None:
+            return None
+    return _parse_checks_payload(result)
 
 
 def is_failing(check: dict[str, Any]) -> bool:
@@ -479,48 +495,78 @@ def tail_lines(text: str, max_lines: int) -> str:
     return "\n".join(lines[-max_lines:])
 
 
+def _print_check_header(result: dict[str, Any]) -> None:
+    print("-" * 60)
+    print(f"Check: {result.get('name', '')}")
+    if result.get("detailsUrl"):
+        print(f"Details: {result['detailsUrl']}")
+    run_id = result.get("runId")
+    if run_id:
+        print(f"Run ID: {run_id}")
+    job_id = result.get("jobId")
+    if job_id:
+        print(f"Job ID: {job_id}")
+    print(f"Status: {result.get('status', 'unknown')}")
+
+
+def _first_truthy(mapping: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = mapping.get(key)
+        if value:
+            return value
+    return ""
+
+
+def _print_check_run_workflow_line(run_meta: dict[str, Any]) -> None:
+    workflow = _first_truthy(run_meta, "workflowName", "name")
+    conclusion = _first_truthy(run_meta, "conclusion", "status")
+    print(f"Workflow: {workflow} ({conclusion})")
+
+
+def _print_check_run_branch_line(branch: str, sha: str) -> None:
+    if branch or sha:
+        print(f"Branch/SHA: {branch} {sha}")
+
+
+def _print_check_run_meta(run_meta: dict[str, Any]) -> None:
+    if not run_meta:
+        return
+    branch = run_meta.get("headBranch", "")
+    sha = (run_meta.get("headSha") or "")[:12]
+    _print_check_run_workflow_line(run_meta)
+    _print_check_run_branch_line(branch, sha)
+    if run_meta.get("url"):
+        print(f"Run URL: {run_meta['url']}")
+
+
+def _print_check_snippet(result: dict[str, Any]) -> None:
+    snippet = result.get("logSnippet") or ""
+    if snippet:
+        print("Failure snippet:")
+        print(indent_block(snippet, prefix="  "))
+    else:
+        print("No snippet available.")
+
+
+def _render_one_check(result: dict[str, Any]) -> None:
+    _print_check_header(result)
+    _print_check_run_meta(result.get("run", {}))
+
+    if result.get("note"):
+        print(f"Note: {result['note']}")
+
+    if result.get("error"):
+        print(f"Error fetching logs: {result['error']}")
+        return
+
+    _print_check_snippet(result)
+
+
 def render_results(pr_number: str, results: Iterable[dict[str, Any]]) -> None:
     results_list = list(results)
     print(f"PR #{pr_number}: {len(results_list)} failing checks analyzed.")
     for result in results_list:
-        print("-" * 60)
-        print(f"Check: {result.get('name', '')}")
-        if result.get("detailsUrl"):
-            print(f"Details: {result['detailsUrl']}")
-        run_id = result.get("runId")
-        if run_id:
-            print(f"Run ID: {run_id}")
-        job_id = result.get("jobId")
-        if job_id:
-            print(f"Job ID: {job_id}")
-        status = result.get("status", "unknown")
-        print(f"Status: {status}")
-
-        run_meta = result.get("run", {})
-        if run_meta:
-            branch = run_meta.get("headBranch", "")
-            sha = (run_meta.get("headSha") or "")[:12]
-            workflow = run_meta.get("workflowName") or run_meta.get("name") or ""
-            conclusion = run_meta.get("conclusion") or run_meta.get("status") or ""
-            print(f"Workflow: {workflow} ({conclusion})")
-            if branch or sha:
-                print(f"Branch/SHA: {branch} {sha}")
-            if run_meta.get("url"):
-                print(f"Run URL: {run_meta['url']}")
-
-        if result.get("note"):
-            print(f"Note: {result['note']}")
-
-        if result.get("error"):
-            print(f"Error fetching logs: {result['error']}")
-            continue
-
-        snippet = result.get("logSnippet") or ""
-        if snippet:
-            print("Failure snippet:")
-            print(indent_block(snippet, prefix="  "))
-        else:
-            print("No snippet available.")
+        _render_one_check(result)
     print("-" * 60)
 
 
