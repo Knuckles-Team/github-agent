@@ -72,6 +72,75 @@ def mock_session():  # vulture: ignore
         yield session
 
 
+#: Required params named exactly one of these get a fixed value, checked
+#: BEFORE the id-like/annotation/late-name checks below (matches the
+#: original if/elif precedence).
+_EARLY_NAME_DEFAULTS = {"owner": "test", "repo": "test"}
+
+#: Required params whose name (exactly, not "id" in p_name) means "an id".
+_ID_LIKE_NAMES = {"number", "run_id", "release_id"}
+
+#: Checked after the id-like check, before the late name defaults.
+_ANNOTATION_DEFAULTS = {int: 1, bool: True, dict: {}, list: []}
+
+#: Checked last, before falling back to the literal string "test".
+_LATE_NAME_DEFAULTS = {
+    "branch": "main",
+    "sha": "abc123sha",
+    "ref": "abc123sha",
+    "username": "test-user",
+    "org": "test-org",
+}
+
+#: Extra defaults applied when a method also accepts **kwargs.
+_VAR_KEYWORD_DEFAULTS = {
+    "q": "test",
+    "org": "test-org",
+    "path": "test.txt",
+    "message": "test-message",
+    "content": "test-content",
+    "workflows": ["test"],
+    "ref": "abc123sha",
+    "branch": "main",
+    "username": "test-user",
+    "state": "open",
+    "title": "test-title",
+    "head": "main",
+    "base": "main",
+    "tag_name": "v1.0.0",
+}
+
+
+def _is_id_like(p_name: str) -> bool:
+    return "id" in p_name or p_name in _ID_LIKE_NAMES
+
+
+def _synthesize_required_value(p_name: str, annotation: Any) -> Any:
+    """One required parameter's best-effort synthesized value.
+
+    Precedence (matches the original if/elif chain exactly): an early
+    owner/repo name, then an id-like name, then the parameter's annotation,
+    then a late name default, then the literal fallback "test".
+    """
+    if p_name in _EARLY_NAME_DEFAULTS:
+        return _EARLY_NAME_DEFAULTS[p_name]
+    if _is_id_like(p_name):
+        return 1
+    if annotation in _ANNOTATION_DEFAULTS:
+        return _ANNOTATION_DEFAULTS[annotation]
+    return _LATE_NAME_DEFAULTS.get(p_name, "test")
+
+
+def _synthesize_api_call_kwargs(sig: inspect.Signature) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {}
+    for p_name, p in sig.parameters.items():
+        if p.default == inspect.Parameter.empty:
+            kwargs[p_name] = _synthesize_required_value(p_name, p.annotation)
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+        kwargs.update(_VAR_KEYWORD_DEFAULTS)
+    return kwargs
+
+
 @pytest.mark.usefixtures("mock_session")
 def test_github_brute_force():
     from github_agent.api_client import Api
@@ -84,66 +153,26 @@ def test_github_brute_force():
             continue
 
         print(f"Calling {name}...")
-        sig = inspect.signature(method)
-        has_var_keyword = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-        )
-
-        kwargs: dict[str, Any] = {}
-        for p_name, p in sig.parameters.items():
-            if p.default == inspect.Parameter.empty:
-                if p_name == "owner" or p_name == "repo":
-                    kwargs[p_name] = "test"
-                elif (
-                    "id" in p_name
-                    or p_name == "number"
-                    or p_name == "run_id"
-                    or p_name == "release_id"
-                ):
-                    kwargs[p_name] = 1
-                elif p.annotation == int:
-                    kwargs[p_name] = 1
-                elif p.annotation == bool:
-                    kwargs[p_name] = True
-                elif p.annotation == dict:
-                    kwargs[p_name] = {}
-                elif p.annotation == list:
-                    kwargs[p_name] = []
-                elif p_name == "branch":
-                    kwargs[p_name] = "main"
-                elif p_name == "sha" or p_name == "ref":
-                    kwargs[p_name] = "abc123sha"
-                elif p_name == "username":
-                    kwargs[p_name] = "test-user"
-                elif p_name == "org":
-                    kwargs[p_name] = "test-org"
-                else:
-                    kwargs[p_name] = "test"
-
-        if has_var_keyword:
-            kwargs.update(
-                {
-                    "q": "test",
-                    "org": "test-org",
-                    "path": "test.txt",
-                    "message": "test-message",
-                    "content": "test-content",
-                    "workflows": ["test"],
-                    "ref": "abc123sha",
-                    "branch": "main",
-                    "username": "test-user",
-                    "state": "open",
-                    "title": "test-title",
-                    "head": "main",
-                    "base": "main",
-                    "tag_name": "v1.0.0",
-                }
-            )
+        kwargs = _synthesize_api_call_kwargs(inspect.signature(method))
 
         try:
             method(**kwargs)
         except Exception as e:
             print(f"Operation failed: {type(e).__name__}")
+
+
+def _synthesize_mcp_tool_params(tool: Any) -> dict[str, str]:
+    """Every declared property of ``tool`` gets the placeholder value "test".
+
+    (The original had an `"id" in p or "name" in p` split here whose two
+    branches both assigned "test" -- a no-op branch, removed; every property
+    still gets exactly the same value.)
+    """
+    target_params: dict[str, str] = {}
+    if hasattr(tool, "parameters") and hasattr(tool.parameters, "properties"):
+        for p in tool.parameters.properties:
+            target_params[p] = "test"
+    return target_params
 
 
 @pytest.mark.usefixtures("mock_session")
@@ -171,20 +200,10 @@ def test_mcp_server_coverage():
                     else mcp.list_tools()
                 )
                 for tool in tool_objs:
-                    tool_name = tool.name
-                    print(f"Testing MCP tool: {tool_name}")
+                    print(f"Testing MCP tool: {tool.name}")
                     try:
-                        target_params = {}
-                        if hasattr(tool, "parameters") and hasattr(
-                            tool.parameters, "properties"
-                        ):
-                            for p in tool.parameters.properties:
-                                if "id" in p or "name" in p:
-                                    target_params[p] = "test"
-                                else:
-                                    target_params[p] = "test"
-
-                        await mcp.call_tool(tool_name, target_params)
+                        target_params = _synthesize_mcp_tool_params(tool)
+                        await mcp.call_tool(tool.name, target_params)
                     except Exception as e:
                         print(f"Operation failed: {type(e).__name__}")
 
