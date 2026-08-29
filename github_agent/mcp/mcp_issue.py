@@ -15,6 +15,123 @@ from github_agent.auth import get_client
 ISSUE_ACTIONS = ("list", "get", "create", "update")
 
 
+def _org_issue_search_qualifiers(org: str, kwargs: dict) -> list[str]:
+    """Build the ``/search/issues`` qualifier list for an org-wide issue listing."""
+    state = str(kwargs.get("state", "open")).lower()
+    qualifiers = [f"org:{org}", "is:issue"]
+    if state in ("open", "closed"):
+        qualifiers.append(f"state:{state}")
+    if kwargs.get("assignee"):
+        qualifiers.append(f"assignee:{kwargs['assignee']}")
+    for label in str(kwargs.get("labels", "")).split(","):
+        label = label.strip()
+        if label:
+            qualifiers.append(f'label:"{label}"')
+    return qualifiers
+
+
+async def _search_org_issues(client, org: str, kwargs: dict) -> dict:
+    """List issues across a whole org via a single ``/search/issues`` call."""
+    qualifiers = _org_issue_search_qualifiers(org, kwargs)
+    search_kwargs: dict = {"q": " ".join(qualifiers)}
+    for k in ("sort", "order", "per_page", "max_pages"):
+        if kwargs.get(k) is not None:
+            search_kwargs[k] = kwargs[k]
+    response = await run_blocking(client.search_issues, **search_kwargs)
+    return {
+        "status": 200,
+        "message": f"Org-wide issues for '{org}' via search (1 call)",
+        "data": response.data.items,
+    }
+
+
+async def _list_issues(client, kwargs: dict) -> dict:
+    org = kwargs.get("org")
+    if org and not kwargs.get("repo"):
+        # Org-wide: ONE /search/issues call (org:<org> is:issue) instead
+        # of enumerate-repos + page-issues-per-repo (N+1 calls).
+        return await _search_org_issues(client, org, kwargs)
+    response = await run_blocking(client.get_issues, **kwargs)
+    return {
+        "status": 200,
+        "message": "Issues retrieved successfully",
+        "data": [issue.model_dump() for issue in response.data],
+    }
+
+
+async def _get_issue(client, kwargs: dict) -> dict:
+    owner = kwargs.get("owner")
+    repo = kwargs.get("repo")
+    number = kwargs.get("number")
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.get_issue, owner=owner, repo=repo, number=int(number)
+    )
+    return {
+        "status": 200,
+        "message": "Issue retrieved successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _create_issue(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    title = kwargs.pop("title", None)
+    if not owner or not repo or not title:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'title' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.create_issue, owner=owner, repo=repo, title=title, **kwargs
+    )
+    return {
+        "status": 201,
+        "message": "Issue created successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+async def _update_issue(client, kwargs: dict) -> dict:
+    owner = kwargs.pop("owner", None)
+    repo = kwargs.pop("repo", None)
+    number = kwargs.pop("number", None)
+    if not owner or not repo or not number:
+        return {
+            "status": 400,
+            "error": "Missing 'owner', 'repo', or 'number' parameter",
+            "data": None,
+        }
+    response = await run_blocking(
+        client.update_issue,
+        owner=owner,
+        repo=repo,
+        number=int(number),
+        **kwargs,
+    )
+    return {
+        "status": 200,
+        "message": "Issue updated successfully",
+        "data": response.data.model_dump(),
+    }
+
+
+#: Dispatch table for the resolved issue action -> its async handler.
+_ISSUE_ACTION_HANDLERS = {
+    "list": _list_issues,
+    "get": _get_issue,
+    "create": _create_issue,
+    "update": _update_issue,
+}
+
+
 def register_issue_tools(mcp: FastMCP):
     @mcp.tool(tags={"issues"})
     async def github_issues(
@@ -61,102 +178,11 @@ def register_issue_tools(mcp: FastMCP):
             return resolved
         action = resolved
 
+        handler = _ISSUE_ACTION_HANDLERS.get(action)
+        if handler is None:
+            return {"status": 400, "error": f"Unknown action: {action}", "data": None}
+
         try:
-            if action == "list":
-                org = kwargs.get("org")
-                if org and not kwargs.get("repo"):
-                    # Org-wide: ONE /search/issues call (org:<org> is:issue) instead
-                    # of enumerate-repos + page-issues-per-repo (N+1 calls). Translate
-                    # the list filters into search qualifiers.
-                    state = str(kwargs.get("state", "open")).lower()
-                    qualifiers = [f"org:{org}", "is:issue"]
-                    if state in ("open", "closed"):
-                        qualifiers.append(f"state:{state}")
-                    if kwargs.get("assignee"):
-                        qualifiers.append(f"assignee:{kwargs['assignee']}")
-                    for label in str(kwargs.get("labels", "")).split(","):
-                        label = label.strip()
-                        if label:
-                            qualifiers.append(f'label:"{label}"')
-                    search_kwargs: dict = {"q": " ".join(qualifiers)}
-                    for k in ("sort", "order", "per_page", "max_pages"):
-                        if kwargs.get(k) is not None:
-                            search_kwargs[k] = kwargs[k]
-                    response = await run_blocking(client.search_issues, **search_kwargs)
-                    return {
-                        "status": 200,
-                        "message": f"Org-wide issues for '{org}' via search (1 call)",
-                        "data": response.data.items,
-                    }
-                response = await run_blocking(client.get_issues, **kwargs)
-                return {
-                    "status": 200,
-                    "message": "Issues retrieved successfully",
-                    "data": [issue.model_dump() for issue in response.data],
-                }
-            elif action == "get":
-                owner = kwargs.get("owner")
-                repo = kwargs.get("repo")
-                number = kwargs.get("number")
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.get_issue, owner=owner, repo=repo, number=int(number)
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue retrieved successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "create":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                title = kwargs.pop("title", None)
-                if not owner or not repo or not title:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'title' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.create_issue, owner=owner, repo=repo, title=title, **kwargs
-                )
-                return {
-                    "status": 201,
-                    "message": "Issue created successfully",
-                    "data": response.data.model_dump(),
-                }
-            elif action == "update":
-                owner = kwargs.pop("owner", None)
-                repo = kwargs.pop("repo", None)
-                number = kwargs.pop("number", None)
-                if not owner or not repo or not number:
-                    return {
-                        "status": 400,
-                        "error": "Missing 'owner', 'repo', or 'number' parameter",
-                        "data": None,
-                    }
-                response = await run_blocking(
-                    client.update_issue,
-                    owner=owner,
-                    repo=repo,
-                    number=int(number),
-                    **kwargs,
-                )
-                return {
-                    "status": 200,
-                    "message": "Issue updated successfully",
-                    "data": response.data.model_dump(),
-                }
-            else:
-                return {
-                    "status": 400,
-                    "error": f"Unknown action: {action}",
-                    "data": None,
-                }
+            return await handler(client, kwargs)
         except Exception as e:
             return {"status": 500, "error": str(e), "data": None}
