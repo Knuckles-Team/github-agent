@@ -47,25 +47,30 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 PRIORITY_BADGE = {"high": "P1", "medium": "P2", "low": "P3"}
 
 
+def _or_default(value: Any, default: Any) -> Any:
+    """Return ``value`` unless it is falsy, in which case return ``default``."""
+    return value if value else default
+
+
+def _normalize_choice(value: Any, valid: dict[str, int], default: str) -> str:
+    """Lowercase/strip ``value`` and fall back to ``default`` if not in ``valid``."""
+    choice = str(_or_default(value, default)).strip().lower()
+    return choice if choice in valid else default
+
+
 def _norm(item: dict[str, Any]) -> dict[str, Any]:
-    status = (item.get("status") or "needs-action").strip().lower()
-    if status not in STATUS_ORDER:
-        status = "needs-action"
-    priority = (item.get("priority") or "medium").strip().lower()
-    if priority not in PRIORITY_ORDER:
-        priority = "medium"
     return {
-        "account": item.get("account") or "(unknown)",
-        "repo": item.get("repo") or "(unknown)",
-        "kind": (item.get("kind") or "issue").strip().lower(),
+        "account": _or_default(item.get("account"), "(unknown)"),
+        "repo": _or_default(item.get("repo"), "(unknown)"),
+        "kind": str(_or_default(item.get("kind"), "issue")).strip().lower(),
         "number": item.get("number"),
-        "title": (item.get("title") or "(no title)").strip(),
-        "url": item.get("url") or "",
-        "status": status,
-        "evidence": (item.get("evidence") or "").strip(),
-        "recommendation": (item.get("recommendation") or "").strip(),
-        "priority": priority,
-        "labels": item.get("labels") or [],
+        "title": str(_or_default(item.get("title"), "(no title)")).strip(),
+        "url": _or_default(item.get("url"), ""),
+        "status": _normalize_choice(item.get("status"), STATUS_ORDER, "needs-action"),
+        "evidence": str(_or_default(item.get("evidence"), "")).strip(),
+        "recommendation": str(_or_default(item.get("recommendation"), "")).strip(),
+        "priority": _normalize_choice(item.get("priority"), PRIORITY_ORDER, "medium"),
+        "labels": _or_default(item.get("labels"), []),
     }
 
 
@@ -78,74 +83,98 @@ def _sort_key(it: dict[str, Any]) -> tuple:
     )
 
 
-def build_markdown(items: list[dict[str, Any]], title: str) -> str:
-    items = [_norm(i) for i in items]
-    out: list[str] = [f"# {title}", ""]
-
-    # ---- Summary -------------------------------------------------------------
+def _summary_counts(
+    items: list[dict[str, Any]],
+) -> tuple[dict[str, int], dict[str, int]]:
     by_status: dict[str, int] = defaultdict(int)
     by_kind: dict[str, int] = defaultdict(int)
     for it in items:
         by_status[it["status"]] += 1
         by_kind[it["kind"]] += 1
-    out.append(
+    return by_status, by_kind
+
+
+def _summary_line(items: list[dict[str, Any]]) -> str:
+    by_status, by_kind = _summary_counts(items)
+    return (
         f"**{len(items)} open item(s)** — "
         f"{by_kind.get('issue', 0)} issue(s), {by_kind.get('pr', 0)} PR(s). "
         f"{by_status.get('needs-action', 0)} need action, "
         f"{by_status.get('in-progress', 0)} in progress, "
         f"{by_status.get('addressed', 0)} likely closable."
     )
-    out.append("")
 
-    # ---- Closable now (addressed) -------------------------------------------
+
+def _closable_lines(items: list[dict[str, Any]]) -> list[str]:
+    """Render the 'safe to close' section for items marked addressed."""
     closable = sorted((i for i in items if i["status"] == "addressed"), key=_sort_key)
-    if closable:
-        out.append("## ✅ Verified addressed — safe to close")
-        out.append("")
-        for it in closable:
-            ref = f"{it['account']}/{it['repo']}#{it['number']}"
-            out.append(f"- [{ref}]({it['url']}) — {it['title']}")
-            if it["evidence"]:
-                out.append(f"  - _Why:_ {it['evidence']}")
-            if it["recommendation"]:
-                out.append(f"  - _Action:_ {it['recommendation']}")
-        out.append("")
+    if not closable:
+        return []
+    lines = ["## ✅ Verified addressed — safe to close", ""]
+    for it in closable:
+        ref = f"{it['account']}/{it['repo']}#{it['number']}"
+        lines.append(f"- [{ref}]({it['url']}) — {it['title']}")
+        if it["evidence"]:
+            lines.append(f"  - _Why:_ {it['evidence']}")
+        if it["recommendation"]:
+            lines.append(f"  - _Action:_ {it['recommendation']}")
+    lines.append("")
+    return lines
 
-    # ---- Grouped action plan: account -> repo -------------------------------
-    out.append("## Action plan")
-    out.append("")
+
+def _group_outstanding(items: list[dict[str, Any]]) -> dict[str, dict[str, list]]:
+    """Group non-addressed items by account -> repo."""
     grouped: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
     for it in items:
         if it["status"] == "addressed":
-            continue  # already covered above
+            continue  # covered by _closable_lines instead
         grouped[it["account"]][it["repo"]].append(it)
+    return grouped
 
+
+def _repo_table_row(it: dict[str, Any]) -> str:
+    badge = PRIORITY_BADGE[it["priority"]]
+    num = f"[#{it['number']}]({it['url']})" if it["url"] else f"#{it['number']}"
+    kind = "PR" if it["kind"] == "pr" else "issue"
+    title = it["title"].replace("|", "\\|")
+    rec = (it["recommendation"] or "—").replace("|", "\\|")
+    status = STATUS_LABEL[it["status"]]
+    return f"| {badge} | {num} | {kind} | {title} | {status} | {rec} |"
+
+
+def _repo_table_lines(repo: str, repo_items: list[dict[str, Any]]) -> list[str]:
+    ordered = sorted(repo_items, key=_sort_key)
+    lines = [
+        f"#### `{repo}` ({len(ordered)})",
+        "",
+        "| | # | Type | Title | Status | Recommended next step |",
+        "|---|---|---|---|---|---|",
+    ]
+    lines.extend(_repo_table_row(it) for it in ordered)
+    lines.append("")
+    return lines
+
+
+def _action_plan_lines(items: list[dict[str, Any]]) -> list[str]:
+    lines = ["## Action plan", ""]
+    grouped = _group_outstanding(items)
     if not grouped:
-        out.append("_No outstanding items requiring action._")
-        out.append("")
+        lines.append("_No outstanding items requiring action._")
+        lines.append("")
+        return lines
     for account in sorted(grouped):
-        out.append(f"### {account}")
-        out.append("")
+        lines.append(f"### {account}")
+        lines.append("")
         for repo in sorted(grouped[account]):
-            repo_items = sorted(grouped[account][repo], key=_sort_key)
-            out.append(f"#### `{repo}` ({len(repo_items)})")
-            out.append("")
-            out.append("| | # | Type | Title | Status | Recommended next step |")
-            out.append("|---|---|---|---|---|---|")
-            for it in repo_items:
-                badge = PRIORITY_BADGE[it["priority"]]
-                num = (
-                    f"[#{it['number']}]({it['url']})"
-                    if it["url"]
-                    else f"#{it['number']}"
-                )
-                kind = "PR" if it["kind"] == "pr" else "issue"
-                title = it["title"].replace("|", "\\|")
-                rec = (it["recommendation"] or "—").replace("|", "\\|")
-                status = STATUS_LABEL[it["status"]]
-                out.append(f"| {badge} | {num} | {kind} | {title} | {status} | {rec} |")
-            out.append("")
+            lines.extend(_repo_table_lines(repo, grouped[account][repo]))
+    return lines
 
+
+def build_markdown(items: list[dict[str, Any]], title: str) -> str:
+    items = [_norm(i) for i in items]
+    out: list[str] = [f"# {title}", "", _summary_line(items), ""]
+    out.extend(_closable_lines(items))
+    out.extend(_action_plan_lines(items))
     return "\n".join(out).rstrip() + "\n"
 
 
