@@ -319,6 +319,10 @@ def create_mock_client():
     client.rerun_workflow_run.return_value = MagicMock(data={"status": "rerun"})
     client.cancel_workflow_run.return_value = MagicMock(data={"status": "cancelled"})
     client.delete_workflow_run.return_value = MagicMock(data={"status": "deleted"})
+    client.get_workflow_run_jobs.return_value = MagicMock(
+        data=[{"id": 1, "name": "build", "check_run_url": "http://x"}]
+    )
+    client.get_workflow_job_logs.return_value = MagicMock(data="log output")
 
     # Mock releases
     mock_release = MagicMock()

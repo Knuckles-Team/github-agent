@@ -39,6 +39,115 @@ async def _register_and_get_tool(register_fn, tool_name: str):
 
 
 @pytest.mark.anyio
+async def test_mirror_actions_dispatch():
+    from github_agent.mcp.mcp_action import register_action_tools
+
+    github_actions = await _register_and_get_tool(register_action_tools, "github_actions")
+    client = create_mock_client()
+    ctx = AsyncMockContext()
+
+    res = await github_actions(
+        action="list_workflows",
+        params_json='{"owner": "o", "repo": "r"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(
+        action="list_workflows", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_actions(action="list_runs", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 200
+
+    res = await github_actions(
+        action="get_run",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(action="get_run", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_actions(
+        action="list_jobs",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    # default slim=True strips *_url (keeps html_url).
+    assert "check_run_url" not in res["data"][0]
+
+    res = await github_actions(
+        action="list_jobs",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1, "slim": false}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+    assert "check_run_url" in res["data"][0]
+
+    res = await github_actions(action="list_jobs", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_actions(
+        action="job_logs",
+        params_json='{"owner": "o", "repo": "r", "job_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(action="job_logs", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_actions(
+        action="trigger_dispatch",
+        params_json='{"owner": "o", "repo": "r", "workflow_id": 1, "ref": "m"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(
+        action="trigger_dispatch", params_json="{}", client=client, ctx=ctx
+    )
+    assert res["status"] == 400
+
+    res = await github_actions(
+        action="rerun",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(
+        action="cancel",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_actions(
+        action="delete_run",
+        params_json='{"owner": "o", "repo": "r", "run_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_actions(action="invalid", params_json="{}", client=client, ctx=ctx)
+
+
+@pytest.mark.anyio
 async def test_mirror_commits_dispatch():
     from github_agent.mcp.mcp_commit import register_commit_tools
 
