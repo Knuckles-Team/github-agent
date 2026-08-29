@@ -632,6 +632,70 @@ async def test_mirror_pulls_dispatch():
 
 
 @pytest.mark.anyio
+async def test_mirror_releases_dispatch():
+    from github_agent.mcp.mcp_release import register_release_tools
+
+    github_releases = await _register_and_get_tool(register_release_tools, "github_releases")
+    client = create_mock_client()
+    ctx = AsyncMockContext()
+
+    res = await github_releases(
+        action="list", params_json='{"owner": "o", "repo": "r"}', client=client, ctx=ctx
+    )
+    assert res["status"] == 200
+
+    res = await github_releases(action="list", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_releases(
+        action="get",
+        params_json='{"owner": "o", "repo": "r", "release_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_releases(action="get", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_releases(
+        action="create",
+        params_json='{"owner": "o", "repo": "r", "tag_name": "v1"}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 201
+
+    res = await github_releases(action="create", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_releases(
+        action="update",
+        params_json='{"owner": "o", "repo": "r", "release_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_releases(action="update", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    res = await github_releases(
+        action="delete",
+        params_json='{"owner": "o", "repo": "r", "release_id": 1}',
+        client=client,
+        ctx=ctx,
+    )
+    assert res["status"] == 200
+
+    res = await github_releases(action="delete", params_json="{}", client=client, ctx=ctx)
+    assert res["status"] == 400
+
+    with pytest.raises(ValueError, match="list_actions"):
+        await github_releases(action="invalid", params_json="{}", client=client, ctx=ctx)
+
+
+@pytest.mark.anyio
 async def test_mirror_pulls_rest_actions_survive_gql_client_failure(monkeypatch):
     """Same regression guard as mcp_server.py's github_pulls, for the mirror."""
     from github_agent.mcp.mcp_pull import register_pull_tools
