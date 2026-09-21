@@ -24,7 +24,11 @@ from typing import Any
 
 from agent_utilities.knowledge_graph.memory.native_ingest import (
     NativeIngestError,
+)
+from agent_utilities.knowledge_graph.memory.native_ingest import (
     ingest_documents as _native_ingest_documents,
+)
+from agent_utilities.knowledge_graph.memory.native_ingest import (
     ingest_entities as _native_ingest_entities,
 )
 
@@ -421,7 +425,7 @@ def _pipeline_run_graph(
     commit, commit_relationship = _commit_node_and_relationship(
         repo, run.get("head_sha"), node_id
     )
-    if commit is not None:
+    if commit is not None and commit_relationship is not None:
         entities.append(commit)
         relationships.append(commit_relationship)
 
@@ -462,9 +466,9 @@ def ingest_pipeline_runs(
     relationships: list[dict[str, Any]] = []
     jobs_by_run = jobs_by_run or {}
     for run in runs or []:
-        run_graph = _pipeline_run_graph(
-            run, repo_full_name, repo_node_id, jobs_by_run.get(run.get("id")) or []
-        )
+        run_id = run.get("id")
+        jobs = jobs_by_run.get(run_id, []) if isinstance(run_id, int) else []
+        run_graph = _pipeline_run_graph(run, repo_full_name, repo_node_id, jobs)
         if run_graph is None:
             continue
         run_entities, run_relationships = run_graph

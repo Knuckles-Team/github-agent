@@ -25,6 +25,8 @@ _MODULE_PATH = (
 
 def _load_module():
     spec = importlib.util.spec_from_file_location("fetch_comments", _MODULE_PATH)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"could not load {_MODULE_PATH}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -39,7 +41,7 @@ def _connection(nodes, has_next=False, end_cursor=None):
     return {"nodes": nodes, "pageInfo": {"hasNextPage": has_next, "endCursor": end_cursor}}
 
 
-def _payload(pr_number=1, comments=None, reviews=None, threads=None, **conn_overrides):
+def _payload(pr_number=1, comments=None, reviews=None, threads=None):
     return {
         "data": {
             "repository": {
@@ -63,7 +65,7 @@ def test_fetch_all_single_page(fetch_comments, monkeypatch):
         reviews=_connection([{"id": "rv1"}]),
         threads=_connection([{"id": "t1"}]),
     )
-    monkeypatch.setattr(fetch_comments, "gh_api_graphql", lambda **kw: payload)
+    monkeypatch.setattr(fetch_comments, "gh_api_graphql", lambda **_: payload)
 
     result = fetch_comments.fetch_all("o", "r", 1)
     assert result["pull_request"] == {
@@ -100,7 +102,7 @@ def test_fetch_all_raises_on_graphql_errors(fetch_comments, monkeypatch):
     monkeypatch.setattr(
         fetch_comments,
         "gh_api_graphql",
-        lambda **kw: {"errors": [{"message": "bad query"}]},
+        lambda **_: {"errors": [{"message": "bad query"}]},
     )
     with pytest.raises(RuntimeError, match="GraphQL errors"):
         fetch_comments.fetch_all("o", "r", 1)
