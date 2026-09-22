@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
 import logging
 import sys
-from typing import Any
+from typing import Any, Literal
 
 from agent_utilities.core.config import load_config
 from agent_utilities.mcp.action_dispatch import resolve_action
@@ -541,7 +541,23 @@ def _repo_destructive_guard(action: str, allow_destructive: bool) -> dict | None
 def register_repo_tools(mcp: FastMCP):
     @mcp.tool(tags={"repos"})
     async def github_repos(
-        action: str = Field(
+        action: Literal[
+            "create",
+            "delete",
+            "get",
+            "list",
+            "pages_builds",
+            "pages_create",
+            "pages_delete",
+            "pages_get",
+            "pages_request_build",
+            "pages_update",
+            "secrets_delete",
+            "secrets_list",
+            "secrets_public_key",
+            "secrets_set",
+            "update",
+        ] = Field(
             description=(
                 "Action to perform. Must be one of: 'list', 'get', 'create', "
                 "'delete', 'update', 'pages_get', 'pages_create', "

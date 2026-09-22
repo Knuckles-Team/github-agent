@@ -366,7 +366,7 @@ sync:
   updated_field: updated_at
   pagination: page
   doc_type: repository
-  tool_schema_sha256: 125cd86b75abcb9a0ac47575ffbdda660260ded083695f69fe9725b3858cd46f
+  tool_schema_sha256: d9fd72890ea325c530bf853ba64fb08124b4d97bcef797c58357e4c29ca25aca
   raw:
     server: github-mcp
     tool: github_repos
@@ -377,7 +377,7 @@ sync:
     text_field: description
     updated_field: updated_at
     pagination: page
-    page_kind: page
+    page_kind: number
     page_param: page
     page_size_param: per_page
     doc_type: repository
