@@ -539,7 +539,18 @@ def _repo_destructive_guard(action: str, allow_destructive: bool) -> dict | None
 
 
 def register_repo_tools(mcp: FastMCP):
-    @mcp.tool(tags={"repos"})
+    @mcp.tool(
+        tags={"repos"},
+        annotations={
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
+            "openWorldHint": True,
+        },
+        meta={
+            "eg.annotations": {"modalities_in": ["text"], "modalities_out": ["text"]}
+        },
+    )
     async def github_repos(
         action: Literal[
             "create",
