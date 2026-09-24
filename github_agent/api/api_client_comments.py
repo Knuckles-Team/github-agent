@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from agent_utilities.core.decorators import require_auth
+from agent_connector_sdk.exceptions import require_auth
 
 from github_agent.api.api_client_base import BaseApiClient
 from github_agent.github_response_models import Response
