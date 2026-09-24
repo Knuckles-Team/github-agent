@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from agent_utilities.core.exceptions import ParameterError
+from agent_connector_sdk.exceptions import ParameterError
 
 from github_agent.api_client import Api
 
@@ -31,7 +31,7 @@ def test_all_api_validation_errors():
         session.patch.return_value = mock_resp
 
         # Also mock _fetch_all_pages to return invalid data [{}]
-        setattr(api, "_fetch_all_pages", MagicMock(return_value=(mock_resp, [{}])))
+        api._fetch_all_pages = MagicMock(return_value=(mock_resp, [{}]))
 
         # List of API methods to test with validation error
         api_methods: list[tuple[str, dict[str, Any]]] = [
