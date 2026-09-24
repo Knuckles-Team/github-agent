@@ -1,17 +1,8 @@
 #!/usr/bin/python
 
-import httpx
-from agent_connector_sdk.auth.delegation import (
-    DelegationSettings,
-    current_user_token,
-    exchange_token,
-)
+from agent_connector_sdk.auth.delegation import DelegationSettings, delegated_token
 from agent_connector_sdk.config import setting
-from agent_connector_sdk.exceptions import (
-    AuthError,
-    LoginRequiredError,
-    UnauthorizedError,
-)
+from agent_connector_sdk.exceptions import AuthError, UnauthorizedError
 from agent_connector_sdk.tls.profile import ResolvedTLSProfile
 from agent_connector_sdk.tls.resolve import resolve_tls_profile
 from agent_connector_sdk.utilities import get_logger
@@ -33,20 +24,14 @@ def allow_destructive_default() -> bool:
 
 def _exchange_delegated_token(settings: DelegationSettings) -> str:
     """Exchange the caller's verified MCP token for a downstream GitHub token."""
-    subject_token = current_user_token()
-    if not subject_token:
-        raise LoginRequiredError("no verified caller token to delegate")
     logger.info(
         "Initiating OAuth token exchange for GitHub",
         extra={"audience": settings.audience, "scopes": settings.scopes},
     )
     try:
-        with httpx.Client(timeout=30) as http_client:
-            access_token = exchange_token(
-                settings, subject_token=subject_token, http_client=http_client
-            )
+        token = delegated_token(settings)
         logger.info("Token exchange successful")
-        return access_token.value
+        return token
     except Exception as e:
         logger.error("Token exchange failed: error_type=%s", type(e).__name__)
         raise RuntimeError("Token exchange failed") from e

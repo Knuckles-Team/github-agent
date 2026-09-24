@@ -4,7 +4,6 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 import requests
 from agent_connector_sdk.auth.delegation import DelegationSettings
-from agent_connector_sdk.auth.tokens import AccessToken
 from agent_connector_sdk.exceptions import (
     AuthError,
     LoginRequiredError,
@@ -93,14 +92,17 @@ def test_auth_get_client_fixed_credentials_failure():
 
 
 def test_auth_get_client_delegation_missing_token():
-    # delegation enabled, but current_user_token() has nothing to delegate
+    # delegation enabled, but the SDK has no verified caller token to delegate
     with (
         patch.object(
             DelegationSettings, "from_settings", return_value=_DELEGATION_SETTINGS
         ),
-        patch("github_agent.auth.current_user_token", return_value=None),
+        patch(
+            "github_agent.auth.delegated_token",
+            side_effect=LoginRequiredError("no verified caller token to delegate"),
+        ),
     ):
-        with pytest.raises(LoginRequiredError, match="no verified caller token"):
+        with pytest.raises(RuntimeError, match="^Token exchange failed$"):
             get_client()
 
 
@@ -110,9 +112,8 @@ def test_auth_get_client_delegation_exchange_failure():
         patch.object(
             DelegationSettings, "from_settings", return_value=_DELEGATION_SETTINGS
         ),
-        patch("github_agent.auth.current_user_token", return_value="mock-subject-token"),
         patch(
-            "github_agent.auth.exchange_token",
+            "github_agent.auth.delegated_token",
             side_effect=requests.exceptions.RequestException("OAuth connection error"),
         ),
     ):
@@ -122,13 +123,14 @@ def test_auth_get_client_delegation_exchange_failure():
 
 def test_auth_get_client_delegation_auth_error():
     # delegation enabled, user token present, token exchange succeeds, but Api throws AuthError
-    fake_token = AccessToken("mock-exchanged-github-token", 300.0, 0.0)
     with (
         patch.object(
             DelegationSettings, "from_settings", return_value=_DELEGATION_SETTINGS
         ),
-        patch("github_agent.auth.current_user_token", return_value="mock-subject-token"),
-        patch("github_agent.auth.exchange_token", return_value=fake_token),
+        patch(
+            "github_agent.auth.delegated_token",
+            return_value="mock-exchanged-github-token",
+        ),
         patch(
             "github_agent.auth.Api", side_effect=AuthError("Invalid exchanged token")
         ),
@@ -142,13 +144,14 @@ def test_auth_get_client_delegation_auth_error():
 
 def test_auth_get_client_delegation_success():
     # delegation enabled, user token present, token exchange succeeds, Api succeeds
-    fake_token = AccessToken("mock-exchanged-github-token", 300.0, 0.0)
     with (
         patch.object(
             DelegationSettings, "from_settings", return_value=_DELEGATION_SETTINGS
         ),
-        patch("github_agent.auth.current_user_token", return_value="mock-subject-token"),
-        patch("github_agent.auth.exchange_token", return_value=fake_token),
+        patch(
+            "github_agent.auth.delegated_token",
+            return_value="mock-exchanged-github-token",
+        ),
         patch("github_agent.auth.Api") as mock_api_class,
     ):
         mock_api_instance = MagicMock()
