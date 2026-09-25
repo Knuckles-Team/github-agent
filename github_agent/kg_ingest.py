@@ -475,3 +475,70 @@ def ingest_pipeline_runs(
         entities.extend(run_entities)
         relationships.extend(run_relationships)
     return ingest_entities(entities, relationships, client=client, graph=graph)
+
+
+# ── EH-410: pipeline EVENTS (polling) ────────────────────────────────────────
+# A :PipelineRun node is the run's latest state; a :PipelineRunEvent is one
+# status transition as GitHub reported it. Polling (no public ingress): each
+# poll maps every run updated after the caller's cursor to one event keyed by
+# (run, status, conclusion, updated_at), so a re-poll is idempotent and a run
+# that moves queued -> in_progress -> completed yields three events.
+
+
+def _iso(value: Any) -> str:
+    """An ``updated_at`` as ISO-8601 text, whether a string or a datetime."""
+    if value is None:
+        return ""
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
+def _pipeline_event(
+    run: dict[str, Any], repo: str
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None:
+    run_id = run.get("id")
+    updated = _iso(run.get("updated_at"))
+    if run_id is None or not updated:
+        return None
+    run_node_id = f"github:pipelinerun:{repo}:{run_id}"
+    status = run.get("status") or ""
+    conclusion = run.get("conclusion") or ""
+    event = {
+        "id": f"github:pipelineevent:{repo}:{run_id}:{status}:{conclusion}:{updated}",
+        "node_type": "PipelineRunEvent",
+        "status": status,
+        "conclusion": conclusion,
+        "reportedAt": updated,
+        "runId": str(run_id),
+        "headSha": run.get("head_sha"),
+        "epistemic_class": "observation",
+    }
+    edge = {
+        "source": event["id"],
+        "target": run_node_id,
+        "relationship": "pipelineEventOf",
+    }
+    return event, _pipeline_run_entity(run, run_node_id, run_id), edge
+
+
+def ingest_pipeline_run_events(
+    runs: list[dict[str, Any]],
+    *,
+    repo_full_name: str,
+    since: str | None = None,
+    client: Any | None = None,
+    graph: str | None = None,
+) -> dict[str, Any]:
+    """Ingest one ``:PipelineRunEvent`` per run updated after ``since``.
+
+    Returns the write counts plus ``cursor``: the newest ``updated_at`` seen
+    (``since`` when nothing newer), which the next poll passes back.
+    """
+    fresh = [run for run in runs or [] if _iso(run.get("updated_at")) > (since or "")]
+    mapped = [m for m in (_pipeline_event(r, repo_full_name) for r in fresh) if m]
+    cursor = max((event["reportedAt"] for event, _, _ in mapped), default=since)
+    if not mapped:
+        return {"nodes": 0, "edges": 0, "cursor": cursor}
+    entities = [node for event, run, _ in mapped for node in (event, run)]
+    relationships = [edge for _, _, edge in mapped]
+    written = ingest_entities(entities, relationships, client=client, graph=graph)
+    return {**written, "cursor": cursor}

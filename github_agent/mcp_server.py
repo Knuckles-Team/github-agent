@@ -3566,6 +3566,42 @@ def register_ingest_tools(mcp: FastMCP):
         )
         return {"listed": len(runs), "ingested": result}
 
+    @mcp.tool(tags={"kg", "actions", "cicd"})
+    async def github_ingest_pipeline_events(
+        params_json: str = Field(
+            default="{}",
+            description=(
+                "JSON with 'owner' and 'repo' (required) and 'since' (the cursor the "
+                "previous poll returned; ISO-8601 updated_at)."
+            ),
+        ),
+        client=Depends(get_client),
+        ctx: Context | None = Field(default=None, description="MCP context"),
+    ) -> Any:
+        """EH-410: poll GitHub Actions and ingest one :PipelineRunEvent per run
+        status change since the cursor (GitHub needs no public webhook ingress).
+        Returns the next cursor."""
+        import json
+
+        from github_agent.kg_ingest import ingest_pipeline_run_events
+
+        try:
+            kwargs = json.loads(params_json) if params_json else {}
+        except ValueError:
+            return {"status": 400, "error": "Invalid params_json", "data": None}
+        owner, repo = kwargs.get("owner"), kwargs.get("repo")
+        if not owner or not repo:
+            return {"status": 400, "error": "Missing 'owner' or 'repo'", "data": None}
+        if ctx:
+            await ctx.info("Polling GitHub Actions pipeline events...")
+        list_kwargs = _ingest_pipeline_list_kwargs(kwargs)
+        response = await run_blocking(client.get_workflow_runs, **list_kwargs)
+        runs = _ingest_pipeline_normalize_runs(response.data)
+        result = ingest_pipeline_run_events(
+            runs, repo_full_name=f"{owner}/{repo}", since=kwargs.get("since")
+        )
+        return {"listed": len(runs), "ingested": result, "cursor": result["cursor"]}
+
 
 def register_graphql_tools(mcp: FastMCP):
     from github_agent.auth import get_graphql_client
