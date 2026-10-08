@@ -1,13 +1,13 @@
 # Installation
 
 `github-agent` is a standard Python package and a prebuilt container image. Pick the
-path that matches how you want to run it.
+path that matches how the operator want to run it.
 
 ## Requirements
 
 - **Python 3.11 – 3.14**.
 - A **GitHub personal access token** (or GitHub App token) with the scopes for the
-  operations you intend to perform. Reads of public data work unauthenticated, but
+  operations the operator intend to perform. Reads of public data work unauthenticated, but
   most tools expect a token.
 
 ## From PyPI (recommended)
