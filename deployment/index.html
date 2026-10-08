@@ -1125,11 +1125,11 @@ the MCP server:</p>
 including telemetry (<code>ENABLE_OTEL</code>, <code>OTEL_EXPORTER_OTLP_*</code>) and access governance
 (<code>EUNOMIA_TYPE</code>), is documented in
 <a href="https://github.com/Knuckles-Team/github-agent/blob/main/.env.example"><code>.env.example</code></a>.
-Copy it to <code>.env</code> and populate only what you use; an absent <code>GITHUB_TOKEN</code> leaves the
+Copy it to <code>.env</code> and populate only what the operator use; an absent <code>GITHUB_TOKEN</code> leaves the
 client unauthenticated rather than raising.</p>
 <h2 id="backing-service">Backing service<a class="headerlink" href="#backing-service" title="Permanent link">&para;</a></h2>
 <p>GitHub is a <strong>managed (SaaS) service</strong> — there is no backing system to deploy. Point
-<code>GITHUB_URL</code> at <code>https://api.github.com</code> for GitHub.com, or at your GitHub Enterprise
+<code>GITHUB_URL</code> at <code>https://api.github.com</code> for GitHub.com, or at the operator's GitHub Enterprise
 Server REST endpoint (for example, <code>https://github.example.com/api/v3</code>), and supply a
 <code>GITHUB_TOKEN</code>. Only connection configuration is required.</p>
 <h2 id="docker-compose">Docker Compose<a class="headerlink" href="#docker-compose" title="Permanent link">&para;</a></h2>
@@ -1196,7 +1196,7 @@ server over <code>MCP_URL</code> and publishes its own HTTP API (and optional we
 <p>Configure the agent's model with <code>PROVIDER</code>, <code>MODEL_ID</code>, and the matching provider
 API key (for example <code>LLM_API_KEY</code> / <code>OPENAI_API_KEY</code>).</p>
 <h2 id="behind-a-caddy-reverse-proxy">Behind a Caddy reverse proxy<a class="headerlink" href="#behind-a-caddy-reverse-proxy" title="Permanent link">&para;</a></h2>
-<p>Expose the HTTP server on a hostname with automatic TLS. Add to your <code>Caddyfile</code>:</p>
+<p>Expose the HTTP server on a hostname with automatic TLS. Add to the operator's <code>Caddyfile</code>:</p>
 <div class="language-caddy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Internal (self-signed) — homelab .example.invalid zone</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>github-agent.example.invalid<span class="w"> </span><span class="p">{</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="k">tls</span><span class="w"> </span>internal
@@ -1226,7 +1226,7 @@ console (<code>http://technitium.example.invalid:5380</code>). The ecosystem
 <a href="https://knuckles-team.github.io/technitium-dns-mcp/"><code>technitium-dns-mcp</code></a> automates
 this as a tool.</p>
 <h2 id="register-with-an-mcp-client">Register with an MCP client<a class="headerlink" href="#register-with-an-mcp-client" title="Permanent link">&para;</a></h2>
-<p>Add to your client's <code>mcp_config.json</code> (multiplexer nickname <code>gh</code>):</p>
+<p>Add to the operator's client's <code>mcp_config.json</code> (multiplexer nickname <code>gh</code>):</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
 </span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 </span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="nt">"github-agent"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
