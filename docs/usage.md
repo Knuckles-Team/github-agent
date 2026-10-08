@@ -1,7 +1,7 @@
 # Usage — MCP / API / CLI
 
 `github-agent` exposes the same capability three ways: as **MCP tools** an agent
-calls, as a **Python API** (`Api`) you import, and as **CLI** servers you run. The
+calls, as a **Python API** (`Api`) the operator import, and as **CLI** servers the operator run. The
 supervisor architecture and the specialized child agents are detailed in
 [Overview](overview.md).
 

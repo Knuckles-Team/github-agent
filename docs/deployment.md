@@ -121,13 +121,13 @@ Each tool domain is gated by its own switch — `REPOTOOL`, `ISSUETOOL`, `PULLTO
 including telemetry (`ENABLE_OTEL`, `OTEL_EXPORTER_OTLP_*`) and access governance
 (`EUNOMIA_TYPE`), is documented in
 [`.env.example`](https://github.com/Knuckles-Team/github-agent/blob/main/.env.example).
-Copy it to `.env` and populate only what you use; an absent `GITHUB_TOKEN` leaves the
+Copy it to `.env` and populate only what the operator use; an absent `GITHUB_TOKEN` leaves the
 client unauthenticated rather than raising.
 
 ## Backing service
 
 GitHub is a **managed (SaaS) service** — there is no backing system to deploy. Point
-`GITHUB_URL` at `https://api.github.com` for GitHub.com, or at your GitHub Enterprise
+`GITHUB_URL` at `https://api.github.com` for GitHub.com, or at the operator's GitHub Enterprise
 Server REST endpoint (for example, `https://github.example.com/api/v3`), and supply a
 `GITHUB_TOKEN`. Only connection configuration is required.
 
@@ -209,7 +209,7 @@ API key (for example `LLM_API_KEY` / `OPENAI_API_KEY`).
 
 ## Behind a Caddy reverse proxy
 
-Expose the HTTP server on a hostname with automatic TLS. Add to your `Caddyfile`:
+Expose the HTTP server on a hostname with automatic TLS. Add to the operator's `Caddyfile`:
 
 ```caddy
 # Internal (self-signed) — homelab .example.invalid zone
@@ -253,7 +253,7 @@ this as a tool.
 
 ## Register with an MCP client
 
-Add to your client's `mcp_config.json` (multiplexer nickname `gh`):
+Add to the operator's client's `mcp_config.json` (multiplexer nickname `gh`):
 
 ```json
 {
