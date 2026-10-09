@@ -4,31 +4,13 @@ from unittest.mock import patch
 
 
 def test_server_startup():
-    """Validates that the server module and __main__ can run successfully."""
-    with (
-        patch("agent_utilities.create_agent_server") as mock_create,
-        patch("agent_utilities.initialize_workspace"),
-        patch("agent_utilities.load_identity") as mock_load,
-    ):
-        mock_load.return_value = {
-            "name": "Test Github Agent",
-            "description": "Test description",
-        }
-
-        # Test agent_server with --debug
-        test_args = ["agent_server.py", "--debug"]
-        with patch.object(sys, "argv", test_args):
-            runpy.run_module("github_agent.agent_server", run_name="__main__")
-
-        assert mock_create.called
-
-        # Test __main__ execution
-        mock_create.reset_mock()
+    """Validates that __main__ delegates to the MCP server."""
+    with patch("github_agent.mcp_server.mcp_server") as mock_mcp_server:
         test_args = ["__main__.py"]
         with patch.object(sys, "argv", test_args):
             runpy.run_module("github_agent.__main__", run_name="__main__")
 
-        assert mock_create.called
+        mock_mcp_server.assert_called_once()
 
 
 def test_mcp_server_main_startup():
@@ -39,7 +21,7 @@ def test_mcp_server_main_startup():
     # parser. Pin argv to a clean single-element list for the duration of
     # the run so the module under test sees the same argv regardless of how
     # pytest was invoked (mirrors the pattern already used above for
-    # agent_server/`__main__`).
+    # `__main__`).
     with (
         patch("fastmcp.FastMCP.run") as mock_run,
         patch.object(sys, "argv", ["mcp_server.py"]),

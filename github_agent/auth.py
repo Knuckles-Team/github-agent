@@ -1,18 +1,21 @@
 #!/usr/bin/python
 
-import threading
-
-import requests
-from agent_utilities.base_utilities import get_logger
-from agent_utilities.core.config import config as agent_config
-from agent_utilities.core.config import setting
-from agent_utilities.core.exceptions import AuthError, UnauthorizedError
-from agent_utilities.core.transport_security import (
-    ResolvedTLSProfile,
-    resolve_configured_tls_profile,
+import httpx
+from agent_connector_sdk.auth.delegation import (
+    DelegationSettings,
+    current_user_token,
+    exchange_token,
 )
+from agent_connector_sdk.config import setting
+from agent_connector_sdk.exceptions import (
+    AuthError,
+    LoginRequiredError,
+    UnauthorizedError,
+)
+from agent_connector_sdk.tls.profile import ResolvedTLSProfile
+from agent_connector_sdk.tls.resolve import resolve_tls_profile
+from agent_connector_sdk.utilities import get_logger
 
-local = threading.local()
 from github_agent.api_client import Api
 
 logger = get_logger(__name__)
@@ -28,84 +31,28 @@ def allow_destructive_default() -> bool:
     return setting("GITHUB_ALLOW_DESTRUCTIVE", False)
 
 
-def _require_delegation_user_token() -> str:
-    """Fetch the caller's OIDC user token for delegation, or raise."""
-    user_token = getattr(local, "user_token", None)
-    if not user_token:
-        logger.error("No user token available for delegation")
-        raise ValueError("No user token available for delegation")
-    return user_token
-
-
-def _validate_delegation_config(config: dict) -> tuple[str, str, str, str, str]:
-    """Validate the OAuth delegation settings on ``config`` and return them."""
-    token_endpoint = config.get("token_endpoint")
-    client_id = config.get("oidc_client_id")
-    client_secret = config.get("oidc_client_secret")
-    audience = config.get("audience")
-    delegated_scopes = config.get("delegated_scopes")
-
-    if (
-        not isinstance(token_endpoint, str)
-        or not isinstance(client_id, str)
-        or not isinstance(client_secret, str)
-        or not isinstance(audience, str)
-        or not isinstance(delegated_scopes, str)
-    ):
-        raise ValueError("Invalid OAuth configuration parameters")
-
-    return token_endpoint, client_id, client_secret, audience, delegated_scopes
-
-
-def _exchange_delegated_token(
-    token_endpoint: str,
-    client_id: str,
-    client_secret: str,
-    audience: str,
-    delegated_scopes: str,
-    user_token: str,
-) -> str:
-    """Perform the OIDC token-exchange call and return the new bearer token."""
+def _exchange_delegated_token(settings: DelegationSettings) -> str:
+    """Exchange the caller's verified MCP token for a downstream GitHub token."""
     logger.info(
         "Initiating OAuth token exchange for GitHub",
-        extra={
-            "audience": audience,
-            "scopes": delegated_scopes,
-        },
+        extra={"audience": settings.audience, "scopes": settings.scopes},
     )
-
-    exchange_data = {
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        "subject_token": user_token,
-        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
-        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",  # nosec B105
-        "audience": audience,
-        "scope": delegated_scopes,
-    }
-    auth = (client_id, client_secret)
-    token_tls = resolve_configured_tls_profile(
-        "oauth2_token",
-        profile_name=agent_config.oauth2_token_tls_profile,
-        profile_ref=agent_config.oauth2_token_tls_profile_ref,
-        config=agent_config,
-    )
-    try:
-        response = requests.post(
-            token_endpoint,
-            data=exchange_data,
-            auth=auth,
-            timeout=30,
-            **token_tls.requests_kwargs(),
+    subject_token = current_user_token()
+    if not subject_token:
+        logger.error("No verified caller token available for delegation")
+        raise RuntimeError("Token exchange failed") from LoginRequiredError(
+            "no verified caller token to delegate"
         )
-        response.raise_for_status()
-        new_token = response.json()["access_token"]
+    try:
+        with httpx.Client() as http_client:
+            access_token = exchange_token(
+                settings, subject_token=subject_token, http_client=http_client
+            )
         logger.info("Token exchange successful")
-        return new_token
+        return access_token.value
     except Exception as e:
         logger.error("Token exchange failed: error_type=%s", type(e).__name__)
         raise RuntimeError("Token exchange failed") from e
-    finally:
-        token_tls.cleanup()
 
 
 def _build_delegated_client(instance: str, new_token: str, profile: ResolvedTLSProfile) -> Api:
@@ -139,7 +86,6 @@ def _build_fixed_client(instance: str, token: str | None, profile: ResolvedTLSPr
 
 
 def get_client(
-    config: dict | None = None,
     tls_profile: ResolvedTLSProfile | None = None,
 ) -> Api:
     """
@@ -148,28 +94,17 @@ def get_client(
     """
     instance = setting("GITHUB_URL", "https://api.github.com")
     token = setting("GITHUB_TOKEN", None)
-    profile = tls_profile or resolve_configured_tls_profile("github")
+    profile = tls_profile or resolve_tls_profile("github")
 
-    if config is None:
-        from agent_utilities.mcp.server_factory import mcp_auth_config as default_config
-
-        config = default_config
-
-    if not config.get("enable_delegation"):
+    settings = DelegationSettings.from_settings()
+    if not settings.enabled:
         return _build_fixed_client(instance, token, profile)
 
-    user_token = _require_delegation_user_token()
-    token_endpoint, client_id, client_secret, audience, delegated_scopes = (
-        _validate_delegation_config(config)
-    )
-    new_token = _exchange_delegated_token(
-        token_endpoint, client_id, client_secret, audience, delegated_scopes, user_token
-    )
+    new_token = _exchange_delegated_token(settings)
     return _build_delegated_client(instance, new_token, profile)
 
 
 def get_graphql_client(
-    config: dict | None = None,
     tls_profile: ResolvedTLSProfile | None = None,
 ):
     """Factory for the GitHub GraphQL client (parity with :func:`get_client`).
@@ -181,17 +116,13 @@ def get_graphql_client(
 
     instance = setting("GITHUB_URL", "https://api.github.com")
     token = setting("GITHUB_TOKEN", None)
-    profile = tls_profile or resolve_configured_tls_profile("github")
+    profile = tls_profile or resolve_tls_profile("github")
 
-    if config is None:
-        from agent_utilities.mcp.server_factory import mcp_auth_config as default_config
-
-        config = default_config
-
-    if config.get("enable_delegation"):
+    settings = DelegationSettings.from_settings()
+    if settings.enabled:
         # Reuse the REST factory's OIDC token exchange, then read back the
         # exchanged bearer token for the GraphQL transport.
-        api = get_client(config, tls_profile=profile)
+        api = get_client(tls_profile=profile)
         authorization = str(api.headers.get("Authorization", ""))
         token = authorization.removeprefix("Bearer ") or token
 

@@ -24,11 +24,11 @@ import logging
 import sys
 from typing import Any
 
-from agent_utilities.core.config import load_config
-from agent_utilities.mcp.action_dispatch import resolve_action
-from agent_utilities.mcp.concurrency import run_blocking
-from agent_utilities.mcp.server_factory import create_mcp_server
-from agent_utilities.mcp.verbose_tools import register_tool_surface
+from agent_connector_sdk.config import load_config
+from agent_connector_sdk.mcp.action_dispatch import resolve_action
+from agent_connector_sdk.mcp.concurrency import run_blocking
+from agent_connector_sdk.mcp.server import create_mcp_server
+from agent_connector_sdk.mcp.tool_surface import register_tool_surface
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.api_client import Api
@@ -3465,7 +3465,7 @@ def register_ingest_tools(mcp: FastMCP):
             for repo in response.data
             if repo is not None
         ]
-        result = ingest_repositories(records)
+        result = await ingest_repositories(records)
         return {"listed": len(records), "ingested": result}
 
     @mcp.tool(tags={"kg"})
@@ -3531,7 +3531,7 @@ def register_ingest_tools(mcp: FastMCP):
             client, owner, repo, runs, include_jobs
         )
 
-        result = ingest_pipeline_runs(
+        result = await ingest_pipeline_runs(
             runs,
             repo_full_name=f"{owner}/{repo}",
             repo_node_id=repo_node_id,
@@ -3598,9 +3598,9 @@ def register_graphql_tools(mcp: FastMCP):
         ),
     ) -> dict:
         """Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time."""
-        from agent_utilities.mcp.context_helpers import (
-            ctx_graphql_get_type_details,
-            ctx_graphql_list_types,
+        from agent_connector_sdk.mcp.graphql import (
+            graphql_schema_types,
+            graphql_type_details,
         )
 
         if ctx:
@@ -3613,8 +3613,8 @@ def register_graphql_tools(mcp: FastMCP):
 
         try:
             if type_name:
-                return await ctx_graphql_get_type_details(execute_fn, type_name)
-            return await ctx_graphql_list_types(execute_fn)
+                return dict(await graphql_type_details(execute_fn, type_name))
+            return dict(await graphql_schema_types(execute_fn))
         except Exception:
             return {"error": "Failed to discover GitHub GraphQL schema"}
 

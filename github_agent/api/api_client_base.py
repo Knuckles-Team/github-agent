@@ -7,16 +7,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeVar
 
 import requests
-from agent_utilities.base_utilities import get_logger
-from agent_utilities.core.exceptions import (
+from agent_connector_sdk.exceptions import (
     AuthError,
     MissingParameterError,
     UnauthorizedError,
 )
-from agent_utilities.core.transport_security import (
-    ResolvedTLSProfile,
-    resolve_configured_tls_profile,
-)
+from agent_connector_sdk.tls.profile import ResolvedTLSProfile
+from agent_connector_sdk.tls.resolve import resolve_tls_profile
+from agent_connector_sdk.utilities import get_logger
 from pydantic import BaseModel
 
 logger = get_logger(__name__)
@@ -89,7 +87,7 @@ class BaseApiClient:
         if url is None:
             raise MissingParameterError
 
-        self.tls_profile = tls_profile or resolve_configured_tls_profile("github")
+        self.tls_profile = tls_profile or resolve_tls_profile("github")
         self._session = self.tls_profile.configure_requests_session(requests.Session())
         _adapter = _TimeoutAdapter(_default_timeout())
         self._session.mount("https://", _adapter)

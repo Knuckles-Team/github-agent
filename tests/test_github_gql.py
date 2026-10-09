@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from agent_utilities.core.exceptions import MissingParameterError
+from agent_connector_sdk.exceptions import MissingParameterError
 
 from github_agent.github_gql import GraphQL
 

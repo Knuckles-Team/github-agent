@@ -120,41 +120,33 @@ def test_mcp_server_coverage():
         loop.close()
 
 
-def test_agent_server_coverage():
-    import github_agent.agent_server as mod
-    from github_agent.agent_server import agent_server
-
-    with patch("agent_utilities.create_agent_server") as mock_s:
-        with patch("sys.argv", ["agent_server.py"]):
-            if inspect.isfunction(agent_server):
-                agent_server()
-            else:
-                mod.agent_server()
-            assert mock_s.called
-
-
 @pytest.mark.usefixtures("mock_session")
 def test_auth_delegation():
-    from github_agent import auth
+    import time
+
+    from agent_connector_sdk.auth.delegation import DelegationSettings
+    from agent_connector_sdk.auth.tokens import AccessToken
+
     from github_agent.auth import get_client
 
-    config = {
-        "enable_delegation": True,
-        "audience": "test",
-        "delegated_scopes": "test",
-        "oidc_client_id": "test",
-        "oidc_client_secret": "test",
-        "token_endpoint": "http://test/token",
-    }
+    settings = DelegationSettings(
+        enabled=True,
+        token_endpoint="http://test/token",
+        client_id="test",
+        client_secret_ref="env://GITHUB_OIDC_CLIENT_SECRET",
+        audience="test",
+        scopes="test",
+    )
+    access_token = AccessToken(
+        value="exchanged_token",
+        ttl_seconds=3600.0,
+        expires_at=time.monotonic() + 3600.0,
+    )
 
-    # Mock local.user_token
-    auth.local.user_token = "mock_subject_token"
-
-    with patch("requests.post") as mock_post:
-        resp = MagicMock()
-        resp.status_code = 200
-        resp.json.return_value = {"access_token": "exchanged_token"}
-        mock_post.return_value = resp
-
-        client = get_client(config=config)
+    with (
+        patch.object(DelegationSettings, "from_settings", return_value=settings),
+        patch("github_agent.auth.current_user_token", return_value="caller-token"),
+        patch("github_agent.auth.exchange_token", return_value=access_token),
+    ):
+        client = get_client()
         assert client.headers["Authorization"] == "Bearer exchanged_token"
