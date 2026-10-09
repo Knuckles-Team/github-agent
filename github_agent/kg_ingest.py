@@ -4,15 +4,15 @@ CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector nat
 pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
 ``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
-**:Document** nodes for semantic search, through the required
-``agent_utilities.knowledge_graph.memory.native_ingest`` authority — the one connector
-write path; there is no self-contained fallback transaction here.
+**:Document** nodes for semantic search, through the ``agent_connector_sdk.ingest``
+facade — the one connector write path; there is no self-contained fallback
+transaction here.
 
 This is a thin mapper: entities use the canonical ``node_type`` field and
 relationships the canonical ``relationship`` field. ``ingest_entities`` /
 ``ingest_documents`` are best-effort: they return ``None`` (never raise) for empty
-input or when the shared primitive reports :class:`NativeIngestError` (no reachable
-engine, no verified session, or a malformed record). Node ids follow
+input or when the SDK reports :class:`IngestError`/:class:`IngestUnavailableError`
+(no reachable engine, no verified session, or a malformed record). Node ids follow
 ``github:<class>:<externalId>``.
 """
 
@@ -22,50 +22,71 @@ import logging
 import time
 from typing import Any
 
-from agent_utilities.knowledge_graph.memory.native_ingest import (
-    NativeIngestError,
-)
-from agent_utilities.knowledge_graph.memory.native_ingest import (
-    ingest_documents as _native_ingest_documents,
-)
-from agent_utilities.knowledge_graph.memory.native_ingest import (
-    ingest_entities as _native_ingest_entities,
+from agent_connector_sdk.ingest import (
+    ChangeSet,
+    Entity,
+    IngestBinding,
+    IngestError,
+    IngestUnavailableError,
+    KnowledgeIngest,
+    Relationship,
+    current_ingest,
 )
 
 logger = logging.getLogger("github_agent.kg")
 
-_SOURCE = "github-agent"
-_DOMAIN = "github"
+_ENTITY_BINDING = IngestBinding(connector="github-agent", stream="github")
+_DOCUMENT_BINDING = IngestBinding(connector="github-agent", stream="github-documents")
 
 
-def ingest_entities(
+def _to_entity(record: dict[str, Any]) -> Entity:
+    return Entity(
+        id=record.get("id"),
+        node_type=record.get("node_type"),
+        properties={k: v for k, v in record.items() if k not in ("id", "node_type")},
+    )
+
+
+def _to_relationship(record: dict[str, Any]) -> Relationship:
+    props = {
+        k: v
+        for k, v in record.items()
+        if k not in ("source", "target", "relationship")
+    }
+    return Relationship(
+        source=record["source"],
+        target=record["target"],
+        relationship=record["relationship"],
+        properties=props or None,
+    )
+
+
+async def ingest_entities(
     entities: list[dict[str, Any]],
     relationships: list[dict[str, Any]] | None = None,
     *,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Write typed OWL nodes (+ edges) into epistemic-graph. Best-effort, never raises.
 
     ``entities``: ``[{"id":..., "node_type":<owl:Class>, ...props}]``.
     ``relationships``: ``[{"source":id, "target":id, "relationship":<link>}]``.
     Returns ``{"nodes":n, "edges":m}`` or ``None`` (empty input / no reachable engine /
-    malformed record). ``client``/``graph`` may be injected (tests); otherwise the
-    process-owned governed authority is resolved on demand.
+    malformed record). ``ingest`` may be injected (tests); otherwise the
+    process-installed knowledge-ingest service is resolved on demand.
     """
     entities = [e for e in (entities or []) if e.get("id")]
     if not entities:
         return None
+    change_set = ChangeSet(
+        entities=tuple(_to_entity(e) for e in entities),
+        relationships=tuple(_to_relationship(r) for r in relationships or ()),
+    )
     try:
-        return _native_ingest_entities(
-            entities,
-            relationships,
-            source=_SOURCE,
-            domain=_DOMAIN,
-            client=client,
-            graph=graph,
-        )
-    except NativeIngestError as exc:
+        service = ingest if ingest is not None else current_ingest()
+        receipt = await service.submit(_ENTITY_BINDING, change_set)
+        return {"nodes": receipt.affected_count, "edges": receipt.relationship_count}
+    except (IngestError, IngestUnavailableError) as exc:
         logger.debug("KG ingest unavailable/failed: %s", exc)
         return None
 
@@ -84,11 +105,10 @@ def _document_node(doc: dict[str, Any], now: str) -> dict[str, Any] | None:
     return node
 
 
-def ingest_documents(
+async def ingest_documents(
     documents: list[dict[str, Any]],
     *,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Write text records as ``:Document`` nodes (semantic-search fodder). Best-effort.
 
@@ -103,11 +123,12 @@ def ingest_documents(
     ]
     if not nodes:
         return None
+    change_set = ChangeSet(entities=tuple(_to_entity(n) for n in nodes))
     try:
-        return _native_ingest_documents(
-            nodes, source=_SOURCE, domain=_DOMAIN, client=client, graph=graph
-        )
-    except NativeIngestError as exc:
+        service = ingest if ingest is not None else current_ingest()
+        receipt = await service.submit(_DOCUMENT_BINDING, change_set)
+        return {"nodes": receipt.affected_count, "edges": receipt.relationship_count}
+    except (IngestError, IngestUnavailableError) as exc:
         logger.debug("KG ingest unavailable/failed: %s", exc)
         return None
 
@@ -134,11 +155,10 @@ def _str(value: Any) -> Any:
     return None if value is None else str(value)
 
 
-def ingest_repositories(
+async def ingest_repositories(
     repositories: list[dict[str, Any]],
     *,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Map GitHub repository records → ``:Repository`` (+ owner ``:Organization``/``:Person``) nodes."""
     entities: list[dict[str, Any]] = []
@@ -179,15 +199,14 @@ def ingest_repositories(
             relationships.append(
                 {"source": node_id, "target": oid, "relationship": "ownedByOrg"}
             )
-    return ingest_entities(entities, relationships, client=client, graph=graph)
+    return await ingest_entities(entities, relationships, ingest=ingest)
 
 
-def ingest_pull_requests(
+async def ingest_pull_requests(
     pull_requests: list[dict[str, Any]],
     *,
     repo_node_id: str | None = None,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Map GitHub pull-request records → ``:PullRequest`` nodes (+ author, repo links)."""
     entities: list[dict[str, Any]] = []
@@ -223,15 +242,14 @@ def ingest_pull_requests(
                     "relationship": "belongsToRepository",
                 }
             )
-    return ingest_entities(entities, relationships, client=client, graph=graph)
+    return await ingest_entities(entities, relationships, ingest=ingest)
 
 
-def ingest_issues(
+async def ingest_issues(
     issues: list[dict[str, Any]],
     *,
     repo_node_id: str | None = None,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Map GitHub issue records → ``:Issue`` nodes (+ author, repo links).
 
@@ -272,15 +290,14 @@ def ingest_issues(
                     "relationship": "belongsToRepository",
                 }
             )
-    return ingest_entities(entities, relationships, client=client, graph=graph)
+    return await ingest_entities(entities, relationships, ingest=ingest)
 
 
-def ingest_release_notes(
+async def ingest_release_notes(
     releases: list[dict[str, Any]],
     *,
     repo_full_name: str | None = None,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Map GitHub release records → ``:Document`` nodes carrying the release-notes body."""
     docs: list[dict[str, Any]] = []
@@ -300,7 +317,7 @@ def ingest_release_notes(
                 "externalToolId": str(rid),
             }
         )
-    return ingest_documents(docs, client=client, graph=graph)
+    return await ingest_documents(docs, ingest=ingest)
 
 
 def _duration_seconds(start: Any, end: Any) -> int | None:
@@ -440,14 +457,13 @@ def _pipeline_run_graph(
     return entities, relationships
 
 
-def ingest_pipeline_runs(
+async def ingest_pipeline_runs(
     runs: list[dict[str, Any]],
     *,
     repo_full_name: str | None = None,
     repo_node_id: str | None = None,
     jobs_by_run: dict[int, list[dict[str, Any]]] | None = None,
-    client: Any | None = None,
-    graph: str | None = None,
+    ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
     """Map GitHub Actions workflow runs (+ jobs/check-runs) → ``:PipelineRun``/``:CheckRun``.
 
@@ -474,4 +490,4 @@ def ingest_pipeline_runs(
         run_entities, run_relationships = run_graph
         entities.extend(run_entities)
         relationships.extend(run_relationships)
-    return ingest_entities(entities, relationships, client=client, graph=graph)
+    return await ingest_entities(entities, relationships, ingest=ingest)

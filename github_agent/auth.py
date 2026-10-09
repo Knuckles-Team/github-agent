@@ -1,8 +1,17 @@
 #!/usr/bin/python
 
-from agent_connector_sdk.auth.delegation import DelegationSettings, delegated_token
+import httpx
+from agent_connector_sdk.auth.delegation import (
+    DelegationSettings,
+    current_user_token,
+    exchange_token,
+)
 from agent_connector_sdk.config import setting
-from agent_connector_sdk.exceptions import AuthError, UnauthorizedError
+from agent_connector_sdk.exceptions import (
+    AuthError,
+    LoginRequiredError,
+    UnauthorizedError,
+)
 from agent_connector_sdk.tls.profile import ResolvedTLSProfile
 from agent_connector_sdk.tls.resolve import resolve_tls_profile
 from agent_connector_sdk.utilities import get_logger
@@ -28,10 +37,19 @@ def _exchange_delegated_token(settings: DelegationSettings) -> str:
         "Initiating OAuth token exchange for GitHub",
         extra={"audience": settings.audience, "scopes": settings.scopes},
     )
+    subject_token = current_user_token()
+    if not subject_token:
+        logger.error("No verified caller token available for delegation")
+        raise RuntimeError("Token exchange failed") from LoginRequiredError(
+            "no verified caller token to delegate"
+        )
     try:
-        token = delegated_token(settings)
+        with httpx.Client() as http_client:
+            access_token = exchange_token(
+                settings, subject_token=subject_token, http_client=http_client
+            )
         logger.info("Token exchange successful")
-        return token
+        return access_token.value
     except Exception as e:
         logger.error("Token exchange failed: error_type=%s", type(e).__name__)
         raise RuntimeError("Token exchange failed") from e

@@ -3465,7 +3465,7 @@ def register_ingest_tools(mcp: FastMCP):
             for repo in response.data
             if repo is not None
         ]
-        result = ingest_repositories(records)
+        result = await ingest_repositories(records)
         return {"listed": len(records), "ingested": result}
 
     @mcp.tool(tags={"kg"})
@@ -3531,7 +3531,7 @@ def register_ingest_tools(mcp: FastMCP):
             client, owner, repo, runs, include_jobs
         )
 
-        result = ingest_pipeline_runs(
+        result = await ingest_pipeline_runs(
             runs,
             repo_full_name=f"{owner}/{repo}",
             repo_node_id=repo_node_id,
