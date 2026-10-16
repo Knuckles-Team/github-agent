@@ -3599,8 +3599,10 @@ def register_graphql_tools(mcp: FastMCP):
     ) -> dict:
         """Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time."""
         from agent_connector_sdk.mcp.graphql import (
-            graphql_schema_types,
-            graphql_type_details,
+            ctx_graphql_get_type_details as graphql_type_details,
+        )
+        from agent_connector_sdk.mcp.graphql import (
+            ctx_graphql_list_types as graphql_schema_types,
         )
 
         if ctx:
