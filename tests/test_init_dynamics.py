@@ -19,7 +19,10 @@ def _get_pkg_name():
         with pyproject.open("rb") as f:
             name = tomllib.load(f)["project"]["name"]
         return name.replace("-", "_")
-    return project_dir.name.replace("-", "_")
+    import tomllib
+
+    project = tomllib.loads((project_dir / "pyproject.toml").read_text())
+    return project["project"]["name"].replace("-", "_")
 
 
 @pytest.fixture

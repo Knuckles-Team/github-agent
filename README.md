@@ -1,5 +1,5 @@
 # Github Agent
-## CLI or API | MCP | Agent
+## CLI or API | MCP
 
 ![PyPI - Version](https://img.shields.io/pypi/v/github-agent)
 ![MCP Server](https://badge.mcpx.dev?type=server 'MCP Server')
@@ -23,7 +23,6 @@
 *Version: 2.2.0*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
-> CLI interfaces, including the integrated A2A agent server, are maintained in the
 > [official documentation](https://knuckles-team.github.io/github-agent/).
 
 ---
@@ -535,14 +534,12 @@ github-agent --provider openai --model-id gpt-4o
 ```
 
 ### Docker Compose Orchestration
-The following `docker/agent.compose.yml` configures the Agent, Web UI, and Terminal Interface together:
 
 ```yaml
 version: '3.8'
 
 services:
   github-agent-mcp:
-    image: example/github-agent:mcp
     container_name: github-agent-mcp
     hostname: github-agent-mcp
     restart: always
@@ -567,7 +564,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  github-agent-agent:
     image: example/github-agent@sha256:<digest>
     container_name: github-agent-agent
     hostname: github-agent-agent
@@ -631,7 +627,6 @@ Pick the extra that matches what the operator want to run:
 | Extra | Installs | Use when |
 |-------|----------|----------|
 | `github-agent[mcp]` | Connector-focused MCP server (`agent-connector-sdk` — FastMCP/FastAPI + `epistemic-graph[full]`) | The operator only run the **MCP server** (smallest install / image) |
-| `github-agent[agent]` | Agent runtime (`agent-connector-sdk` — model orchestration + `epistemic-graph[full]`) | The operator run the **integrated agent** |
 | `github-agent[all]` | Everything (`mcp` + `agent` + `logfire`) | Development / both surfaces |
 
 ```bash
@@ -639,34 +634,26 @@ Pick the extra that matches what the operator want to run:
 uv pip install "github-agent[mcp]"
 
 # Agent runtime (adds model orchestration to the shared graph engine)
-uv pip install "github-agent[agent]"
 
 # Everything (development)
 uv pip install "github-agent[all]"      # or: python -m pip install "github-agent[all]"
 ```
 
-### Container images (`:mcp` vs `:agent`)
+### Container images (`:mcp`)
 
-One multi-stage `docker/Dockerfile` builds two right-sized images, selected by `--target`:
+One multi-stage `docker/Dockerfile` builds the MCP-only image (`--target mcp`):
 
 | Image tag | Build target | Contents | Entrypoint |
 |-----------|--------------|----------|------------|
-| `example/github-agent:mcp` | `--target mcp` | `github-agent[mcp]` — **connector-focused**, includes `epistemic-graph[full]`; no model-orchestration stack | `github-mcp` |
-| `example/github-agent@sha256:<digest>` | `--target agent` (default) | `github-agent[agent]` — **agent runtime**, model orchestration + `epistemic-graph[full]` | `github-agent` |
 
 ```bash
-docker build --target mcp   -t example/github-agent:mcp    docker/   # connector-focused MCP server
-docker build --target agent -t example/github-agent:agent-local docker/   # agent runtime
 ```
 
-`docker/mcp.compose.yml` runs the connector-focused `:mcp` server; `docker/agent.compose.yml` runs the
 agent (`immutable agent digest`) with a co-located `:mcp` sidecar.
 
 ### Knowledge-graph database (`epistemic-graph`)
 
-Both `[mcp]` and `[agent]` carry the **epistemic-graph** engine through the required
 Agent Connector SDK core dependency (`epistemic-graph[full]`). The `[mcp]` extra keeps
-the server connector-focused; `[agent]` also enables model orchestration. Local
 deployments can use the bundled engine. For production or shared state, run
 **epistemic-graph as a dedicated database service** and configure the runtime to use it.
 Deployment recipes (single-node + Raft HA), connection configuration, and architecture

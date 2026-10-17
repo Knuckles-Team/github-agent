@@ -63,7 +63,6 @@ Store the real remote URL, outbound identity reference, and TLS-profile referenc
 <!-- END GENERATED: deployment-options -->
 
 This page covers running `github-agent` as a long-lived service: the transports, a
-Docker Compose stack, the optional A2A agent server, putting it behind a Caddy
 reverse proxy, and giving it a DNS name with Technitium.
 
 > `github-agent` ships **two** console scripts: an **MCP server** (`github-mcp`) — a
@@ -168,7 +167,6 @@ docker compose -f docker/mcp.compose.yml logs -f
 ## Agent server (A2A)
 
 The A2A supervisor agent is published as the `github-agent` console script and
-[`docker/agent.compose.yml`](https://github.com/Knuckles-Team/github-agent/blob/main/docker/agent.compose.yml),
 which provisions the MCP server **and** the agent together. The agent reaches the MCP
 server over `MCP_URL` and publishes its own HTTP API (and optional web UI) on `:9016`:
 
@@ -184,7 +182,6 @@ services:
       - PORT=8000
     ports: ["8000:8000"]
 
-  github-agent-agent:
     image: example/github-agent@sha256:<digest>
     depends_on: [github-agent-mcp]
     command: ["github-agent"]
@@ -200,7 +197,6 @@ services:
 ```
 
 ```bash
-docker compose -f docker/agent.compose.yml up -d
 curl -s http://localhost:9016/health        # agent health
 ```
 
