@@ -234,7 +234,7 @@ were correctly gated from ones that should have routed to `elevated_risk`.
 
 ## Execution / delegation
 
-Same dual-mode contract every universal-skills workflow uses: if graph-os is
+Same dual-mode contract every universal-skills workflow uses: if arbora is
 reachable, offload the whole DAG via `graph_orchestrate action=execute_workflow`
 (or the `kg-delegate` skill) for parallel/swarm execution; otherwise execute the
 steps natively in `depends_on` order — steps with no unmet dependency run in

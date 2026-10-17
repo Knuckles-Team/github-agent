@@ -2,12 +2,12 @@
 name: github-agent-operations
 skill_type: skill
 description: >-
-  Operate github-agent through its governed MCP and GraphOS capabilities, including github actions ci review, github backlog planner, github ci failure sweep, github dependabot review, github issue tracking, github org remediation loop, github pr review sweep, github project provisioner, and related workflows. Use when a request requires this provider's read, change, automation, ingestion, troubleshooting, or evidence workflows.
+  Operate github-agent through its governed MCP and Arbora capabilities, including github actions ci review, github backlog planner, github ci failure sweep, github dependabot review, github issue tracking, github org remediation loop, github pr review sweep, github project provisioner, and related workflows. Use when a request requires this provider's read, change, automation, ingestion, troubleshooting, or evidence workflows.
 ---
 
 # Github Agent Operations
 
-Use the provider's governed MCP tools through GraphOS delegation.
+Use the provider's governed MCP tools through Arbora delegation.
 
 ## Workflow
 
