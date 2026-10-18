@@ -137,12 +137,18 @@ def _pr_class_registered(ctx: dict[str, Any], classes: set[str]) -> bool:
     return allow == "approved"
 
 
-def _pr_merge_class_ok(ctx: dict[str, Any], allow_major: bool, classes: set[str]) -> bool:
+def _pr_merge_class_ok(
+    ctx: dict[str, Any], allow_major: bool, classes: set[str]
+) -> bool:
     return _pr_class_permitted(ctx, allow_major) and _pr_class_registered(ctx, classes)
 
 
 def _pr_safe_merge_verdict(ctx: dict[str, Any], merge_class_ok: bool) -> dict | None:
-    if not (ctx["mergeable_state"] == "clean" and ctx["checks_state"] == "success" and merge_class_ok):
+    if not (
+        ctx["mergeable_state"] == "clean"
+        and ctx["checks_state"] == "success"
+        and merge_class_ok
+    ):
         return None
     cls = f"{ctx['author']} {ctx['level']} bump" if ctx["bot"] else ctx["allow"]
     return {
@@ -152,7 +158,9 @@ def _pr_safe_merge_verdict(ctx: dict[str, Any], merge_class_ok: bool) -> dict | 
     }
 
 
-def _pr_safe_close_verdict(item: dict, ctx: dict[str, Any], stale_days: int) -> dict | None:
+def _pr_safe_close_verdict(
+    item: dict, ctx: dict[str, Any], stale_days: int
+) -> dict | None:
     if item.get("superseded_by"):
         return {
             "verdict": "safe_close",
@@ -181,7 +189,9 @@ def _pr_skip_reason(ctx: dict[str, Any], merge_class_ok: bool) -> str:
     return "; ".join(why) or "needs human review"
 
 
-def _classify_pr(item: dict, stale_days: int, allow_major: bool, classes: set[str]) -> dict:
+def _classify_pr(
+    item: dict, stale_days: int, allow_major: bool, classes: set[str]
+) -> dict:
     if item.get("draft"):
         return {"verdict": "skip", "action": "none", "reason": "draft PR"}
 
@@ -196,7 +206,11 @@ def _classify_pr(item: dict, stale_days: int, allow_major: bool, classes: set[st
     if verdict is not None:
         return verdict
 
-    return {"verdict": "skip", "action": "none", "reason": _pr_skip_reason(ctx, merge_class_ok)}
+    return {
+        "verdict": "skip",
+        "action": "none",
+        "reason": _pr_skip_reason(ctx, merge_class_ok),
+    }
 
 
 def classify(item: dict, stale_days: int, allow_major: bool, classes: set[str]) -> dict:

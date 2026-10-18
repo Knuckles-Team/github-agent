@@ -1,5 +1,5 @@
 site_name: "github-agent"
-site_description: "GitHub MCP Server + A2A Agent — a typed, deterministic tool surface and supervisor agent over the GitHub REST API for the agent-utilities ecosystem."
+site_description: "GitHub MCP Server + A2A Agent — a typed, deterministic tool surface and supervisor agent over the GitHub REST API for the agent-connector-sdk ecosystem."
 site_url: "https://knuckles-team.github.io/github-agent/"
 repo_name: "Knuckles-Team/github-agent"
 repo_url: "https://github.com/Knuckles-Team/github-agent"

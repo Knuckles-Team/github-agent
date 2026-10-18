@@ -125,11 +125,13 @@ def _surface_and_evidence_reasons(item: dict, patterns: list[str]) -> list[str]:
     return why
 
 
-def _risk_reasons(item: dict, max_files: int, max_lines: int, patterns: list[str]) -> list[str]:
+def _risk_reasons(
+    item: dict, max_files: int, max_lines: int, patterns: list[str]
+) -> list[str]:
     """Every gate that failed for ``item``; empty means low_risk."""
-    return _size_and_verifier_reasons(item, max_files, max_lines) + _surface_and_evidence_reasons(
-        item, patterns
-    )
+    return _size_and_verifier_reasons(
+        item, max_files, max_lines
+    ) + _surface_and_evidence_reasons(item, patterns)
 
 
 def classify(item: dict, max_files: int, max_lines: int, patterns: list[str]) -> dict:

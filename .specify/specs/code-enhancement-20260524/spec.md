@@ -18,7 +18,7 @@
 ## Functional Requirements
 
 - **FR-001**: Minor update: pytest-xdist 3.6.0 (constraint — not installed) -> 3.8.0
-- **FR-002**: Minor update: agent-utilities 0.2.40 (installed) -> 0.16.0
+- **FR-002**: Minor update: agent-connector-sdk 0.2.40 (installed) -> 0.16.0
 - **FR-003**: Moderate avg cyclomatic complexity: 7.4
 - **FR-004**: 61 functions exceed 50 lines
 - **FR-005**: Monolithic: mcp_server.py (1251L) — 7 functions with high complexity (worst: register_action_tools at 153L, CC=32); Low cohesion: 14 distinct concepts in one file
@@ -50,7 +50,7 @@
 - **FR-031**: Only 22% of env vars documented in README.md
 - **FR-032**: Undocumented env vars: ACTIONSTOOL, ALLOWED_CLIENT_REDIRECT_URIS, AUTH_TYPE, BRANCHESTOOL, COLLABORATORSTOOL, COMMITSTOOL, CONTENTSTOOL, EUNOMIA_POLICY_FILE, EUNOMIA_REMOTE_URL, EUNOMIA_TYPE
 - **FR-033**: 6 Python env vars not in .env.example: ACTIONSTOOL, COLLABORATORSTOOL, TLS_PROFILE_REF, ORGSTOOL, RELEASESTOOL
-- **FR-034**: Analysis error: No module named 'agent_utilities.knowledge_graph'
+- **FR-034**: Analysis error: No module named 'agent_connector_sdk.knowledge_graph'
 
 ## Success Criteria
 

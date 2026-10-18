@@ -49,7 +49,7 @@ api = Api(
 )
 
 # Reads
-repos = api.get_repositories()                          # paginated repositories
+repos = api.get_repositories()  # paginated repositories
 repo = api.get_repository(owner="Knuckles-Team", repo="github-agent")
 issues = api.get_issues(owner="Knuckles-Team", repo="github-agent")
 commits = api.get_commits(owner="Knuckles-Team", repo="github-agent")
@@ -63,7 +63,8 @@ Build a client straight from the environment:
 
 ```python
 from github_agent.auth import get_client
-api = get_client()        # reads endpoint/credentials and AgentConfig TLS policy
+
+api = get_client()  # reads endpoint/credentials and AgentConfig TLS policy
 ```
 
 ### Writes
@@ -73,8 +74,11 @@ Write methods follow the same shape and require a token with the appropriate sco
 ```python
 api.create_issue(owner="Knuckles-Team", repo="github-agent", title="New issue")
 api.create_pull_request(
-    owner="Knuckles-Team", repo="github-agent",
-    title="Feature", head="feature-branch", base="main",
+    owner="Knuckles-Team",
+    repo="github-agent",
+    title="Feature",
+    head="feature-branch",
+    base="main",
 )
 api.create_release(owner="Knuckles-Team", repo="github-agent", tag_name="v1.0.0")
 ```

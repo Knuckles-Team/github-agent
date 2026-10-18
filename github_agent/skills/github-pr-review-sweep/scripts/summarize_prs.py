@@ -136,7 +136,9 @@ def _repo_header_lines(repo: str) -> list[str]:
 def _pr_row_line(r: dict) -> str:
     title = (r["title"][:50] + "…") if len(r["title"]) > 51 else r["title"]
     size = (
-        f"+{r['additions']}/-{r['deletions']}" if r.get("additions") is not None else "—"
+        f"+{r['additions']}/-{r['deletions']}"
+        if r.get("additions") is not None
+        else "—"
     )
     age = f"{r['age_days']}d" if r["age_days"] is not None else "—"
     return (
