@@ -42,7 +42,9 @@ async def _get_branch(client, kwargs: dict) -> dict:
             "error": "Missing 'owner', 'repo', or 'branch' parameter",
             "data": None,
         }
-    response = await run_blocking(client.get_branch, owner=owner, repo=repo, branch=branch)
+    response = await run_blocking(
+        client.get_branch, owner=owner, repo=repo, branch=branch
+    )
     return {
         "status": 200,
         "message": "Branch retrieved successfully",
@@ -81,7 +83,9 @@ async def _delete_branch(client, kwargs: dict) -> dict:
             "error": "Missing 'owner', 'repo', or 'branch' parameter",
             "data": None,
         }
-    response = await run_blocking(client.delete_branch, owner=owner, repo=repo, branch=branch)
+    response = await run_blocking(
+        client.delete_branch, owner=owner, repo=repo, branch=branch
+    )
     return {
         "status": 200,
         "message": "Branch deleted successfully",

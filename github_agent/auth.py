@@ -55,7 +55,9 @@ def _exchange_delegated_token(settings: DelegationSettings) -> str:
         raise RuntimeError("Token exchange failed") from e
 
 
-def _build_delegated_client(instance: str, new_token: str, profile: ResolvedTLSProfile) -> Api:
+def _build_delegated_client(
+    instance: str, new_token: str, profile: ResolvedTLSProfile
+) -> Api:
     """Build the Api client from an exchanged delegated token."""
     try:
         return Api(
@@ -69,7 +71,9 @@ def _build_delegated_client(instance: str, new_token: str, profile: ResolvedTLSP
         ) from e
 
 
-def _build_fixed_client(instance: str, token: str | None, profile: ResolvedTLSProfile) -> Api:
+def _build_fixed_client(
+    instance: str, token: str | None, profile: ResolvedTLSProfile
+) -> Api:
     """Build the Api client from a fixed configured credential."""
     logger.info("Using fixed credentials for GitHub API")
     try:
