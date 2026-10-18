@@ -1,8 +1,8 @@
 {
-  "algorithm": "agent-connector-sdk:mcp-tool-schema-compat:v1",
+  "algorithm": "agent-connector-sdk:mcp-tool-contract-compat:v2",
   "connector": "github-agent",
   "schema_version": "1",
   "tools": {
-    "github_repos": "125cd86b75abcb9a0ac47575ffbdda660260ded083695f69fe9725b3858cd46f"
+    "github_get_repositories": "ec6c06fe206534df752bc4035d4cf81c952d448441a7e9271b800175357c3360"
   }
 }

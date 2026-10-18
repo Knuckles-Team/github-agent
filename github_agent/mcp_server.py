@@ -39,7 +39,7 @@ from github_agent.auth import (
 )
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
-__version__ = "2.3.1"
+__version__ = "2.4.0"
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 
@@ -3643,7 +3643,14 @@ TOOL_REGISTRY = [
 ]
 
 
-def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
+def get_mcp_instance(
+    *, action_dispatch: bool = False
+) -> tuple[Any, Any, Any, Any, Any]:
+    """Build the server: one tool per GitHub API operation.
+
+    ``action_dispatch=True`` also keeps the condensed ``github_<domain>`` action
+    tools, a compatibility mode that is off by default.
+    """
     load_config()
     args, mcp, middlewares = create_mcp_server(
         name="Github MCP",
@@ -3657,6 +3664,7 @@ def get_mcp_instance() -> tuple[Any, Any, Any, Any, Any]:
         get_client=get_client,
         service="github-agent",
         tool_registry=TOOL_REGISTRY,
+        action_dispatch=action_dispatch,
     )
 
     for mw in middlewares:

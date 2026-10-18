@@ -347,7 +347,7 @@ def create_mock_client():
 async def get_registered_tools():
     from github_agent.mcp_server import get_mcp_instance
 
-    mcp_data = get_mcp_instance()
+    mcp_data = get_mcp_instance(action_dispatch=True)
     mcp = mcp_data[0] if isinstance(mcp_data, tuple) else mcp_data
     # FastMCP list_tools can be sync or async
     import inspect
