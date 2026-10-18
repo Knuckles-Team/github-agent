@@ -15,7 +15,7 @@ import pytest
 async def _registered_tools():
     from github_agent.mcp_server import get_mcp_instance
 
-    mcp = get_mcp_instance()[0]
+    mcp = get_mcp_instance(action_dispatch=True)[0]
     if inspect.iscoroutinefunction(mcp.list_tools):
         tools = await mcp.list_tools()
     else:
@@ -156,3 +156,22 @@ def test_search_actions_matches_the_if_elif_branches():
     from github_agent import mcp_server
 
     assert set(mcp_server.SEARCH_ACTIONS) == {"repositories", "issues", "code"}
+
+
+@pytest.mark.asyncio
+async def test_default_surface_is_one_tool_per_api_operation():
+    """By default every GitHub client operation is its own typed MCP tool."""
+    from github_agent.mcp_server import get_mcp_instance
+
+    mcp = get_mcp_instance()[0]
+    tools = {tool.name: tool for tool in await mcp.local_provider.list_tools()}
+    operations = {name for name, tool in tools.items() if "operation" in tool.tags}
+    assert len(operations) == 95
+    assert "github_get_repositories" in operations
+    assert not [
+        name
+        for name, tool in tools.items()
+        if name not in operations and "action" in tool.parameters.get("properties", {})
+    ]
+    assert tools["github_delete_repository"].annotations.destructive_hint is True
+    assert tools["github_get_pages"].annotations.read_only_hint is True

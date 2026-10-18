@@ -41,7 +41,7 @@ def make_secrets_client():
 async def get_github_repos_tool():
     from github_agent.mcp_server import get_mcp_instance
 
-    mcp = get_mcp_instance()[0]
+    mcp = get_mcp_instance(action_dispatch=True)[0]
     if inspect.iscoroutinefunction(mcp.list_tools):
         tools = await mcp.list_tools()
     else:

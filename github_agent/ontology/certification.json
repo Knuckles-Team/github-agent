@@ -1,9 +1,9 @@
 {
   "api_version": "arbora.io/v1",
   "artifacts": {
-    "connector_manifest.yml": "6623b7cb91f43491ee013b45588c98a5dddd975568469541b5e81a3393448c6d",
-    "github_agent/connectors/mcp_source_presets.json": "907153ae71c042156cc521d11d57a8517fd1a332b9cc7738245f2cd57ac3d964",
-    "github_agent/connectors/tool_schema_fingerprints.json": "a91f112bdc54280ccfefe4d475ad51848b94ef668cb6dedaed20ec1404168609",
+    "connector_manifest.yml": "412bbd8242cdac75754d89b9cc1fa81cec7c2f70e2b29f822eca336b1f725f25",
+    "github_agent/connectors/mcp_source_presets.json": "312ec35c48d40253afcd8dba445afee9f41b5ac910e11a435d7c02ee63b5967f",
+    "github_agent/connectors/tool_schema_fingerprints.json": "c80f708a9aac0ec9dd4352be0db40295f203f734b88193ce7f03b6c41f07be6e",
     "github_agent/ontology/fixtures/records.json": "12f5b54b0ae98770f279f99e136788d063340042a9d6ff4bac0c22a886d2dc7b",
     "github_agent/ontology/github.ttl": "ad0ad6d295143b38725866b5b5c59a824f10bfc4219794ac2d9a2274f11bbdb5",
     "github_agent/ontology/mappings/source.yaml": "7ff7a37550f825a61fe6d0f9529206f4efe2727431e32b8ab95a39a32bdced43",

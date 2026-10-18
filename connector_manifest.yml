@@ -80,9 +80,23 @@ actions:
   description: 'Answers epistemic_status/why/what_changed queries over the shared knowledge graph: calibrated
     confidence, evidence/source citations, belief justification trees, bitemporal valid/tx history, and
     policy-redaction-aware provenance.'
+  label: ''
+  parameters: []
+  target_resource: null
+  conflict_policy: null
+  requires_approval: true
+  approval_class: unclassified
+  effects: []
 - id: run_graph_flow
   name: Graph Flow Execution
   description: Execute a workflow through the agent's graph orchestration engine
+  label: ''
+  parameters: []
+  target_resource: null
+  conflict_policy: null
+  requires_approval: true
+  approval_class: unclassified
+  effects: []
 events:
 - name: github-repositories.updated
   resource: repository
@@ -357,8 +371,8 @@ schema_mappings:
 sync:
 - preset: github-repositories
   server: github-mcp
-  tool: github_repos
-  action: list
+  tool: github_get_repositories
+  action: null
   records_path: data
   id_field: id
   title_field: full_name
@@ -366,11 +380,10 @@ sync:
   updated_field: updated_at
   pagination: page
   doc_type: repository
-  tool_schema_sha256: 125cd86b75abcb9a0ac47575ffbdda660260ded083695f69fe9725b3858cd46f
+  tool_schema_sha256: ec6c06fe206534df752bc4035d4cf81c952d448441a7e9271b800175357c3360
   raw:
     server: github-mcp
-    tool: github_repos
-    action: list
+    tool: github_get_repositories
     records_path: data
     id_field: id
     title_field: full_name
@@ -383,20 +396,20 @@ sync:
     doc_type: repository
 provenance:
   generated_by: scripts/generate_connector_manifests.py
-  generated_at: '2026-08-26T13:42:55Z'
+  generated_at: '2026-10-18T00:00:00Z'
   source_artifacts:
   - github_agent/connectors/mcp_source_presets.json
   - github_agent/connectors/tool_schema_fingerprints.json
   - github_agent/ontology/github.ttl
   integrity:
     algorithm: urdna2015-sha256
-    hash: e8d81e4a4e12957326dd75e30c19a8844acc345d32f658af9189e27b49050afd
+    hash: 064de306486d7fbf5f228f96873c1fc48b900c033689908058e5d010edc6298b
     triple_count: 130
   signer: UNSIGNED-PREVIEW
   signature_algorithm: none
   signing_public_key: ''
   signature: null
-  source_commit: f8ae1169220c27a8121f7af415aabaae5d84c8e3
+  source_commit: fff37ac18358a12c661b5b0c86ae5610878331a8
 policy:
   pii_fields: {}
   tenant_boundary: null
