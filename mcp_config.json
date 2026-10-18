@@ -7,7 +7,6 @@
         "github-mcp"
       ],
       "env": {
-        "MCP_TOOL_MODE": "intent",
         "ACTIONTOOL": "True",
         "BRANCHTOOL": "True",
         "COLLABORATORTOOL": "True",
