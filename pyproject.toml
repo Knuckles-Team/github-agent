@@ -35,6 +35,10 @@ github-agent = "github_agent.ontology"
 [project.entry-points."agent_connector_sdk.source_connector_providers"]
 github-agent = "github_agent.connectors"
 
+# The one declared connector identity: the fleet name (SDK-CONNECTOR-CONTROL-R071).
+[project.entry-points."agent_connector_sdk.connector"]
+github-mcp = "github_agent"
+
 [tool.uv.workspace]
 members = ["."]
 

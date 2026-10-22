@@ -35,8 +35,8 @@ from agent_connector_sdk.ingest import (
 
 logger = logging.getLogger("github_agent.kg")
 
-_ENTITY_BINDING = IngestBinding(connector="github-agent", stream="github")
-_DOCUMENT_BINDING = IngestBinding(connector="github-agent", stream="github-documents")
+_ENTITY_BINDING = IngestBinding(connector="github-mcp", stream="github")
+_DOCUMENT_BINDING = IngestBinding(connector="github-mcp", stream="github-documents")
 
 
 def _to_entity(record: dict[str, Any]) -> Entity:
