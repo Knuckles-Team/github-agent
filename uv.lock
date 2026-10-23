@@ -542,7 +542,7 @@ server = [
 
 [[package]]
 name = "github-agent"
-version = "2.4.6"
+version = "2.4.7"
 source = { editable = "." }
 dependencies = [
     { name = "agent-connector-sdk", extra = ["graphql", "mcp"] },
