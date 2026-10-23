@@ -4,11 +4,10 @@
 import logging
 from typing import Any
 
-from agent_connector_sdk.exceptions import MissingParameterError, ParameterError
+from agent_connector_sdk.exceptions import MissingParameterError
 from agent_connector_sdk.tls.profile import ResolvedTLSProfile
 from agent_connector_sdk.tls.resolve import resolve_tls_profile
-from gql import Client, gql
-from gql.transport.requests import RequestsHTTPTransport
+from agent_connector_sdk.transports.graphql import GraphQLAuth, GraphQLClient
 
 
 class GraphQL:
@@ -44,29 +43,21 @@ class GraphQL:
         # GitHub GraphQL authenticates with a bearer token (classic PAT,
         # fine-grained PAT, or OAuth/GitHub-App installation token).
         self.headers = {"Authorization": f"Bearer {token}"}
-        self.transport = RequestsHTTPTransport(
-            url=self.url,
-            headers=self.headers,
-            **self.tls_profile.requests_kwargs(),
+        self._gql = GraphQLClient(
+            self.url,
+            auth=GraphQLAuth.bearer(token),
+            tls_profile=self.tls_profile,
+            tls_service="github",
         )
-        self.client = Client(
-            transport=self.transport, fetch_schema_from_transport=False
-        )
+
+    @property
+    def client(self) -> Any:
+        """The underlying protocol client, built on first use."""
+        return self._gql.client
 
     def close(self) -> None:
-        """Release GraphQL transport state and runtime-only TLS material.
-
-        ``Client.close_sync()`` unconditionally asserts ``self.session`` is a
-        ``SyncClientSession`` — but under gql 4.0 that attribute is only ever
-        set by ``connect_sync()`` (called implicitly by ``execute_gql`` /
-        ``client.execute``). If this ``GraphQL`` was constructed but never
-        used to run a query, the underlying ``Client`` has no ``session``
-        attribute yet and ``close_sync()`` raises ``AttributeError`` instead
-        of being a no-op. Only close a session that was actually opened.
-        """
-        if hasattr(self.client, "session"):
-            self.client.close_sync()
-        self.tls_profile.cleanup()
+        """Release GraphQL transport state and runtime-only TLS material."""
+        self._gql.close()
 
     @staticmethod
     def _graphql_endpoint(url: str) -> str:
@@ -91,17 +82,7 @@ class GraphQL:
         Raises:
             ParameterError: If the query fails or the response carries errors.
         """
-        try:
-            query = gql(query_str)
-            result = self.client.execute(
-                query, variable_values=variables, operation_name=operation_name
-            )
-            if "errors" in result:
-                raise ParameterError(f"GraphQL errors: {result['errors']}")
-            return result
-        except Exception as e:
-            logging.error("GraphQL execution failed: error_type=%s", type(e).__name__)
-            raise ParameterError(f"Query execution failed: {type(e).__name__}") from e
+        return self._gql.execute(query_str, variables, operation_name)
 
     def enable_pull_request_auto_merge(
         self, pull_request_id: str, merge_method: str = "MERGE"
