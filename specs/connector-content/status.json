@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "spec_id": "CONN-GITHUB-AGENT-CONNECTOR-CONTENT",
+  "owner_repo": "github-agent",
+  "delivery_state": "VERIFIED",
+  "requirement_ids": [
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R001"
+  ],
+  "requirements": [
+    {
+      "id": "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R001",
+      "title": "Default content",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "54b8f9bf9996"
+      ],
+      "verified_by": [
+        "tests/test_default_content_surfaces.py:15"
+      ]
+    }
+  ]
+}

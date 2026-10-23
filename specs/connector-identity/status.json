@@ -25,7 +25,8 @@
       "title": "Shared GraphQL client",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "80d5f308ad23"
+        "1e8f99154777",
+        "f3295e5ad9f9"
       ],
       "verified_by": [
         "tests/test_github_gql.py:44"
