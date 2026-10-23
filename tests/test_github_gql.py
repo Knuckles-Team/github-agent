@@ -37,19 +37,37 @@ def test_construction_sets_bearer_header():
 
 
 def test_close_without_session_does_not_raise():
-    """Regression guard: under gql 4.0, Client.close_sync() unconditionally
-    asserts ``self.session`` — an attribute only ever set by connect_sync()
-    (called implicitly the first time a query executes). A GraphQL client
-    that was constructed but never used to run a query has no such session
-    yet, so close() must be a safe no-op rather than raising AttributeError.
-    """
-    g = GraphQL(url="https://api.github.com", token="tok123")
-    g.close()
+    """close() on a never-used client is a safe no-op."""
+    GraphQL(url="https://api.github.com", token="tok123").close()
 
 
-def test_close_after_session_opened_closes_cleanly():
-    """Once a sync session has actually been opened, close() still closes it."""
+@pytest.mark.spec("CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002")
+def test_wrapper_delegates_to_shared_graphql_client():
+    from unittest.mock import patch
+
+    from agent_connector_sdk.tls.resolve import resolve_tls_profile
+    from agent_connector_sdk.transports.graphql import GraphQLClient
+
+    profile = resolve_tls_profile("github")
+    g = GraphQL(url="https://github.example/api/v3", token="tok123", tls_profile=profile)
+    assert isinstance(g._gql, GraphQLClient)
+    assert g._gql.endpoint == "https://github.example/api/graphql"
+    assert g._gql.headers["Authorization"] == "Bearer tok123"
+    assert g._gql.tls_profile is profile
+    with patch.object(GraphQLClient, "execute", return_value={"viewer": {}}) as ex:
+        assert g.execute_gql("query { viewer { login } }", {"a": 1}, "Op") == {
+            "viewer": {}
+        }
+    ex.assert_called_once_with("query { viewer { login } }", {"a": 1}, "Op")
+
+
+def test_execute_failure_message_is_redacted_class_name():
+    from unittest.mock import patch
+
+    from agent_connector_sdk.exceptions import ParameterError
+    from agent_connector_sdk.transports.graphql import GraphQLClient
+
     g = GraphQL(url="https://api.github.com", token="tok123")
-    g.client.connect_sync()
-    assert hasattr(g.client, "session")
-    g.close()
+    with patch.object(GraphQLClient, "_attempt", side_effect=ValueError("boom")):
+        with pytest.raises(ParameterError, match="Query execution failed: ValueError"):
+            g.execute_gql("query { viewer { login } }")
