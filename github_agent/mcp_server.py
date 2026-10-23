@@ -39,7 +39,7 @@ from github_agent.auth import (
 )
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
-__version__ = "2.4.8"
+__version__ = "2.4.9"
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 

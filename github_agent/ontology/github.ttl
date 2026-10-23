@@ -16,18 +16,16 @@
 # Shared concepts owned by the epistemic-graph ontology and referenced here, never redeclared:
 # Repository, PullRequest, Release, Branch, Commit, PipelineRun. Only the GitHub-specific subclasses and properties are declared in this pack.
 
-:Organization a owl:Class ;
-    rdfs:label "Organization" ;
-    rdfs:comment "A GitHub organization that owns repositories and members (github_orgs)." .
+:Organization a owl:Class .
+
 
 :Issue a owl:Class ;
     rdfs:subClassOf :WorkItem ;
     rdfs:label "Issue" ;
     rdfs:comment "A tracked work item, bug, or discussion in a repository (github_issues)." .
 
-:Workflow a owl:Class ;
-    rdfs:label "Workflow" ;
-    rdfs:comment "A GitHub Actions CI/CD workflow definition (github_actions)." .
+:Workflow a owl:Class .
+
 
 :WorkflowRun a owl:Class ;
     rdfs:subClassOf :PipelineRun ;
@@ -220,5 +218,4 @@
     rdfs:comment """GitHub source-control, code-review and CI/CD model — organizations,
     repositories, pull requests, issues, releases, branches, commits, workflows and
     workflow runs, with their review and delivery relationships — federated into the
-    agent-connector-sdk knowledge-graph hub. Reuses the shared :Person and :Document classes.""" ;
-    owl:imports <http://knuckles.team/kg> .
+    agent-connector-sdk knowledge-graph hub. Reuses the shared :Person and :Document classes.""" .
