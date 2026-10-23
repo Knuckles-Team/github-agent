@@ -32,13 +32,7 @@ PARENT_CLASSES = frozenset(
 )
 # Classes for which the parent ontology has no fitting class yet. Each is a candidate for a new
 # parent class (see the orphan mapping report); a class leaves this set when it gains a parent.
-PENDING_NEW_PARENT: frozenset[str] = frozenset(
-    (
-        "http://knuckles.team/kg#Branch",
-        "http://knuckles.team/kg#CheckRun",
-        "http://knuckles.team/kg#Release",
-    )
-)
+PENDING_NEW_PARENT: frozenset[str] = frozenset()
 
 _STRING = re.compile(r'"""(?:.|\n)*?"""|"(?:[^"\\\n]|\\.)*"')
 _IRI = re.compile(r"<([^<>\s]*)>")
