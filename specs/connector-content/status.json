@@ -4,7 +4,8 @@
   "owner_repo": "github-agent",
   "delivery_state": "VERIFIED",
   "requirement_ids": [
-    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R001"
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R001",
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002"
   ],
   "requirements": [
     {
@@ -16,6 +17,17 @@
       ],
       "verified_by": [
         "tests/test_default_content_surfaces.py:15"
+      ]
+    },
+    {
+      "id": "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002",
+      "title": "Ontology joins the parent graph",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "63e7f6373a63"
+      ],
+      "verified_by": [
+        "tests/test_ontology_parent_link.py:10"
       ]
     }
   ]
