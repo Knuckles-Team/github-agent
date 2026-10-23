@@ -20,7 +20,7 @@
 ![PyPI - Wheel](https://img.shields.io/pypi/wheel/github-agent)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/github-agent)
 
-*Version: 2.4.5*
+*Version: 2.4.6*
 
 > **Documentation** — Installation, deployment, and usage across the MCP, API, and
 > [official documentation](https://knuckles-team.github.io/github-agent/).
