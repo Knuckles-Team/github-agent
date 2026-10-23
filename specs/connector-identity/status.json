@@ -4,7 +4,8 @@
   "owner_repo": "github-agent",
   "delivery_state": "VERIFIED",
   "requirement_ids": [
-    "CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001"
+    "CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001",
+    "CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002"
   ],
   "requirements": [
     {
@@ -17,6 +18,17 @@
       ],
       "verified_by": [
         "tests/test_fleet_name.py:35"
+      ]
+    },
+    {
+      "id": "CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002",
+      "title": "Shared GraphQL client",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "80d5f308ad23"
+      ],
+      "verified_by": [
+        "tests/test_github_gql.py:44"
       ]
     }
   ]
