@@ -12,4 +12,5 @@ Read the existing specs first. Extend the spec that owns the behavior. Create a 
 
 ## Local specifications
 
-This repository has no local spec yet.
+- [`connector-identity`](connector-identity/spec.md) — `CONN-GITHUB-AGENT-CONNECTOR-IDENTITY`: the connector is filed under its fleet name.
+- [`transport-tls`](transport-tls/spec.md) — `CONN-GITHUB-AGENT-TRANSPORT-TLS`: transport trust comes from the SDK TLS profile.

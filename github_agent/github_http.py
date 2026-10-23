@@ -4,21 +4,23 @@ from __future__ import annotations
 
 import http.client
 import json
-import os
 import ssl
 from typing import Any
+
+from agent_connector_sdk.tls.errors import TransportSecurityError
+from agent_connector_sdk.tls.profile import ResolvedTLSProfile
+from agent_connector_sdk.tls.resolve import resolve_tls_profile
 
 GITHUB_API_HOST = "api.github.com"
 MAX_REQUEST_BYTES = 1 * 1024 * 1024
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
 
-def _tls_context() -> ssl.SSLContext:
-    cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
-    capath = os.environ.get("SSL_CERT_DIR")
+def _tls_profile() -> ResolvedTLSProfile:
+    """Resolve the GitHub TLS profile from the SDK (SDK-CONNECTOR-CONTROL-R017)."""
     try:
-        return ssl.create_default_context(cafile=cafile or None, capath=capath or None)
-    except (OSError, ssl.SSLError):
+        return resolve_tls_profile("github")
+    except TransportSecurityError:
         raise RuntimeError("runtime TLS trust configuration is invalid") from None
 
 
@@ -103,11 +105,12 @@ def github_json_request(
     _validate_token_shape(token)
     body = _encode_request_body(payload)
     headers = _request_headers(token)
+    profile = _tls_profile()
     connection = http.client.HTTPSConnection(
         GITHUB_API_HOST,
         443,
         timeout=30,
-        context=_tls_context(),
+        context=profile.ssl_context,
     )
     try:
         connection.request(method, path, body=body, headers=headers)
@@ -118,3 +121,4 @@ def github_json_request(
         raise RuntimeError("GitHub service is unavailable") from None
     finally:
         connection.close()
+        profile.cleanup()

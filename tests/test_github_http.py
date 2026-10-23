@@ -163,3 +163,68 @@ def test_github_json_request_encodes_payload_as_compact_json():
     assert value == {"created": True}
     sent_kwargs = connection.request.call_args.kwargs
     assert sent_kwargs["body"] == json.dumps({"title": "hi"}, separators=(",", ":")).encode()
+
+
+@pytest.mark.spec("CONN-GITHUB-AGENT-TRANSPORT-TLS-R001")
+def test_request_uses_sdk_tls_profile_context():
+    """CONN-GITHUB-AGENT-TRANSPORT-TLS-R001: the connection uses the profile's context."""
+    connection, _ = _mock_connection()
+    profile = MagicMock()
+    with (
+        patch("github_agent.github_http.resolve_tls_profile", return_value=profile) as resolve,
+        patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection) as conn_cls,
+    ):
+        github_json_request("GET", "/repos/x/y", "tok")
+    resolve.assert_called_once_with("github")
+    assert conn_cls.call_args.kwargs["context"] is profile.ssl_context
+    profile.cleanup.assert_called_once()
+
+
+@pytest.mark.spec("CONN-GITHUB-AGENT-TRANSPORT-TLS-R001")
+def test_private_ca_is_carried_through_the_profile(tmp_path, monkeypatch):
+    """CONN-GITHUB-AGENT-TRANSPORT-TLS-R001: a configured CA bundle reaches the profile."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    import datetime
+
+    from github_agent.github_http import _tls_profile
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, "test-ca")])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(1)
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(key, hashes.SHA256())
+    )
+    ca = tmp_path / "ca.pem"
+    ca.write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    monkeypatch.setenv("GITHUB_CA_BUNDLE", str(ca))
+    profile = _tls_profile()
+    try:
+        assert profile.ca_bundle_path == ca
+        assert profile.verify_enabled
+    finally:
+        profile.cleanup()
+
+
+@pytest.mark.spec("CONN-GITHUB-AGENT-TRANSPORT-TLS-R001")
+def test_no_hand_built_ssl_context_remains():
+    """CONN-GITHUB-AGENT-TRANSPORT-TLS-R001: no package code builds its own context."""
+    from pathlib import Path
+
+    import github_agent
+
+    root = Path(github_agent.__file__).parent
+    for path in root.rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "create_default_context" not in text, path
+        assert "verify=False" not in text, path
+        assert "disable_warnings" not in text, path
