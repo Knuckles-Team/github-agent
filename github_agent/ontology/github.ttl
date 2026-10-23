@@ -18,6 +18,7 @@
     rdfs:comment "A GitHub organization that owns repositories and members (github_orgs)." .
 
 :Repository a owl:Class ;
+    rdfs:subClassOf :SoftwareProject ;
     rdfs:label "Repository" ;
     rdfs:comment "A GitHub repository / codebase (github_repos)." .
 
@@ -26,6 +27,7 @@
     rdfs:comment "A proposed change under review, from a head to a base branch (github_pulls)." .
 
 :Issue a owl:Class ;
+    rdfs:subClassOf :WorkItem ;
     rdfs:label "Issue" ;
     rdfs:comment "A tracked work item, bug, or discussion in a repository (github_issues)." .
 
@@ -46,6 +48,7 @@
     rdfs:comment "A GitHub Actions CI/CD workflow definition (github_actions)." .
 
 :WorkflowRun a owl:Class ;
+    rdfs:subClassOf :PipelineRun ;
     rdfs:label "Workflow Run" ;
     rdfs:comment "A single execution of a GitHub Actions workflow for a ref/commit (github_actions)." .
 
