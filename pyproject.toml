@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "github-agent"
-version = "2.4.8"
+version = "2.4.9"
 readme = "README.md"
 description = "GitHub Agent for MCP"
 requires-python = ">=3.12"
 classifiers = [ "Development Status :: 5 - Production/Stable", "License :: Public Domain", "Environment :: Console", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3",]
-dependencies = [ "requests>=2.34.2", "agent-connector-sdk[mcp,graphql]>=0.3.18,<1.0.0",]
+dependencies = [ "requests>=2.34.2", "agent-connector-sdk[mcp,graphql]>=0.4.1,<1.0.0",]
 [[project.authors]]
 name = "Project Maintainers"
 email = "maintainers@users.noreply.github.com"
@@ -31,9 +31,6 @@ github-agent = "github_agent.skills"
 
 [project.entry-points."agent_connector_sdk.ontology_providers"]
 github-agent = "github_agent.ontology"
-
-[project.entry-points."agent_connector_sdk.source_connector_providers"]
-github-agent = "github_agent.connectors"
 
 # The one declared connector identity: the fleet name (SDK-CONNECTOR-CONTROL-R071).
 [project.entry-points."agent_connector_sdk.connector"]
