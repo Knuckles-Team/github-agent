@@ -25,6 +25,7 @@ import sys
 from typing import Any
 
 from agent_connector_sdk.config import load_config
+from agent_connector_sdk.connector_identity import connector_version
 from agent_connector_sdk.mcp.action_dispatch import resolve_action
 from agent_connector_sdk.mcp.concurrency import run_blocking
 from agent_connector_sdk.mcp.server import create_mcp_server
@@ -39,7 +40,7 @@ from github_agent.auth import (
 )
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
-__version__ = "2.4.9"
+__version__ = connector_version("github_agent")
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 

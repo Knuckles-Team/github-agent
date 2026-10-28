@@ -1,1 +1,3 @@
-__version__ = "2.4.9"
+from agent_connector_sdk.connector_identity import connector_version
+
+__version__ = connector_version("github_agent")
