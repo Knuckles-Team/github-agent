@@ -26,15 +26,9 @@ all = [ ]
 test = [
     "pytest-xdist>=3.8.0", "pytest>=9.1.1", "pytest-asyncio>=1.4.0",]
 
-[project.entry-points."agent_connector_sdk.skill_providers"]
-github-agent = "github_agent.skills"
-
-[project.entry-points."agent_connector_sdk.ontology_providers"]
-github-agent = "github_agent.ontology"
-
 # The one declared connector identity: the fleet name (SDK-CONNECTOR-CONTROL-R071).
 [project.entry-points."agent_connector_sdk.connector"]
-github-mcp = "github_agent"
+github-mcp = "github_agent:connector"
 
 [tool.uv.workspace]
 members = ["."]
