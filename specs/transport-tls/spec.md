@@ -1,6 +1,6 @@
 # CONN-GITHUB-AGENT-TRANSPORT-TLS — Transport trust comes from the SDK TLS profile
 
-Owner: github-agent. Cross-repo IDs: `SDK-CONNECTOR-CONTROL-R017`, `SDK-CENTRALIZED-CAPABILITIES-R008`.
+Owner: github-agent. Cross-repo IDs: `SCION-CONNECTOR-CONTROL-R017`, `SCION-CENTRALIZED-CAPABILITIES-R008`.
 
 ## Purpose and user stories
 

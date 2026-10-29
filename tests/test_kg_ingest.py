@@ -29,8 +29,9 @@ class _FakeTransport:
         self.requests: list[Any] = []
 
     async def source_status(self, connector: str, stream: str) -> Any:
-        del connector, stream
-        return SimpleNamespace(accepted_checkpoint=None)
+        return SimpleNamespace(
+            connector=connector, stream=stream, accepted_checkpoint=None
+        )
 
     async def submit(self, request: Any) -> Any:
         self.requests.append(request)
@@ -105,9 +106,7 @@ async def test_ingest_repositories_maps_repo_and_owner(ingest):
     assert repo["externalToolId"] == "42"
     org = records["github:organization:acme"]
     assert org is not None
-    assert _edges(transport) == {
-        ("github:repository:42", "github:organization:acme")
-    }
+    assert _edges(transport) == {("github:repository:42", "github:organization:acme")}
 
 
 async def test_ingest_repositories_user_owner_is_person(ingest):
