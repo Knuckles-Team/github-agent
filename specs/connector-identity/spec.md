@@ -1,6 +1,6 @@
 # CONN-GITHUB-AGENT-CONNECTOR-IDENTITY — The connector is filed under its fleet name
 
-Owner: github-agent. Cross-repo IDs: `SDK-CONNECTOR-CONTROL-R071`, `PIPE-GATES-R010`.
+Owner: github-agent. Cross-repo IDs: `SCION-CONNECTOR-CONTROL-R071`, `PIPE-GATES-R010`.
 
 ## Purpose and user stories
 

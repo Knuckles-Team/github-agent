@@ -17,7 +17,7 @@ MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
 
 def _tls_profile() -> ResolvedTLSProfile:
-    """Resolve the GitHub TLS profile from the SDK (SDK-CONNECTOR-CONTROL-R017)."""
+    """Resolve the GitHub TLS profile from the SDK (SCION-CONNECTOR-CONTROL-R017)."""
     try:
         return resolve_tls_profile("github")
     except TransportSecurityError:
