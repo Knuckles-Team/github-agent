@@ -5,7 +5,9 @@
   "delivery_state": "VERIFIED",
   "requirement_ids": [
     "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R001",
-    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002"
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002",
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R003",
+    "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R004"
   ],
   "requirements": [
     {
@@ -24,10 +26,32 @@
       "title": "Ontology joins the parent graph",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "63e7f6373a63"
+        "2bdbae557a8a"
       ],
       "verified_by": [
         "tests/test_ontology_parent_link.py:10"
+      ]
+    },
+    {
+      "id": "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R003",
+      "title": "Ingestible sources",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "eceecbd709e5"
+      ],
+      "verified_by": [
+        "tests/test_ingest_sources.py:13"
+      ]
+    },
+    {
+      "id": "CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R004",
+      "title": "Competency-question paths",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "d01e7abca1d5"
+      ],
+      "verified_by": [
+        "tests/test_cq_paths.py:13"
       ]
     }
   ]
