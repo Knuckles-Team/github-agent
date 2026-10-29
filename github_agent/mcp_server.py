@@ -22,11 +22,14 @@ warnings.filterwarnings("ignore", message=".*urllib3.*or charset_normalizer.*")
 
 import logging
 import sys
+from pathlib import Path
 from typing import Any
 
 from agent_connector_sdk.config import load_config
+from agent_connector_sdk.connector_identity import connector_version
 from agent_connector_sdk.mcp.action_dispatch import resolve_action
 from agent_connector_sdk.mcp.concurrency import run_blocking
+from agent_connector_sdk.mcp.content import ConnectorContent
 from agent_connector_sdk.mcp.server import create_mcp_server
 from agent_connector_sdk.mcp.tool_surface import register_tool_surface
 
@@ -39,7 +42,7 @@ from github_agent.auth import (
 )
 from github_agent.github_response_models import PagesAlreadyEnabled, PagesNotEnabled
 
-__version__ = "2.4.9"
+__version__ = connector_version("github_agent")
 logger = get_logger("GithubMCPServer")
 logger.setLevel(logging.INFO)
 
@@ -3656,6 +3659,11 @@ def get_mcp_instance(
         name="Github MCP",
         version=__version__,
         instructions="Github MCP Server - Manage your repositories, issues, and pull requests.",
+        content=ConnectorContent.for_package(
+            "github_agent",
+            Path(__file__).resolve().parent,
+            __version__,
+        ),
     )
 
     registered_tags = register_tool_surface(

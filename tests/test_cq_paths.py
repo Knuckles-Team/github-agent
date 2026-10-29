@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from github_agent.connector_sources import declaration as declared_sources
 import re
 from pathlib import Path
 
 import pytest
+from agent_connector_sdk.ingest.live_declaration import load_declaration
 
 import github_agent
 
@@ -41,7 +41,7 @@ def test_check_run_extends_pipeline_run() -> None:
 def test_no_mapping_has_a_null_ontology_class() -> None:
     unmapped = [
         name
-        for name, mapping in declared_sources().schema_mappings.items()
+        for name, mapping in load_declaration("github_agent").schema_mappings.items()
         if not mapping.ontology_class
     ]
     assert unmapped == []
