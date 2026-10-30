@@ -13,7 +13,7 @@ description: >-
 license: MIT
 tags: [github, pull-request, code-review, approve, merge, auto-merge, actions, ci, mcp]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.2.0'
 ---
 # GitHub Pull Request Review

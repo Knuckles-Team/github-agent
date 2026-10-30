@@ -4,7 +4,7 @@ CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector nat
 pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
 ``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
-**:Document** nodes for semantic search, through the ``agent_connector_sdk.ingest``
+**:Document** nodes for semantic search, through the ``scion_sdk.ingest``
 facade — the one connector write path; there is no self-contained fallback
 transaction here.
 
@@ -22,7 +22,7 @@ import logging
 import time
 from typing import Any
 
-from agent_connector_sdk.ingest import (
+from scion_sdk.ingest import (
     ChangeSet,
     Entity,
     IngestBinding,

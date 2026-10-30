@@ -38,7 +38,10 @@ def fetch_comments():
 
 
 def _connection(nodes, has_next=False, end_cursor=None):
-    return {"nodes": nodes, "pageInfo": {"hasNextPage": has_next, "endCursor": end_cursor}}
+    return {
+        "nodes": nodes,
+        "pageInfo": {"hasNextPage": has_next, "endCursor": end_cursor},
+    }
 
 
 def _payload(pr_number=1, comments=None, reviews=None, threads=None):
@@ -81,9 +84,13 @@ def test_fetch_all_single_page(fetch_comments, monkeypatch):
     assert result["review_threads"] == [{"id": "t1"}]
 
 
-def test_fetch_all_paginates_comments_across_multiple_calls(fetch_comments, monkeypatch):
+def test_fetch_all_paginates_comments_across_multiple_calls(
+    fetch_comments, monkeypatch
+):
     calls = []
-    page1 = _payload(comments=_connection([{"id": "c1"}], has_next=True, end_cursor="CUR1"))
+    page1 = _payload(
+        comments=_connection([{"id": "c1"}], has_next=True, end_cursor="CUR1")
+    )
     page2 = _payload(comments=_connection([{"id": "c2"}]))
 
     def fake_gh_api_graphql(**kwargs):

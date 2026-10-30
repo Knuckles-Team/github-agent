@@ -7,15 +7,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TypeVar
 
 import requests
-from agent_connector_sdk.exceptions import (
+from pydantic import BaseModel
+from scion_sdk.exceptions import (
     AuthError,
     MissingParameterError,
     UnauthorizedError,
 )
-from agent_connector_sdk.tls.profile import ResolvedTLSProfile
-from agent_connector_sdk.tls.resolve import resolve_tls_profile
-from agent_connector_sdk.utilities import get_logger
-from pydantic import BaseModel
+from scion_sdk.tls.profile import ResolvedTLSProfile
+from scion_sdk.tls.resolve import resolve_tls_profile
+from scion_sdk.utilities import get_logger
 
 logger = get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)

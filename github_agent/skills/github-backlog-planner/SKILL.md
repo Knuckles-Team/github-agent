@@ -14,7 +14,7 @@ description: >-
 license: MIT
 tags: [github, issues, pull-requests, backlog, triage, planning, ops]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '1.0.4'
 ---
 

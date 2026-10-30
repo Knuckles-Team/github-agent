@@ -12,7 +12,7 @@ description: >-
 license: MIT
 tags: [github, issues, search, triage, organization, mcp]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.2.0'
 ---
 # GitHub Issue Tracking

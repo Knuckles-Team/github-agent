@@ -12,7 +12,7 @@ description: >-
 license: MIT
 tags: [github, repository, branches, contents, pages, mcp]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 # GitHub Repository Management

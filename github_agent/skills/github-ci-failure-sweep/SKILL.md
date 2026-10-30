@@ -13,7 +13,7 @@ description: >-
 license: MIT
 tags: [github, ci, actions, pipelines, workflows, ops]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '1.0.3'
 ---
 

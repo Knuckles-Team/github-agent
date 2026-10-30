@@ -25,13 +25,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from agent_connector_sdk.config import load_config
-from agent_connector_sdk.connector_identity import connector_version
-from agent_connector_sdk.mcp.action_dispatch import resolve_action
-from agent_connector_sdk.mcp.concurrency import run_blocking
-from agent_connector_sdk.mcp.content import ConnectorContent
-from agent_connector_sdk.mcp.server import create_mcp_server
-from agent_connector_sdk.mcp.tool_surface import register_tool_surface
+from scion_sdk.config import load_config
+from scion_sdk.connector_identity import connector_version
+from scion_sdk.mcp.action_dispatch import resolve_action
+from scion_sdk.mcp.concurrency import run_blocking
+from scion_sdk.mcp.content import ConnectorContent
+from scion_sdk.mcp.server import create_mcp_server
+from scion_sdk.mcp.tool_surface import register_tool_surface
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.api_client import Api
@@ -3601,10 +3601,10 @@ def register_graphql_tools(mcp: FastMCP):
         ),
     ) -> dict:
         """Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time."""
-        from agent_connector_sdk.mcp.graphql import (
+        from scion_sdk.mcp.graphql import (
             ctx_graphql_get_type_details as graphql_type_details,
         )
-        from agent_connector_sdk.mcp.graphql import (
+        from scion_sdk.mcp.graphql import (
             ctx_graphql_list_types as graphql_schema_types,
         )
 

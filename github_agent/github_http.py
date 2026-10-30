@@ -7,9 +7,9 @@ import json
 import ssl
 from typing import Any
 
-from agent_connector_sdk.tls.errors import TransportSecurityError
-from agent_connector_sdk.tls.profile import ResolvedTLSProfile
-from agent_connector_sdk.tls.resolve import resolve_tls_profile
+from scion_sdk.tls.errors import TransportSecurityError
+from scion_sdk.tls.profile import ResolvedTLSProfile
+from scion_sdk.tls.resolve import resolve_tls_profile
 
 GITHUB_API_HOST = "api.github.com"
 MAX_REQUEST_BYTES = 1 * 1024 * 1024

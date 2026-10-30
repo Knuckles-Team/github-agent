@@ -63,7 +63,10 @@ def _issue(**overrides):
 
 def _classify(classify_safe, item, stale_days=60, allow_major=False, classes=None):
     return classify_safe.classify(
-        item, stale_days, allow_major, classes if classes is not None else DEFAULT_CLASSES
+        item,
+        stale_days,
+        allow_major,
+        classes if classes is not None else DEFAULT_CLASSES,
     )
 
 
@@ -178,7 +181,9 @@ def test_classify_major_bump_with_allow_major_is_safe_merge(classify_safe):
     assert result["verdict"] == "safe_merge"
 
 
-def test_classify_major_bump_allow_major_but_class_not_registered_is_skip(classify_safe):
+def test_classify_major_bump_allow_major_but_class_not_registered_is_skip(
+    classify_safe,
+):
     result = _classify(
         classify_safe,
         _pr(title="Bump foo from 1.2.3 to 2.0.0"),
@@ -279,7 +284,9 @@ def test_main_json_format_from_file(classify_safe, monkeypatch, capsys, tmp_path
 
     item_file = tmp_path / "items.json"
     item_file.write_text(_json.dumps([_issue(resolved_evidence="fixed by #1")]))
-    monkeypatch.setattr("sys.argv", ["classify_safe.py", str(item_file), "--format", "json"])
+    monkeypatch.setattr(
+        "sys.argv", ["classify_safe.py", str(item_file), "--format", "json"]
+    )
     classify_safe.main()
     out = capsys.readouterr().out
     parsed = _json.loads(out)

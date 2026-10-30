@@ -890,7 +890,11 @@ async def test_mcp_orgs():
     assert res["status"] == 202
 
     res = await github_orgs(
-        action="delete", params_json="{}", allow_destructive=True, client=client, ctx=ctx
+        action="delete",
+        params_json="{}",
+        allow_destructive=True,
+        client=client,
+        ctx=ctx,
     )
     assert res["status"] == 400
 
@@ -983,7 +987,9 @@ async def test_mcp_dependabot():
     )
     assert res["status"] == 200
 
-    res = await github_dependabot(action="list", params_json="{}", client=client, ctx=ctx)
+    res = await github_dependabot(
+        action="list", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_dependabot(
@@ -994,7 +1000,9 @@ async def test_mcp_dependabot():
     )
     assert res["status"] == 200
 
-    res = await github_dependabot(action="get", params_json="{}", client=client, ctx=ctx)
+    res = await github_dependabot(
+        action="get", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_dependabot(

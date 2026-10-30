@@ -11,7 +11,7 @@ description: >-
 license: MIT
 tags: [github, actions, ci, workflows, pipelines, jobs, logs, mcp]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 # GitHub Actions CI Review

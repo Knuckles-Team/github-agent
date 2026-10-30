@@ -16,7 +16,7 @@ license: MIT
 tags: [github, sdd, remediation, ci, issues, pull-requests, spec-driven, ops, automation]
 concept: CONCEPT:GH-ORCH.workflow.org-remediation-loop
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 

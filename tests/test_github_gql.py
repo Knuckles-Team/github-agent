@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from agent_connector_sdk.exceptions import MissingParameterError
+from scion_sdk.exceptions import MissingParameterError
 
 from github_agent.github_gql import GraphQL
 
@@ -45,11 +45,13 @@ def test_close_without_session_does_not_raise():
 def test_wrapper_delegates_to_shared_graphql_client():
     from unittest.mock import patch
 
-    from agent_connector_sdk.tls.resolve import resolve_tls_profile
-    from agent_connector_sdk.transports.graphql import GraphQLClient
+    from scion_sdk.tls.resolve import resolve_tls_profile
+    from scion_sdk.transports.graphql import GraphQLClient
 
     profile = resolve_tls_profile("github")
-    g = GraphQL(url="https://github.example/api/v3", token="tok123", tls_profile=profile)
+    g = GraphQL(
+        url="https://github.example/api/v3", token="tok123", tls_profile=profile
+    )
     assert isinstance(g._gql, GraphQLClient)
     assert g._gql.endpoint == "https://github.example/api/graphql"
     assert g._gql.headers["Authorization"] == "Bearer tok123"
@@ -64,8 +66,8 @@ def test_wrapper_delegates_to_shared_graphql_client():
 def test_execute_failure_message_is_redacted_class_name():
     from unittest.mock import patch
 
-    from agent_connector_sdk.exceptions import ParameterError
-    from agent_connector_sdk.transports.graphql import GraphQLClient
+    from scion_sdk.exceptions import ParameterError
+    from scion_sdk.transports.graphql import GraphQLClient
 
     g = GraphQL(url="https://api.github.com", token="tok123")
     with patch.object(GraphQLClient, "_attempt", side_effect=ValueError("boom")):

@@ -1,20 +1,20 @@
 #!/usr/bin/python
 
 import httpx
-from agent_connector_sdk.auth.delegation import (
+from scion_sdk.auth.delegation import (
     DelegationSettings,
     current_user_token,
     exchange_token,
 )
-from agent_connector_sdk.config import setting
-from agent_connector_sdk.exceptions import (
+from scion_sdk.config import setting
+from scion_sdk.exceptions import (
     AuthError,
     LoginRequiredError,
     UnauthorizedError,
 )
-from agent_connector_sdk.tls.profile import ResolvedTLSProfile
-from agent_connector_sdk.tls.resolve import resolve_tls_profile
-from agent_connector_sdk.utilities import get_logger
+from scion_sdk.tls.profile import ResolvedTLSProfile
+from scion_sdk.tls.resolve import resolve_tls_profile
+from scion_sdk.utilities import get_logger
 
 from github_agent.api_client import Api
 

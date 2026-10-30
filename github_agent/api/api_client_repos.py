@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import requests
-from agent_connector_sdk.exceptions import (
+from pydantic import ValidationError
+from scion_sdk.exceptions import (
     ParameterError,
     require_auth,
 )
-from pydantic import ValidationError
 
 from github_agent.api.api_client_base import BaseApiClient
 from github_agent.github_input_models import (

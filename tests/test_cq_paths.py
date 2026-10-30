@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 import pytest
-from agent_connector_sdk.ingest.live_declaration import load_declaration
+from scion_sdk.ingest.live_declaration import load_declaration
 
 import github_agent
 

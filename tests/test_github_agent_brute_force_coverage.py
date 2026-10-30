@@ -124,8 +124,8 @@ def test_mcp_server_coverage():
 def test_auth_delegation():
     import time
 
-    from agent_connector_sdk.auth.delegation import DelegationSettings
-    from agent_connector_sdk.auth.tokens import AccessToken
+    from scion_sdk.auth.delegation import DelegationSettings
+    from scion_sdk.auth.tokens import AccessToken
 
     from github_agent.auth import get_client
 
