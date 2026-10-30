@@ -5,7 +5,7 @@ description: Provisions and configures a new or existing GitHub project using st
 license: MIT
 tags: [github, provision, ci-cd, actions, pages, ops]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.1.23'
 ---
 

@@ -1,5 +1,5 @@
-from agent_connector_sdk.connector import Connector
-from agent_connector_sdk.connector_identity import connector_version
+from scion_sdk.connector import Connector
+from scion_sdk.connector_identity import connector_version
 
 from github_agent.api_client import Api
 from github_agent.auth import get_client

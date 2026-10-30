@@ -61,7 +61,7 @@ def test_fetch_checks_falls_back_to_available_fields(mod, monkeypatch, tmp_path)
             return mod.GhResult(
                 1,
                 "",
-                "Unknown JSON field: \"conclusion\"\n"
+                'Unknown JSON field: "conclusion"\n'
                 "Available fields:\n"
                 "  bucket\n  link\n  name\n  startedAt\n  completedAt\n"
                 "  state\n  workflow",
@@ -77,7 +77,9 @@ def test_fetch_checks_falls_back_to_available_fields(mod, monkeypatch, tmp_path)
     assert "conclusion" not in calls[1][-1]
 
 
-def test_fetch_checks_no_available_fields_returns_none(mod, monkeypatch, tmp_path, capsys):
+def test_fetch_checks_no_available_fields_returns_none(
+    mod, monkeypatch, tmp_path, capsys
+):
     monkeypatch.setattr(
         mod, "run_gh_command", lambda args, cwd: mod.GhResult(1, "", "some other error")
     )
@@ -86,7 +88,9 @@ def test_fetch_checks_no_available_fields_returns_none(mod, monkeypatch, tmp_pat
     assert "some other error" in capsys.readouterr().err
 
 
-def test_fetch_checks_fallback_retry_also_fails_returns_none(mod, monkeypatch, tmp_path, capsys):
+def test_fetch_checks_fallback_retry_also_fails_returns_none(
+    mod, monkeypatch, tmp_path, capsys
+):
     calls = []
 
     def fake_run(args, cwd):
@@ -104,7 +108,9 @@ def test_fetch_checks_fallback_retry_also_fails_returns_none(mod, monkeypatch, t
 
 
 def test_fetch_checks_invalid_json_returns_none(mod, monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr(mod, "run_gh_command", lambda args, cwd: mod.GhResult(0, "not json", ""))
+    monkeypatch.setattr(
+        mod, "run_gh_command", lambda args, cwd: mod.GhResult(0, "not json", "")
+    )
     result = mod.fetch_checks("1", tmp_path)
     assert result is None
     assert "unable to parse checks JSON" in capsys.readouterr().err
@@ -112,7 +118,9 @@ def test_fetch_checks_invalid_json_returns_none(mod, monkeypatch, tmp_path, caps
 
 def test_fetch_checks_non_list_json_returns_none(mod, monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
-        mod, "run_gh_command", lambda args, cwd: mod.GhResult(0, json.dumps({"a": 1}), "")
+        mod,
+        "run_gh_command",
+        lambda args, cwd: mod.GhResult(0, json.dumps({"a": 1}), ""),
     )
     result = mod.fetch_checks("1", tmp_path)
     assert result is None

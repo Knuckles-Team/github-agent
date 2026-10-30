@@ -16,7 +16,7 @@ path that matches how the operator want to run it.
 pip install github-agent
 ```
 
-The base install pulls in `agent-connector-sdk`, which provides the
+The base install pulls in `scion-sdk`, which provides the
 FastMCP runtime, the Pydantic-AI agent stack, and Logfire/OpenTelemetry tracing —
 everything needed to run both the MCP server and the A2A agent.
 

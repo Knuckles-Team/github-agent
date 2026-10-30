@@ -11,7 +11,7 @@ description: >-
 license: MIT
 tags: [github, pull-request, create, reviewers, mcp]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 # GitHub Pull Request Create

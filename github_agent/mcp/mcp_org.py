@@ -3,11 +3,11 @@
 Auto-generated from mcp_server.py during ecosystem standardization.
 """
 
-from agent_connector_sdk.mcp.action_dispatch import resolve_action
-from agent_connector_sdk.mcp.concurrency import run_blocking
 from fastmcp import Context, FastMCP
 from fastmcp.dependencies import Depends
 from pydantic import Field
+from scion_sdk.mcp.action_dispatch import resolve_action
+from scion_sdk.mcp.concurrency import run_blocking
 
 from github_agent.api.api_client_orgs import OrganizationCreationNotSupportedError
 from github_agent.auth import allow_destructive_default, get_client

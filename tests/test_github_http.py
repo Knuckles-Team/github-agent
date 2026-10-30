@@ -83,7 +83,9 @@ def test_github_json_request_rejects_oversized_payload():
 
 def test_github_json_request_success_returns_status_and_json():
     connection, _ = _mock_connection(status=200, body=b'{"a": 1}')
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         status, value = github_json_request("GET", "/repos/x/y", "tok")
     assert status == 200
     assert value == {"a": 1}
@@ -92,7 +94,9 @@ def test_github_json_request_success_returns_status_and_json():
 
 def test_github_json_request_rejects_redirect_status():
     connection, _ = _mock_connection(status=302, body=b"")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="redirect was rejected"):
             github_json_request("GET", "/repos/x/y", "tok")
 
@@ -101,29 +105,41 @@ def test_github_json_request_rejects_declared_oversized_response():
     connection, _ = _mock_connection(
         status=200, body=b"{}", content_length=str(MAX_RESPONSE_BYTES + 1)
     )
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="exceeds its safe size boundary"):
             github_json_request("GET", "/repos/x/y", "tok")
 
 
 def test_github_json_request_rejects_invalid_declared_length():
-    connection, _ = _mock_connection(status=200, body=b"{}", content_length="not-a-number")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    connection, _ = _mock_connection(
+        status=200, body=b"{}", content_length="not-a-number"
+    )
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="response length is invalid"):
             github_json_request("GET", "/repos/x/y", "tok")
 
 
 def test_github_json_request_rejects_oversized_actual_body():
     oversized = b"a" * (MAX_RESPONSE_BYTES + 2)
-    connection, response = _mock_connection(status=200, body=oversized, content_length="0")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    connection, response = _mock_connection(
+        status=200, body=oversized, content_length="0"
+    )
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="exceeds its safe size boundary"):
             github_json_request("GET", "/repos/x/y", "tok")
 
 
 def test_github_json_request_returns_empty_dict_for_empty_body():
     connection, _ = _mock_connection(status=204, body=b"", content_length="0")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         status, value = github_json_request("GET", "/repos/x/y", "tok")
     assert status == 204
     assert value == {}
@@ -131,14 +147,18 @@ def test_github_json_request_returns_empty_dict_for_empty_body():
 
 def test_github_json_request_rejects_invalid_json_body():
     connection, _ = _mock_connection(status=200, body=b"not json")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="response was invalid"):
             github_json_request("GET", "/repos/x/y", "tok")
 
 
 def test_github_json_request_returns_empty_dict_for_non_dict_json():
     connection, _ = _mock_connection(status=200, body=b"[1, 2, 3]")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         status, value = github_json_request("GET", "/repos/x/y", "tok")
     assert status == 200
     assert value == {}
@@ -147,7 +167,9 @@ def test_github_json_request_returns_empty_dict_for_non_dict_json():
 def test_github_json_request_wraps_connection_errors():
     connection = MagicMock()
     connection.request.side_effect = OSError("boom")
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         with pytest.raises(RuntimeError, match="service is unavailable"):
             github_json_request("GET", "/repos/x/y", "tok")
     connection.close.assert_called_once()
@@ -155,14 +177,19 @@ def test_github_json_request_wraps_connection_errors():
 
 def test_github_json_request_encodes_payload_as_compact_json():
     connection, response = _mock_connection(status=201, body=b'{"created": true}')
-    with patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection):
+    with patch(
+        "github_agent.github_http.http.client.HTTPSConnection", return_value=connection
+    ):
         status, value = github_json_request(
             "POST", "/repos/x/y/issues", "tok", payload={"title": "hi"}
         )
     assert status == 201
     assert value == {"created": True}
     sent_kwargs = connection.request.call_args.kwargs
-    assert sent_kwargs["body"] == json.dumps({"title": "hi"}, separators=(",", ":")).encode()
+    assert (
+        sent_kwargs["body"]
+        == json.dumps({"title": "hi"}, separators=(",", ":")).encode()
+    )
 
 
 @pytest.mark.spec("CONN-GITHUB-AGENT-TRANSPORT-TLS-R001")
@@ -171,8 +198,13 @@ def test_request_uses_sdk_tls_profile_context():
     connection, _ = _mock_connection()
     profile = MagicMock()
     with (
-        patch("github_agent.github_http.resolve_tls_profile", return_value=profile) as resolve,
-        patch("github_agent.github_http.http.client.HTTPSConnection", return_value=connection) as conn_cls,
+        patch(
+            "github_agent.github_http.resolve_tls_profile", return_value=profile
+        ) as resolve,
+        patch(
+            "github_agent.github_http.http.client.HTTPSConnection",
+            return_value=connection,
+        ) as conn_cls,
     ):
         github_json_request("GET", "/repos/x/y", "tok")
     resolve.assert_called_once_with("github")
@@ -183,10 +215,11 @@ def test_request_uses_sdk_tls_profile_context():
 @pytest.mark.spec("CONN-GITHUB-AGENT-TRANSPORT-TLS-R001")
 def test_private_ca_is_carried_through_the_profile(tmp_path, monkeypatch):
     """CONN-GITHUB-AGENT-TRANSPORT-TLS-R001: a configured CA bundle reaches the profile."""
+    import datetime
+
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec
-    import datetime
 
     from github_agent.github_http import _tls_profile
 

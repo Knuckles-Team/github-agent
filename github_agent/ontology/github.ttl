@@ -218,4 +218,4 @@
     rdfs:comment """GitHub source-control, code-review and CI/CD model — organizations,
     repositories, pull requests, issues, releases, branches, commits, workflows and
     workflow runs, with their review and delivery relationships — federated into the
-    agent-connector-sdk knowledge-graph hub. Reuses the shared :Person and :Document classes.""" .
+    scion-sdk knowledge-graph hub. Reuses the shared :Person and :Document classes.""" .

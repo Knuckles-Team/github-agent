@@ -42,7 +42,9 @@ async def _register_and_get_tool(register_fn, tool_name: str):
 async def test_mirror_actions_dispatch():
     from github_agent.mcp.mcp_action import register_action_tools
 
-    github_actions = await _register_and_get_tool(register_action_tools, "github_actions")
+    github_actions = await _register_and_get_tool(
+        register_action_tools, "github_actions"
+    )
     client = create_mock_client()
     ctx = AsyncMockContext()
 
@@ -59,7 +61,9 @@ async def test_mirror_actions_dispatch():
     )
     assert res["status"] == 400
 
-    res = await github_actions(action="list_runs", params_json="{}", client=client, ctx=ctx)
+    res = await github_actions(
+        action="list_runs", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 200
 
     res = await github_actions(
@@ -70,7 +74,9 @@ async def test_mirror_actions_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_actions(action="get_run", params_json="{}", client=client, ctx=ctx)
+    res = await github_actions(
+        action="get_run", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_actions(
@@ -92,7 +98,9 @@ async def test_mirror_actions_dispatch():
     assert res["status"] == 200
     assert "check_run_url" in res["data"][0]
 
-    res = await github_actions(action="list_jobs", params_json="{}", client=client, ctx=ctx)
+    res = await github_actions(
+        action="list_jobs", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_actions(
@@ -103,7 +111,9 @@ async def test_mirror_actions_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_actions(action="job_logs", params_json="{}", client=client, ctx=ctx)
+    res = await github_actions(
+        action="job_logs", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_actions(
@@ -151,7 +161,9 @@ async def test_mirror_actions_dispatch():
 async def test_mirror_commits_dispatch():
     from github_agent.mcp.mcp_commit import register_commit_tools
 
-    github_commits = await _register_and_get_tool(register_commit_tools, "github_commits")
+    github_commits = await _register_and_get_tool(
+        register_commit_tools, "github_commits"
+    )
     client = create_mock_client()
     ctx = AsyncMockContext()
 
@@ -177,7 +189,9 @@ async def test_mirror_commits_dispatch():
 async def test_mirror_branches_dispatch():
     from github_agent.mcp.mcp_branch import register_branch_tools
 
-    github_branches = await _register_and_get_tool(register_branch_tools, "github_branches")
+    github_branches = await _register_and_get_tool(
+        register_branch_tools, "github_branches"
+    )
     client = create_mock_client()
     ctx = AsyncMockContext()
 
@@ -203,7 +217,9 @@ async def test_mirror_branches_dispatch():
     )
     assert res["status"] == 201
 
-    res = await github_branches(action="create", params_json="{}", client=client, ctx=ctx)
+    res = await github_branches(
+        action="create", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_branches(
@@ -214,7 +230,9 @@ async def test_mirror_branches_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_branches(action="delete", params_json="{}", client=client, ctx=ctx)
+    res = await github_branches(
+        action="delete", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     # Declared-but-unimplemented actions (pre-existing, see BUGS FOUND).
@@ -228,7 +246,9 @@ async def test_mirror_branches_dispatch():
     assert "Unknown action" in res["error"]
 
     with pytest.raises(ValueError, match="list_actions"):
-        await github_branches(action="invalid", params_json="{}", client=client, ctx=ctx)
+        await github_branches(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -241,7 +261,9 @@ async def test_mirror_collaborators_dispatch():
     client = create_mock_client()
     ctx = AsyncMockContext()
 
-    res = await github_collaborators(action="list", params_json="{}", client=client, ctx=ctx)
+    res = await github_collaborators(
+        action="list", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 200
 
     res = await github_collaborators(
@@ -252,7 +274,9 @@ async def test_mirror_collaborators_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_collaborators(action="add", params_json="{}", client=client, ctx=ctx)
+    res = await github_collaborators(
+        action="add", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_collaborators(
@@ -263,24 +287,32 @@ async def test_mirror_collaborators_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_collaborators(action="remove", params_json="{}", client=client, ctx=ctx)
+    res = await github_collaborators(
+        action="remove", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     with pytest.raises(ValueError, match="list_actions"):
-        await github_collaborators(action="invalid", params_json="{}", client=client, ctx=ctx)
+        await github_collaborators(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
 async def test_mirror_contents_dispatch():
     from github_agent.mcp.mcp_content import register_content_tools
 
-    github_contents = await _register_and_get_tool(register_content_tools, "github_contents")
+    github_contents = await _register_and_get_tool(
+        register_content_tools, "github_contents"
+    )
     client = create_mock_client()
     ctx = AsyncMockContext()
 
     res = await github_contents(
-        action="get", params_json='{"owner": "o", "repo": "r", "path": "p"}',
-        client=client, ctx=ctx,
+        action="get",
+        params_json='{"owner": "o", "repo": "r", "path": "p"}',
+        client=client,
+        ctx=ctx,
     )
     assert res["status"] == 200
 
@@ -292,7 +324,9 @@ async def test_mirror_contents_dispatch():
     )
     assert res["status"] == 201
 
-    res = await github_contents(action="create", params_json="{}", client=client, ctx=ctx)
+    res = await github_contents(
+        action="create", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_contents(
@@ -306,7 +340,9 @@ async def test_mirror_contents_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_contents(action="update", params_json="{}", client=client, ctx=ctx)
+    res = await github_contents(
+        action="update", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_contents(
@@ -317,11 +353,15 @@ async def test_mirror_contents_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_contents(action="delete", params_json="{}", client=client, ctx=ctx)
+    res = await github_contents(
+        action="delete", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     with pytest.raises(ValueError, match="list_actions"):
-        await github_contents(action="invalid", params_json="{}", client=client, ctx=ctx)
+        await github_contents(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -339,7 +379,9 @@ async def test_mirror_dependabot_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_dependabot(action="list", params_json="{}", client=client, ctx=ctx)
+    res = await github_dependabot(
+        action="list", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_dependabot(
@@ -350,7 +392,9 @@ async def test_mirror_dependabot_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_dependabot(action="get", params_json="{}", client=client, ctx=ctx)
+    res = await github_dependabot(
+        action="get", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_dependabot(
@@ -358,7 +402,9 @@ async def test_mirror_dependabot_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_dependabot(action="list_org", params_json="{}", client=client, ctx=ctx)
+    res = await github_dependabot(
+        action="list_org", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_dependabot(
@@ -379,7 +425,9 @@ async def test_mirror_dependabot_dispatch():
     assert res["status"] == 200
 
     with pytest.raises(ValueError, match="list_actions"):
-        await github_dependabot(action="invalid", params_json="{}", client=client, ctx=ctx)
+        await github_dependabot(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio
@@ -450,7 +498,9 @@ async def test_mirror_orgs_dispatch():
     client = create_mock_client()
     ctx = AsyncMockContext()
 
-    res = await github_orgs(action="get", params_json='{"org": "acme"}', client=client, ctx=ctx)
+    res = await github_orgs(
+        action="get", params_json='{"org": "acme"}', client=client, ctx=ctx
+    )
     assert res["status"] == 200
 
     res = await github_orgs(action="list", params_json="{}", client=client, ctx=ctx)
@@ -635,7 +685,9 @@ async def test_mirror_pulls_dispatch():
 async def test_mirror_releases_dispatch():
     from github_agent.mcp.mcp_release import register_release_tools
 
-    github_releases = await _register_and_get_tool(register_release_tools, "github_releases")
+    github_releases = await _register_and_get_tool(
+        register_release_tools, "github_releases"
+    )
     client = create_mock_client()
     ctx = AsyncMockContext()
 
@@ -666,7 +718,9 @@ async def test_mirror_releases_dispatch():
     )
     assert res["status"] == 201
 
-    res = await github_releases(action="create", params_json="{}", client=client, ctx=ctx)
+    res = await github_releases(
+        action="create", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_releases(
@@ -677,7 +731,9 @@ async def test_mirror_releases_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_releases(action="update", params_json="{}", client=client, ctx=ctx)
+    res = await github_releases(
+        action="update", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     res = await github_releases(
@@ -688,11 +744,15 @@ async def test_mirror_releases_dispatch():
     )
     assert res["status"] == 200
 
-    res = await github_releases(action="delete", params_json="{}", client=client, ctx=ctx)
+    res = await github_releases(
+        action="delete", params_json="{}", client=client, ctx=ctx
+    )
     assert res["status"] == 400
 
     with pytest.raises(ValueError, match="list_actions"):
-        await github_releases(action="invalid", params_json="{}", client=client, ctx=ctx)
+        await github_releases(
+            action="invalid", params_json="{}", client=client, ctx=ctx
+        )
 
 
 @pytest.mark.anyio

@@ -4,10 +4,10 @@
 import logging
 from typing import Any
 
-from agent_connector_sdk.exceptions import MissingParameterError
-from agent_connector_sdk.tls.profile import ResolvedTLSProfile
-from agent_connector_sdk.tls.resolve import resolve_tls_profile
-from agent_connector_sdk.transports.graphql import GraphQLAuth, GraphQLClient
+from scion_sdk.exceptions import MissingParameterError
+from scion_sdk.tls.profile import ResolvedTLSProfile
+from scion_sdk.tls.resolve import resolve_tls_profile
+from scion_sdk.transports.graphql import GraphQLAuth, GraphQLClient
 
 
 class GraphQL:

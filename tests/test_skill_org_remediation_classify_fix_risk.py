@@ -81,7 +81,9 @@ def test_items_unrecognized_type_returns_empty(classify_fix_risk):
 
 
 def test_classify_all_clear_is_low_risk(classify_fix_risk):
-    result = classify_fix_risk.classify(_clean_item(), max_files=5, max_lines=150, patterns=[])
+    result = classify_fix_risk.classify(
+        _clean_item(), max_files=5, max_lines=150, patterns=[]
+    )
     assert result["verdict"] == "low_risk"
     assert result["repo"] == "acme/widgets"
     assert result["number"] == 42

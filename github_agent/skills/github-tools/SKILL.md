@@ -10,7 +10,7 @@ description: >-
 license: MIT
 tags: [github, git, pull-requests, ci, code-review, workflow, worktrees, gh-cli]
 metadata:
-  author: Genius
+  author: Knuckles-Team
   version: '1.0.2'
 ---
 # GitHub & Git Workflow Tools

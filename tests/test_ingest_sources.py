@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from agent_connector_sdk.ingest.live_declaration import load_declaration
-from agent_connector_sdk.mcp.method_tools import operation_annotations, operation_verb
-from agent_connector_sdk.mcp.tool_surface import operation_prefix
+from scion_sdk.ingest.live_declaration import load_declaration
+from scion_sdk.mcp.method_tools import operation_annotations, operation_verb
+from scion_sdk.mcp.tool_surface import operation_prefix
 
 from github_agent.api_client import Api
 

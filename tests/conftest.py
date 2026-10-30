@@ -1,13 +1,13 @@
-"""Fleet-wide test-harness self-healing: `.uv-workspace-siblings/agent-connector-sdk`.
+"""Fleet-wide test-harness self-healing: `.uv-workspace-siblings/scion-sdk`.
 
-`pyproject.toml`'s `[tool.uv.sources]` resolves the `agent-connector-sdk`
-dependency through the gitignored `.uv-workspace-siblings/agent-connector-sdk`
+`pyproject.toml`'s `[tool.uv.sources]` resolves the `scion-sdk`
+dependency through the gitignored `.uv-workspace-siblings/scion-sdk`
 symlink (it must be gitignored — it's a machine-local absolute path). Only
 the canonical checkout has it hand-created; a freshly created `git worktree`
 never gets one, so the FIRST `uv sync` in a new worktree fails outright:
 
     error: Distribution not found at:
-    file://.../.uv-workspace-siblings/agent-connector-sdk
+    file://.../.uv-workspace-siblings/scion-sdk
 
 Three lanes hit this independently on 2026-08-27/28 and each fixed it by
 hand. This mirrors the self-healing pattern agent-webui's `pnpm-build`
@@ -29,21 +29,20 @@ directly, once, before your first sync:
 
 import pathlib
 import subprocess
-import sys
 
 import pytest
 
 
-def _ensure_agent_connector_sdk_sibling() -> "pathlib.Path | None":
+def _ensure_scion_sdk_sibling() -> "pathlib.Path | None":
     here = pathlib.Path(__file__).resolve().parent  # .../tests
     repo_root = here.parent
-    link = repo_root / ".uv-workspace-siblings" / "agent-connector-sdk"
+    link = repo_root / ".uv-workspace-siblings" / "scion-sdk"
     if link.is_symlink() or link.exists():
         return link
 
     # Derive the canonical (non-worktree) checkout root from git's common
     # dir — a worktree's own directory name/location tells us nothing about
-    # where its sibling `agent-connector-sdk` repo lives (this program's other
+    # where its sibling `scion-sdk` repo lives (this program's other
     # fleet-wide defect: deriving anything from the worktree basename).
     try:
         result = subprocess.run(
@@ -65,7 +64,7 @@ def _ensure_agent_connector_sdk_sibling() -> "pathlib.Path | None":
     common_dir = pathlib.Path(result.stdout.strip())
     canonical_root = common_dir.parent  # .../agent-packages/agents/<this-repo>
     packages_root = canonical_root.parent.parent  # .../agent-packages
-    target = packages_root / "agent-connector-sdk"
+    target = packages_root / "scion-sdk"
     if not (target / "pyproject.toml").exists():
         return None
 
@@ -77,15 +76,13 @@ def _ensure_agent_connector_sdk_sibling() -> "pathlib.Path | None":
     return link
 
 
-_ensure_agent_connector_sdk_sibling()
+_ensure_scion_sdk_sibling()
 
 if __name__ == "__main__":
     # Allows `python tests/conftest.py` to bootstrap a fresh worktree BEFORE
     # `uv sync`, without importing anything from this repo's own package or
     # its third-party deps — none of which exist yet in a pre-sync venv.
     raise SystemExit(0)
-
-
 
 
 """Shared test fixtures for Github Agent."""

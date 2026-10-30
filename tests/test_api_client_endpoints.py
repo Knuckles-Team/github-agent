@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from agent_connector_sdk.exceptions import MissingParameterError, ParameterError
+from scion_sdk.exceptions import MissingParameterError, ParameterError
 
 from github_agent.api_client import Api
 

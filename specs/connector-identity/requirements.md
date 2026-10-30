@@ -6,5 +6,5 @@ Each row is one requirement. A row names the file it touches and the test that p
 
 | ID | Requirement | Acceptance |
 |---|---|---|
-| `CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001` | **Fleet name.** `pyproject.toml` declares `github-mcp` as the single `agent_connector_sdk.connector` entry point. The content pack, the manifest `connector`, the fingerprints and the ingest binding all carry `github-mcp`. Proving test: `tests/test_fleet_name.py::test_connector_name_is_the_fleet_name`. | Every connector name in the package is `github-mcp`. |
+| `CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001` | **Fleet name.** `pyproject.toml` declares `github-mcp` as the single `scion_sdk.connector` entry point. The content pack, the manifest `connector`, the fingerprints and the ingest binding all carry `github-mcp`. Proving test: `tests/test_fleet_name.py::test_connector_name_is_the_fleet_name`. | Every connector name in the package is `github-mcp`. |
 | `CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002` | **Shared GraphQL client.** The connector's GraphQL calls go through the SDK shared GraphQL client. It declares GraphQL only through the SDK `graphql` extra. Proving test: `tests/test_github_gql.py::test_wrapper_delegates_to_shared_graphql_client`. | GraphQL calls use the shared client with the GitHub endpoint, bearer header and TLS profile. |
