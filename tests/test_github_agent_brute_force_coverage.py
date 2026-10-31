@@ -71,7 +71,7 @@ def test_github_api_brute_force():
         kwargs = _synthesize_api_kwargs(inspect.signature(method), common_kwargs)
         try:
             method(**kwargs)
-        except:
+        except Exception:
             pass
 
 
@@ -112,7 +112,7 @@ def test_mcp_server_coverage():
                 try:
                     target_params = _synthesize_tool_params(inspect.signature(tool.fn))
                     await mcp.call_tool(tool.name, target_params)
-                except:
+                except Exception:
                     pass
 
         loop = asyncio.new_event_loop()
