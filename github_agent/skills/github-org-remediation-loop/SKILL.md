@@ -63,7 +63,7 @@ convention). `github_branches`: `create` (from the repo's default branch SHA).
 
 - **mode**: `issues_ci` (Loop A) | `incoming_prs` (Loop B). Required.
 - **accounts**: `[{login, type}]`, default
-  `[{login:"Knucklessg1",type:"user"},{login:"Knuckles-Team",type:"org"}]` (matches
+  `[{login:"example-user",type:"user"},{login:"Knuckles-Team",type:"org"}]` (matches
   the sibling sweep skills).
 - **repos**: optional list of `owner/repo` — overrides `accounts` to scope a run to
   specific repositories (use this for a first test run; an org-wide sweep on the
