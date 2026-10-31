@@ -1,15 +1,14 @@
-import pytest
 from github_agent.github_input_models import (
-    RepoModel,
-    IssueModel,
-    PullRequestModel,
-    ContentModel,
     BranchModel,
-    CommitModel,
-    SearchModel,
-    OrgRepoModel,
-    OrgMemberModel,
     CollaboratorModel,
+    CommitModel,
+    ContentModel,
+    IssueModel,
+    OrgMemberModel,
+    OrgRepoModel,
+    PullRequestModel,
+    RepoModel,
+    SearchModel,
     WorkflowRunModel,
 )
 
