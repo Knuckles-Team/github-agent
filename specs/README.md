@@ -14,3 +14,4 @@ Read the existing specs first. Extend the spec that owns the behavior. Create a 
 
 - [`connector-identity`](connector-identity/spec.md) — `CONN-GITHUB-AGENT-CONNECTOR-IDENTITY`: the connector is filed under its fleet name.
 - [`transport-tls`](transport-tls/spec.md) — `CONN-GITHUB-AGENT-TRANSPORT-TLS`: transport trust comes from the SDK TLS profile.
+- [`CONN-GITHUB-AGENT-CONNECTOR-CONTENT`](connector-content/spec.md) — The connector serves its packaged content
