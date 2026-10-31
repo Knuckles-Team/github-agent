@@ -47,7 +47,7 @@ The tools — `github_pulls`, `github_issues`, `github_comments`, `github_action
   `find_tools("github pull requests issues review checks merge close comment")`).
 
 ## Inputs
-- **accounts**: default `[{login:"Knucklessg1",type:"user"},{login:"Knuckles-Team",type:"org"}]`.
+- **accounts**: default `[{login:"example-user",type:"user"},{login:"Knuckles-Team",type:"org"}]`.
 - **scope**: `prs`, `issues`, or `both` (default `both`).
 - **autonomy**: `dry-run` (default — plan only), `confirm-each` (act per item on yes),
   or `auto-safe` (act without prompting, but ONLY on `safe_merge`/`safe_close` verdicts;

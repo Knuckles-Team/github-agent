@@ -25,7 +25,7 @@ metadata:
 ## Overview
 
 Cross-account open-pull-request review. Enumerates every repo under the target
-accounts (e.g. the `Knucklessg1` user **and** the `Knuckles-Team` org), collects
+accounts (e.g. the `example-user` user **and** the `Knuckles-Team` org), collects
 every **open PR**, enriches each with mergeability + check + review signals, and
 emits a Markdown report grouped by repo with a **verdict and recommended action per
 PR**. Read-only by default; reviews/merges are opt-in.
@@ -52,7 +52,7 @@ enable_auto_merge|disable_auto_merge`. See `references/pulls-tool-cheatsheet.md`
 
 ## Inputs
 - **accounts**: `[{login, type}]`. Default:
-  `[{login: "Knucklessg1", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
+  `[{login: "example-user", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
 - **include_drafts**: `true` (report drafts, flagged) or `false` (skip). Default `true`.
 
 ## Workflow

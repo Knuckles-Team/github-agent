@@ -23,7 +23,7 @@ metadata:
 ## Overview
 
 Account-wide backlog sweep. Discovers all open issues and PRs across the target
-accounts (e.g. the `Knucklessg1` user **and** the `Knuckles-Team` org), determines
+accounts (e.g. the `example-user` user **and** the `Knuckles-Team` org), determines
 which are **already addressed** (deep verification, not just labels), and produces a
 single prioritized Markdown plan grouped by account → repo. Read-only by default;
 any change to GitHub is opt-in.
@@ -52,7 +52,7 @@ Confirmed action shapes: `github_issues`/`github_pulls` → `list|get|create|upd
 ## Inputs
 
 - **accounts**: list of `{login, type}` where type is `user` or `org`. Default:
-  `[{login: "Knucklessg1", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
+  `[{login: "example-user", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
 - **include_prs**: default true. **include_issues**: default true.
 
 ## Workflow
@@ -64,8 +64,8 @@ Confirmed action shapes: `github_issues`/`github_pulls` → `list|get|create|upd
 
 ### Step 2 — Bulk-discover open items (efficient path)
 Use search, which returns issues AND PRs compactly account-wide:
-- `github_search action=issues {"q": "user:Knucklessg1 is:open is:issue"}`
-- `github_search action=issues {"q": "user:Knucklessg1 is:open is:pr"}`
+- `github_search action=issues {"q": "user:example-user is:open is:issue"}`
+- `github_search action=issues {"q": "user:example-user is:open is:pr"}`
 - `github_search action=issues {"q": "org:Knuckles-Team is:open is:issue"}`
 - `github_search action=issues {"q": "org:Knuckles-Team is:open is:pr"}`
 

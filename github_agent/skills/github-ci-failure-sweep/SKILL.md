@@ -22,7 +22,7 @@ metadata:
 ## Overview
 
 Cross-account GitHub Actions health check. Enumerates every repo under the target
-accounts (e.g. the `Knucklessg1` user **and** the `Knuckles-Team` org), finds the
+accounts (e.g. the `example-user` user **and** the `Knuckles-Team` org), finds the
 **latest failing run per workflow**, and emits a compact Markdown report grouped by
 repo, with a probable cause per failure. Read-only by default; re-runs are opt-in.
 
@@ -49,7 +49,7 @@ See `references/actions-tool-cheatsheet.md`.
 
 ## Inputs
 - **accounts**: `[{login, type}]`. Default:
-  `[{login: "Knucklessg1", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
+  `[{login: "example-user", type: "user"}, {login: "Knuckles-Team", type: "org"}]`.
 - **branch_scope**: `default` (only each repo's default branch — recommended) or `all`.
 
 ## Workflow

@@ -8,7 +8,7 @@ the script runnable in any environment (no ``gh`` CLI, no ``GITHUB_*`` token).
 
 Input (stdin or --input PATH): a JSON list of item objects. Each item:
     {
-      "account":   "Knucklessg1" | "Knuckles-Team",   # owner / org login
+      "account":   "example-user" | "Knuckles-Team",   # owner / org login
       "repo":      "geniusbot",                          # repo name (no owner)
       "kind":      "issue" | "pr",
       "number":    42,
