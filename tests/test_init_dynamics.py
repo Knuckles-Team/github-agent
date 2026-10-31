@@ -10,6 +10,7 @@ PKG_NAME = __name__.rsplit(".", 1)[0] if "." in __name__ else None
 def _get_pkg_name():
     """Derive package name from project metadata (works in any checkout name)."""
     import pathlib
+
     import tomllib
 
     test_dir = pathlib.Path(__file__).resolve().parent

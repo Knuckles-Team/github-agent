@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 ### Changed
--
+- Require scion-sdk>=0.6.4,<0.7.0; tests lint-clean (bare except, import order).
 
 ### Fixed
 - `create_repository` (`github_agent/api/api_client_repos.py`) silently
