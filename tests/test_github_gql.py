@@ -50,7 +50,7 @@ def test_wrapper_delegates_to_shared_graphql_client():
 
     profile = resolve_tls_profile("github")
     g = GraphQL(
-        url="https://github.example/api/v3", token="tok123", tls_profile=profile
+        url="https://github.example/api/v3", token="tok123", tls_profile=profile  # sanitizer:ignore - synthetic test fixture token
     )
     assert isinstance(g._gql, GraphQLClient)
     assert g._gql.endpoint == "https://github.example/api/graphql"
