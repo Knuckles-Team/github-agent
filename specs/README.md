@@ -8,7 +8,7 @@ This repository owns the specs with the ID prefix `CONN-GITHUB-AGENT`. The conne
 
 ## Add a spec
 
-Read the existing specs first. Extend the spec that owns the behavior. Create a spec only for a capability that no spec owns. Copy [`_template/`](_template/) to `specs/<area>/`, set the ID to `CONN-GITHUB-AGENT` or `CONN-GITHUB-AGENT-<AREA>`, and add one index line below.
+Read the existing specs first. Extend the spec that owns the behavior. Create a spec only for a capability that no spec owns. Start from the templates of the spec standard in `specs/<area>/`, set the ID to `CONN-GITHUB-AGENT` or `CONN-GITHUB-AGENT-<AREA>`, and add one index line below.
 
 ## Local specifications
 
