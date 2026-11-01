@@ -2,5 +2,7 @@
 
 Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md). Rows: [requirements.md](requirements.md).
 
-- [x] **CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001:** File the pack, manifest and ingest binding under the fleet name `github-mcp`.
-- [x] **CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002:** Route GraphQL calls through the SDK shared GraphQL client and the `graphql` extra.
+Each task line reads `- [ ] T001 [P] [US1] <ID>-R012.4 description`. Order is producer first.
+
+- [x] T001 [US1] CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R001 Fleet name.
+- [x] T002 [US1] CONN-GITHUB-AGENT-CONNECTOR-IDENTITY-R002 Shared GraphQL client.
