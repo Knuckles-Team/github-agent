@@ -575,7 +575,7 @@ server = [
 
 [[package]]
 name = "github-agent"
-version = "2.4.10"
+version = "2.4.11"
 source = { editable = "." }
 dependencies = [
     { name = "requests" },
