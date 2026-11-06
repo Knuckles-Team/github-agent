@@ -7,31 +7,19 @@ supervisor architecture and the specialized child agents are detailed in
 
 ## As an MCP server
 
-Once [deployed](deployment.md), the server registers twelve action-dispatch tool
-domains. Each domain takes an `action` and a JSON `params_json` payload; each is
-gated by its own environment switch (all default `True`).
-
-| Tool | Actions |
-|---|---|
-| `github_repos` | `list`, `get`, `create`, `update`, `delete` |
-| `github_issues` | `list`, `get`, `create`, `update` |
-| `github_pulls` | `list`, `get`, `create`, `update` |
-| `github_comments` | `list`, `list_repo`, `get`, `create`, `update`, `delete`, `list_review`, `list_repo_review`, `get_review`, `create_review`, `reply_review`, `update_review`, `delete_review` |
-| `github_contents` | `get`, `create`, `update`, `delete` |
-| `github_branches` | `list`, `get`, `create`, `delete`, `get_protection`, `update_protection`, `delete_protection` |
-| `github_commits` | `list`, `get` |
-| `github_search` | `repositories`, `issues`, `code` |
-| `github_orgs` | `repos`, `members`, `teams` |
-| `github_collaborators` | `list`, `add`, `remove` |
-| `github_actions` | `list_workflows`, `list_runs`, `get_run`, `trigger_dispatch`, `rerun`, `cancel`, `delete_run` |
-| `github_releases` | `list`, `get`, `create`, `update`, `delete` |
+Once [deployed](deployment.md), the server registers one typed tool per GitHub operation
+(`github_get_repositories`, `github_create_issue`, `github_get_pull_requests`,
+`github_merge_pull_request`, `github_get_workflow_runs`, ...), plus
+`github_pulls_enable_auto_merge`, `github_pulls_disable_auto_merge`, `github_graphql`,
+`github_discover_graphql_schema` and the ingestion tools. Delete, remove and other
+destructive tools take `confirm=true`.
 
 Example agent prompts that map onto these tools:
 
-- *"List my repositories"* → `github_repos` (`list`)
-- *"Open an issue titled 'Bug' in `owner/repo`"* → `github_issues` (`create`)
-- *"Search GitHub for repositories matching 'mcp server'"* → `github_search` (`repositories`)
-- *"Show the latest workflow runs for `owner/repo`"* → `github_actions` (`list_runs`)
+- *"List my repositories"* -> `github_get_repositories`
+- *"Open an issue titled 'Bug' in `owner/repo`"* -> `github_create_issue`
+- *"Search GitHub for repositories matching 'mcp server'"* -> `github_search_repositories`
+- *"Show the latest workflow runs for `owner/repo`"* -> `github_get_workflow_runs`
 
 ## As a Python API
 

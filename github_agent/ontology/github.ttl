@@ -9,8 +9,7 @@
 # GitHub source-control ontology — repositories, code review, issue tracking, and
 # CI/CD via GitHub Actions. All classes and properties live in the shared `:` (kg#)
 # namespace; only the owl:Ontology node gets the per-package IRI. Backs the github-agent
-# MCP tool surface (github_repos / github_pulls / github_issues / github_releases /
-# github_branches / github_commits / github_actions / github_orgs). The shared
+# MCP tool surface (the typed github_* tools). The shared
 # :Person / :Document classes (users, release notes) are REUSED, never redefined.
 
 # Shared concepts owned by the epistemic-graph ontology and referenced here, never redeclared:
@@ -22,7 +21,7 @@
 :Issue a owl:Class ;
     rdfs:subClassOf :WorkItem ;
     rdfs:label "Issue" ;
-    rdfs:comment "A tracked work item, bug, or discussion in a repository (github_issues)." .
+    rdfs:comment "A tracked work item, bug, or discussion in a repository (github_get_issues)." .
 
 :Workflow a owl:Class .
 
@@ -30,12 +29,12 @@
 :WorkflowRun a owl:Class ;
     rdfs:subClassOf :PipelineRun ;
     rdfs:label "Workflow Run" ;
-    rdfs:comment "A single execution of a GitHub Actions workflow for a ref/commit (github_actions)." .
+    rdfs:comment "A single execution of a GitHub Actions workflow for a ref/commit (github_get_workflow_runs)." .
 
 :CheckRun a owl:Class ;
     rdfs:subClassOf :PipelineRun ;
     rdfs:label "Check Run" ;
-    rdfs:comment """A single job/check within a PipelineRun (github_actions workflow-run job or
+    rdfs:comment """A single job/check within a PipelineRun (github_get_workflow_run_jobs workflow-run job or
     GitHub Checks-API check run). Shares its class name with the twin gitlab-api producer.""" .
 
 # --- links (owl:ObjectProperty) ---

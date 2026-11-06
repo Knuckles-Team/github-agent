@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reduce verbose GitHub Actions ``list_runs`` output to the failing pipelines.
 
-``github_actions action=list_runs`` returns large payloads (~65KB/repo) that the
+``github_get_workflow_runs`` returns large payloads (~65KB/repo) that the
 harness spills to a file. Never read that raw — feed it here. This script:
   * accepts one or more ``list_runs`` result files (or stdin),
   * keeps only the **latest** run per ``(repo, workflow, branch)``,
