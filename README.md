@@ -60,29 +60,9 @@ _Auto-generated from the live MCP server — do not edit by hand._
 
 <!-- MCP-TOOLS-TABLE:START -->
 
-#### Condensed action-routed tools (`MCP_TOOL_MODE=condensed`)
+Every operation is one typed tool; there are no action-routed tools.
 
-| MCP Tool | Toggle Env Var | Description |
-|----------|----------------|-------------|
-| `github_actions` | `ACTIONTOOL` | Manage GitHub actions workflows and runs. |
-| `github_branches` | `BRANCHTOOL` | Manage GitHub branches. |
-| `github_collaborators` | `COLLABORATORTOOL` | Manage repository collaborators. |
-| `github_comments` | `COMMENTTOOL` | Manage GitHub issue and pull-request comments. |
-| `github_commits` | `COMMITTOOL` | Manage GitHub commits. |
-| `github_contents` | `CONTENTTOOL` | Manage GitHub contents. |
-| `github_dependabot` | `DEPENDABOTTOOL` | Review and manage GitHub Dependabot vulnerability alerts. |
-| `github_discover_graphql_schema` | `GRAPHQLTOOL` | Discover the live GitHub GraphQL schema (types, fields, and attributes) in real-time. |
-| `github_graphql` | `GRAPHQLTOOL` | Execute raw GraphQL queries and mutations natively on GitHub. |
-| `github_ingest_pipelines` | `INGESTTOOL` | Natively ingest GitHub Actions workflow runs into epistemic-graph. |
-| `github_ingest_repos` | `INGESTTOOL` | Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes. |
-| `github_issues` | `ISSUETOOL` | Manage GitHub issues. |
-| `github_orgs` | `ORGTOOL` | Manage GitHub organizations. |
-| `github_pulls` | `PULLTOOL` | Manage GitHub pull requests and their review/merge lifecycle. |
-| `github_releases` | `RELEASETOOL` | Manage repository releases. |
-| `github_repos` | `REPOTOOL` | Manage GitHub repositories and their GitHub Pages sites. |
-| `github_search` | `SEARCHTOOL` | Search GitHub repositories, issues, or code. |
-
-#### Verbose 1:1 API-mapped tools (`MCP_TOOL_MODE=verbose` or `both`)
+#### Typed per-operation tools
 
 <details>
 <summary>95 per-operation tools — one per public API method (click to expand)</summary>
@@ -474,24 +454,8 @@ Every variable the server reads.
 | `DEBUG` | Verbose logging | `False` |
 | `PYTHONUNBUFFERED` | Unbuffered stdout (recommended in containers) | `1` |
 
-### Tool toggles
-Each action-routed tool can be disabled individually via its toggle env var (set to `false`).
-The full list is in the [Available MCP Tools](#available-mcp-tools) table above.
-
-| Variable | Tool | Default |
-|----------|------|---------|
-| `ACTIONTOOL` | `github_actions` — Actions workflows and runs | `True` |
-| `BRANCHTOOL` | `github_branches` — branches | `True` |
-| `COLLABORATORTOOL` | `github_collaborators` — repository collaborators | `True` |
-| `COMMITTOOL` | `github_commits` — commits | `True` |
-| `CONTENTTOOL` | `github_contents` — file contents | `True` |
-| `INGESTTOOL` | `github_ingest_repos` — KG repository ingestion | `True` |
-| `ISSUETOOL` | `github_issues` — issues | `True` |
-| `ORGTOOL` | `github_orgs` — organizations | `True` |
-| `PULLTOOL` | `github_pulls` — pull requests | `True` |
-| `RELEASETOOL` | `github_releases` — releases | `True` |
-| `REPOTOOL` | `github_repos` — repositories and Pages sites | `True` |
-| `SEARCHTOOL` | `github_search` — search repositories, issues, code | `True` |
+### Tool surface
+The tool surface is the typed per-operation tools; there are no per-domain toggles.
 
 ### Telemetry & governance
 | Variable | Description | Default |

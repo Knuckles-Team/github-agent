@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.15] - 2026-11-06
+
+### Changed
+- Connector surface: agent-definition prompts (operator, release manager, repository administrator, triage lead), task skills that name the served tools, tool-use contracts for all 101 tools, data locations and roles.
+- Require `scion-sdk[mcp,graphql]>=0.9.0`; `uv.lock` relocked.
+- The condensed action-routed `github_<domain>` tool modules and their tests are removed; `github_pulls_enable_auto_merge` and `github_pulls_disable_auto_merge` are typed tools, and the ingestion tools take typed arguments instead of `params_json`.
+
 ## [Unreleased]
 
 ### Added

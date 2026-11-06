@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Fallback GitHub write-helper for posting a comment and merging a PR with a
 write-time mergeable_state re-check. The github-mcp now has native tools for both
-(`github_comments` and `github_merge_pull_request`); this helper is retained for two
-cases: a deployed github-mcp that predates `github_comments`, and callers that want
+(`github_create_issue_comment` and `github_merge_pull_request`); this helper is retained for two
+cases: a deployed github-mcp that predates the comment tools, and callers that want
 the atomic re-verify-mergeable-then-comment-then-merge in one guarded step. (Closing
-is done via the MCP — `github_issues action=update` / `github_pulls action=update`
+is done via the MCP — `github_update_issue` / `github_update_pull_request`
 with state=closed — so this helper deliberately does not implement close.)
 
 Auth: reads the token from the ``GITHUB_TOKEN`` runtime environment variable.

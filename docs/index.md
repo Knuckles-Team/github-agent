@@ -21,9 +21,8 @@ Pydantic-AI supervisor agent. It provides:
   from per-domain mixins (repositories, issues, pull requests, comments, branches,
   commits, contents, organizations, collaborators, releases, workflows, search), with
   parallel pagination and tolerant error handling.
-- **Action-dispatch MCP tools** — twelve tool domains (`github_repos`,
-  `github_issues`, `github_pulls`, `github_comments`, …), each toggled by an
-  environment switch and routed by an `action` argument.
+- **Typed MCP tools** — one tool per GitHub operation (`github_get_repositories`,
+  `github_create_issue`, `github_merge_pull_request`, ...).
 - **An A2A supervisor agent** (`github-agent` console script) that delegates GitHub
   work to specialized child agents.
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Deterministic safety classifier for autonomous PR/issue resolution.
 
-Given enriched item(s) — a PR or issue object (from `github_pulls action=get` /
-`github_issues action=get`) augmented by the agent with `checks_state` and, for issues,
+Given enriched item(s) — a PR or issue object (from `github_get_pull_request` /
+`github_get_issue`) augmented by the agent with `checks_state` and, for issues,
 `resolved_evidence` — emit a conservative verdict:
 
   * safe_merge  — PR is mergeable, all checks green, and fits a low-risk allow

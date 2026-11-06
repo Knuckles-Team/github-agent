@@ -2,121 +2,50 @@
 name: github-triage-resolver
 skill_type: skill
 description: >-
-  Triages open pull requests and issues across a GitHub user/org (all repos),
-  verifies whether each is still real/relevant, decides resolve-or-skip, and — only
-  when deemed safe — closes or merges it with an explanatory comment. For each item
-  it gathers evidence (is the issue already fixed? is the PR mergeable with green
-  checks?), classifies it safe_merge / safe_close / skip via deterministic rules,
-  and acts behind a dry-run + explicit-confirmation gate. Use when asked to go
-  through open PRs/issues and actually resolve them, auto-merge safe dependency
-  bumps, close already-fixed issues or abandoned PRs with a comment, or clear a
-  backlog with action (not just a report). Read-only by default; every write needs
-  confirmation. Do NOT use for read-only reporting (use github-pr-review-sweep or
-  github-backlog-planner), for CI triage (github-ci-failure-sweep), or for GitLab.
+  Triages open pull requests and issues across a GitHub user/org (all repos), verifies whether each is still real/relevant, decides resolve-or-skip, and — only when deemed safe — closes or merges it with an explanatory comment. For each item it gathers evidence (is the issue already fixed? is the PR mergeable with green checks?), classifies it safe_merge / safe_close / skip via deterministic rules, and acts behind a dry-run + explicit-confirmation gate. Use when asked to go through open PRs/issues and actually resolve them, auto-merge safe dependency bumps, close already-fixed issues or abandoned PRs with a comment, or clear a backlog with action (not just a report). Read-only by default; every write needs confirmation. Do NOT use for read-only reporting (use github-pr-review-sweep or github-backlog-planner), for CI triage (github-ci-failure-sweep), or for GitLab.
 license: MIT
-tags: [github, pull-requests, issues, triage, automation, merge, close, ops]
+tags: []
 metadata:
   author: Knuckles-Team
-  version: '0.1.23'
+  version: '1.0.0'
 ---
+# Github Triage Resolver
 
-# GitHub Triage Resolver
+Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
-The **action/executor** counterpart to the sweep skills: it not only reports, it
-**verifies and resolves** open PRs/issues — closing or merging the safe ones with a
-comment, skipping the rest for a human. Conservative by design: when in doubt, skip.
+## Rules
 
-Drives the **github-agent** MCP server end-to-end — triage, verification,
-**comment**, **close**, and **merge** all run through native MCP tools; no external
-write script is required. It has a native merge (`github_pulls action=merge`, or the
-standalone REST `github_merge_pull_request` — robust, since it does not depend on
-the GraphQL client) AND a native comment tool (`github_comments`,
-create/list/get/update/delete). Read `references/resolution-rules.md` before any write.
+- Resolve owner and repo (and the pull request number) before any call.
+- Read first, then change, then read the object back.
+- Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
 
-## Tool access (works under delegation AND the multiplexer)
+## Task workflows
 
-The tools — `github_pulls`, `github_issues`, `github_comments`, `github_actions`,
-`github_repos`, `github_orgs`, `github_commits`, `github_contents`, `github_search`
-— each take `action` + a `params_json` **JSON string**.
+### work-issues
 
-- **Under direct delegation** to `github-agent` (`execute_agent server=github-agent`, or
-  the `mcp-client` skill) the tools are already bound by these **native** names — call
-  them directly. This is the path this skill is written for.
-- **In the multiplexer / orchestrator** context the same tools carry the `gith__` prefix
-  (`gith__pulls`, …); mount them first with `load_tools(servers=["github-agent"])` (or
-  `find_tools("github pull requests issues review checks merge close comment")`).
+Read, open, change and comment on issues. Contract steps, in order:
 
-## Inputs
-- **accounts**: default `[{login:"example-user",type:"user"},{login:"Knuckles-Team",type:"org"}]`.
-- **scope**: `prs`, `issues`, or `both` (default `both`).
-- **autonomy**: `dry-run` (default — plan only), `confirm-each` (act per item on yes),
-  or `auto-safe` (act without prompting, but ONLY on `safe_merge`/`safe_close` verdicts;
-  still never touches `skip` items). Use the most cautious level unless the user opts up.
-- Auto-merge **allow-classes**: default dependabot/renovate patch+minor (see classifier flags).
+1. `github_create_issue`(owner, repo, title; optional params_json)
+2. `github_create_issue_comment`(owner, repo, issue_number, body)
+3. `github_delete_issue_comment`(owner, repo, comment_id; optional confirm) (destructive: pass confirm=true only after the person agrees)
+4. `github_get_issue`(owner, repo, number)
+5. `github_get_issue_comment`(owner, repo, comment_id)
+6. `github_get_issues`(owner, repo; optional max_pages, page, per_page, api_parameters, issue_number, state)
+7. `github_list_issue_comments`(owner, repo, issue_number; optional params_json)
+8. `github_list_repo_issue_comments`(owner, repo; optional params_json)
+9. `github_search_issues`(q; optional max_pages, page, per_page, api_parameters, sort, order)
+10. `github_update_issue`(owner, repo, number; optional params_json)
+11. `github_update_issue_comment`(owner, repo, comment_id, body)
 
-## Workflow
+### create-a-pull-request
 
-### Step 1 — Intake the items
-Either consume a prior sweep's output (`github-pr-review-sweep`,
-`github-backlog-planner`) or gather fresh:
-- Issues org-wide in ONE call: `github_issues action=list {"org":"<org>","state":"open","max_pages":0}`.
-- PRs per repo: `github_pulls action=list {"owner","repo","state":"open","max_pages":0}`
-  (enumerate repos via `github_orgs action=repos` / `github_repos action=list`).
-Large payloads spill to files — do not read raw.
+Branch, commit content and open a pull request. Contract steps, in order:
 
-### Step 2 — Verify (does it still exist / is it addressed?)
-Per `references/resolution-rules.md`:
-- **Issue:** search for a fixing commit/PR and check the current default branch
-  (`github_search action=issues`, `github_commits action=list`, `github_contents
-  action=get`, `github_search action=code`).
-  Capture `resolved_evidence` only if genuinely fixed; otherwise leave it unset.
-- **PR:** `github_pulls action=get` (mergeable_state, size, review) +
-  `github_actions action=list_runs` on the PR head branch → `checks_state`.
-Assemble one enriched JSON object per item with the fields the classifier expects.
-
-### Step 3 — Classify (deterministic)
-Feed the enriched items to the classifier:
-```bash
-python scripts/classify_safe.py items.json --format md          # human table
-python scripts/classify_safe.py items.json --format json        # for the act loop
-# tune: --stale-days 60  --allow-classes dependabot-patch,dependabot-minor  (--allow-major off)
-```
-Verdicts: `safe_merge`, `safe_close`, `skip` (with reason). The classifier never
-returns safe for drafts, non-clean merges, failing checks, major bumps, or
-unverified issues.
-
-### Step 4 — Plan & confirm
-Render the plan: each item → verdict → action → the **draft comment** (must start
-with `> *This was generated by AI during triage.*`). At `dry-run`/`confirm-each`,
-show it and STOP for confirmation. Never write on `skip`.
-
-### Step 5 — Act (gated)
-For each confirmed `safe_*` item, **comment first, then act**:
-- Comment: `github_comments action=create {"owner","repo","issue_number":N,"body":"<comment>"}`
-  (works for issues AND PRs — a PR is an issue on GitHub).
-- Close (issue or PR): `github_issues action=update` / `github_pulls action=update`
-  `{"owner","repo","<issue|pull>_number":N,"state":"closed"}`.
-- Merge: `github_merge_pull_request {"owner","repo","number":N,"merge_method":"squash"}`
-  (re-check `mergeable_state==clean` first; GitHub's merge endpoint refuses a
-  non-clean/protected merge, so an unmergeable PR fails safe).
-- **Fallback** — `scripts/gh_write.py` (same GitHub token as the MCP server): use it
-  only if the deployed github-mcp predates `github_comments` (rebuild/redeploy to
-  get it), or when you want its atomic re-check-`mergeable_state==clean`-then-
-  comment-then-merge in a single guarded step.
-
-### Step 6 — Report (and optionally learn)
-Summarize merged / closed / skipped with links and the one-line reason each.
-Optionally record outcomes via `graph_feedback` (under the multiplexer,
-`go__graph_feedback`; `action_outcome`) so future
-runs prefer actions that proved correct.
-
-## Safety (non-negotiable)
-- Dry-run by default; writes require confirmation or an explicit `auto-safe` opt-in.
-- `auto-safe` acts ONLY on `safe_merge`/`safe_close`, never on `skip`.
-- Every action carries an explanatory comment with the AI disclaimer.
-- Never merge non-clean/failing/major; never close an unverified issue; never override branch protection.
-
-## Related skills
-- `github-pr-review-sweep` / `github-backlog-planner` — read-only triage input for this resolver.
-- `github-ci-failure-sweep` — diagnose failing checks blocking a merge.
-- `issue-triage` — interactive single-tracker triage state machine.
+1. `github_create_branch`(owner, repo, branch, ref)
+2. `github_create_content`(owner, repo, path, message, content; optional params_json)
+3. `github_create_pull_request`(owner, repo, title, head, base; optional params_json)
+4. `github_get_branch`(owner, repo, branch)
+5. `github_get_branches`(owner, repo; optional max_pages, page, per_page, api_parameters, branch)
+6. `github_get_contents`(owner, repo, path; optional max_pages, page, per_page, api_parameters, ref)
+7. `github_request_reviewers`(owner, repo, number; optional reviewers, team_reviewers)
+8. `github_update_content`(owner, repo, path, message, content, sha; optional params_json)

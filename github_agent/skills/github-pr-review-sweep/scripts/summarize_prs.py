@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Reduce verbose GitHub ``github_pulls action=list`` output to a compact PR table.
+"""Reduce verbose GitHub ``github_get_pull_requests`` output to a compact PR table.
 
-``github_pulls action=list`` returns large payloads per repo that the harness
+``github_get_pull_requests`` returns large payloads per repo that the harness
 spills to a file. Never read that raw — feed the file(s) here. This script:
   * accepts one or more ``list`` result files (or stdin),
   * flattens them to one row per open pull request,
   * computes age in days and a few review signals,
-  * optionally merges per-PR detail from ``github_pulls action=get`` dumps
+  * optionally merges per-PR detail from ``github_get_pull_request`` dumps
     (which carry ``mergeable_state``, ``additions``, ``deletions``, review info)
     so the row gets a verdict-ready ``mergeable_state``/``checks`` column,
   * emits a compact JSON list and/or a Markdown table grouped by repo.
@@ -167,13 +167,15 @@ def to_md(rows: list[dict]) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
-        "files", nargs="*", help="github_pulls list result file(s); omit to read stdin"
+        "files",
+        nargs="*",
+        help="github_get_pull_requests result file(s); omit to read stdin",
     )
     ap.add_argument(
         "--detail",
         nargs="*",
         default=[],
-        help="github_pulls get result file(s) to enrich rows",
+        help="github_get_pull_request result file(s) to enrich rows",
     )
     ap.add_argument("--format", choices=["json", "md"], default="md")
     args = ap.parse_args()

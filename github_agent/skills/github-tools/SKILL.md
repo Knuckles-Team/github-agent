@@ -2,151 +2,51 @@
 name: github-tools
 skill_type: skill
 description: >-
-  Consolidated skill for GitHub workflows and git practices. Use when managing PR
-  comments, fixing CI failures, using the gh CLI for issues/PRs/workflow runs,
-  finishing development branches, performing code review, or managing git
-  worktrees. Do NOT use for general git operations that don't involve GitHub (use
-  standard git commands instead).
+  Consolidated skill for GitHub workflows and git practices. Use when managing PR comments, fixing CI failures, using the gh CLI for issues/PRs/workflow runs, finishing development branches, performing code review, or managing git worktrees. Do NOT use for general git operations that don't involve GitHub (use standard git commands instead).
 license: MIT
-tags: [github, git, pull-requests, ci, code-review, workflow, worktrees, gh-cli]
+tags: []
 metadata:
   author: Knuckles-Team
-  version: '1.0.2'
+  version: '1.0.0'
 ---
-# GitHub & Git Workflow Tools
+# Github Tools
 
-## Overview
+Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
-Utilities for interacting with GitHub PRs, CI, issues, and Git workflows — including the `gh` CLI and custom scripts.
+## Rules
 
----
+- Resolve owner and repo (and the pull request number) before any call.
+- Read first, then change, then read the object back.
+- Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
 
-## 1. `gh` CLI — GitHub Native Interactions
+## Task workflows
 
-Use the `gh` CLI to interact directly with GitHub. Always specify `--repo owner/repo` when not inside a git directory, or use URLs directly.
+### search-code
 
-### Pull Requests
+Search code across repositories. Contract steps, in order:
 
-```bash
-# Check CI status on a PR
-gh pr checks 55 --repo owner/repo
+1. `github_search_code`(q; optional max_pages, page, per_page, api_parameters, sort, order)
 
-# List open PRs
-gh pr list --repo owner/repo
+### query-graphql
 
-# View PR details
-gh pr view 55 --repo owner/repo
+Run a GraphQL query or discover the schema for fleet-wide reads. Contract steps, in order:
 
-# Merge a PR
-gh pr merge 55 --repo owner/repo --squash
-```
+1. `github_discover_graphql_schema`(; optional type_name)
+2. `github_graphql`(query; optional variables, operation_name)
 
-### Issues
+### publish-a-release
 
-```bash
-# List open issues
-gh issue list --repo owner/repo --limit 20
+Create, change and delete releases. Contract steps, in order:
 
-# Create an issue
-gh issue create --repo owner/repo --title "Bug: ..." --body "Details..."
+1. `github_create_release`(owner, repo, tag_name; optional name, body, draft, prerelease)
+2. `github_delete_release`(owner, repo, release_id; optional confirm) (destructive: pass confirm=true only after the person agrees)
+3. `github_get_release`(owner, repo, release_id)
+4. `github_get_releases`(owner, repo)
+5. `github_update_release`(owner, repo, release_id; optional params_json)
 
-# Close an issue
-gh issue close 42 --repo owner/repo
-```
+### ingest-repositories
 
-### Workflow Runs & CI
+Mirror repositories into the knowledge graph. Contract steps, in order:
 
-```bash
-# List recent workflow runs
-gh run list --repo owner/repo --limit 10
-
-# View a specific run and see which steps ran
-gh run view <run-id> --repo owner/repo
-
-# View logs for failed steps only
-gh run view <run-id> --repo owner/repo --log-failed
-
-# Re-run failed jobs
-gh run rerun <run-id> --repo owner/repo --failed
-```
-
-### Advanced API Queries
-
-Use `gh api` for data not available through standard subcommands:
-
-```bash
-# Get PR with specific fields
-gh api repos/owner/repo/pulls/55 --jq '.title, .state, .user.login'
-
-# List PR reviews
-gh api repos/owner/repo/pulls/55/reviews --jq '.[].state'
-```
-
-### JSON Output & Filtering
-
-Most `gh` commands support `--json` and `--jq` for structured output:
-
-```bash
-gh issue list --repo owner/repo --json number,title --jq '.[] | "\(.number): \(.title)"'
-gh pr list --repo owner/repo --json number,headRefName,author --jq '.[] | "\(.number) \(.headRefName) by \(.author.login)"'
-```
-
----
-
-## 2. Fetching PR Review Comments (`scripts/fetch_comments.py`)
-
-Fetches and formats PR comments that need addressing. Run before making changes to respond to reviewers.
-
-```bash
-python scripts/fetch_comments.py <pr_url>
-```
-
----
-
-## 3. Inspecting CI Failures (`scripts/inspect_pr_checks.py`)
-
-Inspects GitHub Actions checks on a PR and outputs logs of failing steps.
-
-```bash
-python scripts/inspect_pr_checks.py <pr_url>
-```
-
----
-
-## 4. Code Review Guidance
-
-**When requesting review:**
-- Ensure PR title is descriptive and clean
-- Confirm tests pass locally
-- PR description must explain the *why*, not just the what
-- Keep PRs small and focused on one concern
-
-**When receiving review:**
-- Read feedback with technical rigor, not defensiveness
-- Use `scripts/fetch_comments.py` to get all comments in one pass
-- Respond to every comment (resolve or ask a clarifying question)
-
----
-
-## 5. Git Worktrees
-
-When switching branches to fix a bug while keeping current progress:
-
-```bash
-git worktree add ../my-new-branch my-new-branch
-cd ../my-new-branch
-# ... fix bug, commit ...
-cd ../original-branch
-git worktree remove ../my-new-branch
-```
-
----
-
-## 6. Finishing Branches (Pre-PR Checklist)
-
-Before opening a PR:
-1. Verify the code compiles/runs
-2. Run formatters and linters
-3. Review your own diff: `git diff main...HEAD`
-4. Check CI locally if possible
-5. Write a clear PR description explaining the intent
+1. `github_get_repositories`(; optional max_pages, page, per_page, api_parameters, owner, repo)
+2. `github_ingest_repos`(; optional visibility, affiliation, type)

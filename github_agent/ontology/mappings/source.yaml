@@ -4,8 +4,7 @@ ontology_source: github
 sync:
 - preset: github-repositories
   server: github-mcp
-  tool: github_repos
-  action: list
+  tool: github_get_repositories
   records_path: data
   id_field: id
   title_field: full_name

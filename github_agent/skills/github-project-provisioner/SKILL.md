@@ -1,58 +1,41 @@
 ---
 name: github-project-provisioner
 skill_type: skill
-description: Provisions and configures a new or existing GitHub project using standard default settings. Use this skill when asked to create a new project, provision a repository, or set up GitHub Actions pipelines and GitHub Pages.
+description: >-
+  Provisions and configures a new or existing GitHub project using standard default settings. Use this skill when asked to create a new project, provision a repository, or set up GitHub Actions pipelines and GitHub Pages.
 license: MIT
-tags: [github, provision, ci-cd, actions, pages, ops]
+tags: []
 metadata:
   author: Knuckles-Team
-  version: '0.1.23'
+  version: '1.0.0'
 ---
+# Github Project Provisioner
 
-# GitHub Project Provisioner
+Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
-## Overview
+## Rules
 
-This skill provisions a GitHub repository with standard CI/CD and deployment configurations. It handles creating the repository using the `github-agent` MCP tool, setting up standardized GitHub Actions workflows (with remote caching), and programmatically enabling GitHub Pages (via GitHub Actions workflow).
+- Resolve owner and repo (and the pull request number) before any call.
+- Read first, then change, then read the object back.
+- Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
 
-## Prerequisites
-- The environment must provide `GITHUB_TOKEN` for the python scripts to authenticate. The `github-agent` MCP should already be available and configured with its own secrets. Do NOT hardcode or ask for secrets.
+## Task workflows
 
-## Workflow
+### provision-a-repository
 
-Follow these steps precisely:
+Create a repository, set branch protection, secrets and Pages. Contract steps, in order:
 
-### Step 1: Create or Update the Repository
-Use the `github-agent` MCP to create a new repository under the specified personal account or organization.
-- If creating: ensure the repository is initialized.
-- If it already exists: verify its status.
-
-### Step 2: Configure Standard Workflows
-Add or update the repository's `.github/workflows/container_pipeline.yml` (and any other relevant workflows).
-Ensure the Docker build steps use `type=gha,mode=max` caching to prevent 1-hour build timeouts.
-
-Example Docker cache configuration to include:
-```yaml
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-```
-
-### Step 3: Enable GitHub Pages (via Workflow)
-GitHub Pages needs to be configured to build from GitHub Actions.
-Run the provided script `scripts/enable_pages.py` to programmatically enable GitHub Pages for the repository.
-
-Usage:
-```bash
-python scripts/enable_pages.py <owner> <repo_name>
-```
-*Note: This script uses the `GITHUB_TOKEN` environment variable.*
-
-### Step 4: Verify Provisioning
-Ensure all actions have succeeded without exposing secrets in any output or file.
+1. `github_create_or_update_repo_secret`(owner, repo, secret_name, encrypted_value, key_id)
+2. `github_create_organization_repository`(org, name; optional params_json)
+3. `github_create_pages`(owner, repo; optional build_type, source)
+4. `github_create_repository`(name; optional params_json)
+5. `github_get_branch_protection`(owner, repo, branch)
+6. `github_get_pages`(owner, repo)
+7. `github_get_pages_build_latest`(owner, repo)
+8. `github_get_repo_secret_public_key`(owner, repo)
+9. `github_get_repo_secrets`(owner, repo)
+10. `github_list_pages_builds`(owner, repo; optional max_pages, page, per_page, api_parameters)
+11. `github_request_pages_build`(owner, repo)
+12. `github_update_branch_protection`(owner, repo, branch, protection_config)
+13. `github_update_pages`(owner, repo; optional params_json)
+14. `github_update_repository`(owner, repo; optional params_json)

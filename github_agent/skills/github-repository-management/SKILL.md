@@ -2,101 +2,68 @@
 name: github-repository-management
 skill_type: skill
 description: >-
-  Repository lifecycle and structure operations on GitHub via the github-agent MCP
-  server — list/read/create/update/delete repositories, manage branches and branch
-  protection, read and write file contents, manage collaborators, and enable/configure
-  GitHub Pages. Use when the agent must inspect or provision a repo, set up branch
-  protection, commit a file, add a collaborator, or turn on Pages. Do NOT use for
-  pull-request review (github-pull-request-review), issue triage
-  (github-issue-tracking), or raw GraphQL fan-out (use the github_graphql tool).
+  Repository lifecycle and structure operations on GitHub via the github-agent MCP server — list/read/create/update/delete repositories, manage branches and branch protection, read and write file contents, manage collaborators, and enable/configure GitHub Pages. Use when the agent must inspect or provision a repo, set up branch protection, commit a file, add a collaborator, or turn on Pages. Do NOT use for pull-request review (github-pull-request-review), issue triage (github-issue-tracking), or raw GraphQL fan-out (use the github_graphql tool).
 license: MIT
-tags: [github, repository, branches, contents, pages, mcp]
+tags: []
 metadata:
   author: Knuckles-Team
-  version: '0.1.0'
+  version: '1.0.0'
 ---
-# GitHub Repository Management
+# Github Repository Management
 
-Domain-typed access to GitHub **repositories** and their structure — repos, branches,
-file contents, collaborators, and GitHub Pages — via the github-agent MCP server. Prefer
-these condensed tools over raw REST calls; they carry GitHub's field conventions and
-return typed records.
+Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
-## When to use
-- List / read / create / update / delete repositories (for a user or an org).
-- Manage branches: list, get, create from a ref, delete, and get/set/delete branch
-  protection.
-- Read a file or directory, or create/update/delete a file (Contents API).
-- Manage repository collaborators (list / add with a permission / remove).
-- Enable, configure, or rebuild a GitHub Pages site.
+## Rules
 
-## When NOT to use
-- Reviewing or merging pull requests → `github-pull-request-review`.
-- Triaging issues or searching across repos → `github-issue-tracking`.
-- One request fanning out across many repos (e.g. fleet-wide CI status) → the raw
-  `github_graphql` tool with aliased sub-queries.
-- Pushing repo state into the knowledge graph → the `github_ingest_repos` misc tool
-  (ingestion plumbing, not an operational action).
+- Resolve owner and repo (and the pull request number) before any call.
+- Read first, then change, then read the object back.
+- Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
 
-## Prerequisites & environment
-Connect via the `mcp-client` skill against the **`github-agent`** MCP server.
+## Task workflows
 
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `GITHUB_TOKEN` | ✅ | Personal-access / app token with repo scope |
-| `GITHUB_URL` | optional | API base (default `https://api.github.com`; set for GHES) |
-| `GITHUB_VERIFY` | optional | TLS verification toggle |
-| `GITHUB_ALLOW_DESTRUCTIVE` | optional | Must be true (or pass `allow_destructive=true`) for `pages_delete` |
+### find-repositories
 
-`MCP_TOOL_MODE` (`condensed`|`verbose`|`both`) selects the condensed surface (used
-below) vs. the one-to-one verbose tools.
+Find repositories and read their details. Contract steps, in order:
 
-## Tools & actions
-Prefer the **condensed** tools; each takes `action` + a `params_json` **JSON string**
-whose keys are passed to the client method.
+1. `github_get_org_repos`(org; optional max_pages, page, per_page, api_parameters, type)
+2. `github_get_organization`(org)
+3. `github_get_repositories`(; optional max_pages, page, per_page, api_parameters, owner, repo)
+4. `github_get_repository`(owner, repo)
+5. `github_list_organizations`(; optional max_pages, page, per_page, api_parameters, scope, since)
+6. `github_search_repositories`(q; optional max_pages, page, per_page, api_parameters, sort, order)
 
-| Condensed tool | Actions |
-|----------------|---------|
-| `github_repos` | `list`, `get`, `create`, `update`, `delete`, `pages_get`, `pages_create`, `pages_update`, `pages_delete`, `pages_builds`, `pages_request_build` |
-| `github_branches` | `list`, `get`, `create`, `delete`, `get_protection`, `update_protection`, `delete_protection` |
-| `github_contents` | `get`, `create`, `update`, `delete` |
-| `github_collaborators` | `list`, `add`, `remove` |
+### provision-a-repository
 
-### Key parameters
-- `owner` + `repo` scope almost every action; `create` needs `name`.
-- Contents `create`/`update` need `path`, `message`, base64 `content`; `update`/`delete`
-  also need the current blob `sha`.
-- `pages_create` takes `build_type` (`workflow` default, or `legacy` + `source`).
+Create a repository, set branch protection, secrets and Pages. Contract steps, in order:
 
-## Recipes (`params_json`)
-List the authenticated user's private repositories:
-```json
-{"visibility":"private","affiliation":"owner"}
-```
-Create a repo, auto-initialized:
-```json
-{"name":"new-service","description":"service scaffold","private":true,"auto_init":true}
-```
-Require a green check + one review on `main` (branch protection):
-```json
-{"owner":"acme","repo":"api","branch":"main","protection_config":{"required_status_checks":{"strict":true,"contexts":["ci"]},"enforce_admins":true,"required_pull_request_reviews":{"required_approving_review_count":1},"restrictions":null}}
-```
-Add a collaborator with write access:
-```json
-{"owner":"acme","repo":"api","username":"octocat","permission":"push"}
-```
+1. `github_create_or_update_repo_secret`(owner, repo, secret_name, encrypted_value, key_id)
+2. `github_create_organization_repository`(org, name; optional params_json)
+3. `github_create_pages`(owner, repo; optional build_type, source)
+4. `github_create_repository`(name; optional params_json)
+5. `github_get_branch_protection`(owner, repo, branch)
+6. `github_get_pages`(owner, repo)
+7. `github_get_pages_build_latest`(owner, repo)
+8. `github_get_repo_secret_public_key`(owner, repo)
+9. `github_get_repo_secrets`(owner, repo)
+10. `github_list_pages_builds`(owner, repo; optional max_pages, page, per_page, api_parameters)
+11. `github_request_pages_build`(owner, repo)
+12. `github_update_branch_protection`(owner, repo, branch, protection_config)
+13. `github_update_pages`(owner, repo; optional params_json)
+14. `github_update_repository`(owner, repo; optional params_json)
 
-## Gotchas
-- `params_json` is a **string** of JSON, not an object — serialize it.
-- `list` responses are **slimmed** by default (`*_url`/`_links` hypermedia dropped,
-  `html_url` kept); pass `"slim":false` for the full objects.
-- Contents `update`/`delete` fail without the current `sha` — `get` the file first.
-- `pages_delete` is destructive and blocked unless `allow_destructive=true` (or
-  `GITHUB_ALLOW_DESTRUCTIVE=True`).
-- After a first `pages_create`, the initial build can be skipped — call
-  `pages_request_build` to force it.
+### retire-a-repository
 
-## Related
-- **KG ingestion:** `github_ingest_repos` pushes listed repos into the knowledge graph
-  as typed `:Repository` nodes (with owner `:Organization`/`:Person` links).
-- **Siblings:** `github-pull-request-review`, `github-issue-tracking`.
+Delete a repository, secret, branch protection or Pages site. Contract steps, in order:
+
+1. `github_delete_branch_protection`(owner, repo, branch; optional confirm) (destructive: pass confirm=true only after the person agrees)
+2. `github_delete_pages`(owner, repo; optional confirm) (destructive: pass confirm=true only after the person agrees)
+3. `github_delete_repo_secret`(owner, repo, secret_name; optional confirm) (destructive: pass confirm=true only after the person agrees)
+4. `github_delete_repository`(owner, repo; optional confirm) (destructive: pass confirm=true only after the person agrees)
+
+### manage-collaborators
+
+Add and remove repository collaborators. Contract steps, in order:
+
+1. `github_add_collaborator`(owner, repo, username; optional permission)
+2. `github_get_collaborators`(owner, repo; optional max_pages, page, per_page, api_parameters, affiliation)
+3. `github_remove_collaborator`(owner, repo, username; optional confirm) (destructive: pass confirm=true only after the person agrees)
