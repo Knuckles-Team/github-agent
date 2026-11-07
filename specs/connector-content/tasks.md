@@ -26,4 +26,3 @@ Each task line reads `- [ ] T001 [P] [US1] <ID>-R012.4 description`. Order is pr
 - [ ] T020 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.13 Normalize webhook events to feedback events.
 - [ ] T021 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.14 Map delivery records to the shared ontology classes.
 - [ ] T022 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.15 Hot-path proof: served change-proposal tools.
-- [ ] T023 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R008 Side-effect audit: an agent run writes only what its task asked for.

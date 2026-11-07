@@ -26,4 +26,3 @@ Governing spec: [spec.md](spec.md).
 | T-020 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.13` | `tests/test_scm_events.py::test_each_event_maps_to_one_feedback_kind` | Normalize webhook events to feedback events. |
 | T-021 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.14` | `tests/test_cq_paths.py::test_delivery_records_map_to_shared_classes` | Map delivery records to the shared ontology classes. |
 | T-022 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.15` | `tests/test_change_proposal_served.py::test_served_tools_and_normalizer_round_trip` | Hot-path proof: served change-proposal tools. |
-| T-023 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R008` | `tests/test_side_effect_audit.py::test_injected_text_causes_no_write_beyond_the_intended_issue` | Side-effect audit: an agent run writes only what its task asked for. |

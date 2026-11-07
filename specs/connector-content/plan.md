@@ -44,6 +44,14 @@ No unknowns. Each operation maps to one documented GitHub endpoint or mutation.
 
 ## Phase 1: Design
 
+- **Owner.** This connector, `github-agent`, owns the GitHub calls and their mappers; records come from scion-sdk and verdicts from medulla, by the ecosystem boundaries table.
+- **Cohesion.** The operation tools, their GraphQL operations and the reply mappers change together with the GitHub API and live in `github_agent/`; approval policy changes for another reason and stays in arbora.
+- **Dependency direction.** New code imports only scion-sdk and the existing clients in `github_agent/`; nothing imports upward into arbora or medulla.
+- **Interface depth.** One public `Api` method per GitHub operation, registered as one tool by `register_tool_surface`; the mappers in `github_agent/scm_records.py` stay internal; the design adds no abstraction layer.
+- **Special cases.** Every operation goes through the same per-method tool registration and the same mapper path, so no tool has bespoke wiring.
+- **State.** none: the connector stores nothing; pull-request and check-run lifecycles are GitHub's and are mapped to the SDK records as reported.
+- **Environment.** The GitHub endpoint and credentials are connector configuration read by scion-sdk; no deployment script.
+
 ### Change-proposal tools
 
 `register_tool_surface` at `github_agent/mcp_server.py:3669` registers one tool per public `Api` method. A new method therefore becomes a new tool named `github_<method>`. The GraphQL operations live in `GraphQL` (`github_agent/github_gql.py:13`). The arm tool extends the existing `enable_pull_request_auto_merge` mutation with the expected head commit. Mappers in `github_agent/scm_records.py` turn each reply into the SDK records. The design data is in [data-model.md](data-model.md).
@@ -76,7 +84,3 @@ The repository pre-commit hooks apply: ruff check and format, `connector-standar
 - The change-proposal records and the normalizer protocol come from the SDK. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.13`. Contract: [change-proposal-contract](contracts/change-proposal-contract.md).
 - Arbora calls the tools and the normalizer for delivery. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.8`, `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.12`. Contract: [delivery-calls](contracts/delivery-calls.md).
 - The engine owns the classes the records map to. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.14`. Contract: [delivery-classes](contracts/delivery-classes.md).
-
-### Side-effect audit
-
-R008 proves that a run writes only what its task asked for. The proof is the repository state diff, not the agent log: snapshot every writable surface, run the task with injected instructions in third-party text, diff, and fail on any write beyond the intended one. A control run without the injection and a run without write tools in the grant bound the result.
