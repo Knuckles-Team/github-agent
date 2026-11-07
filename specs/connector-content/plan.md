@@ -76,3 +76,7 @@ The repository pre-commit hooks apply: ruff check and format, `connector-standar
 - The change-proposal records and the normalizer protocol come from the SDK. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.13`. Contract: [change-proposal-contract](contracts/change-proposal-contract.md).
 - Arbora calls the tools and the normalizer for delivery. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.8`, `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.12`. Contract: [delivery-calls](contracts/delivery-calls.md).
 - The engine owns the classes the records map to. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.14`. Contract: [delivery-classes](contracts/delivery-classes.md).
+
+### Side-effect audit
+
+R008 proves that a run writes only what its task asked for. The proof is the repository state diff, not the agent log: snapshot every writable surface, run the task with injected instructions in third-party text, diff, and fail on any write beyond the intended one. A control run without the injection and a run without write tools in the grant bound the result.
