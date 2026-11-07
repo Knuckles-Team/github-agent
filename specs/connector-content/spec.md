@@ -40,6 +40,7 @@ The platform delivers a spec row as a pull request on its own. It reads reviews,
 - **FR-003**: The connector declares its ingest sources and access contracts. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R003`, `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R005`.
 - **FR-004**: The connector applies one conditional repository file effect. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R006`.
 - **FR-005**: The connector serves one tool per change-proposal operation and a webhook normalizer. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007`.
+- **FR-006**: An agent run writes only what its task asked for, proven by diffing repository state. Rows: `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R008`.
 
 ## Success Criteria
 
@@ -67,3 +68,4 @@ Non-goals: the webhook route and admission (arbora), merge verdicts and delivery
 | Label | Rows | Design section | Test |
 |---|---|---|---|
 | FR-005 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007` | plan.md "Change-proposal tools" | `tests/test_change_proposal_served.py::test_served_tools_and_normalizer_round_trip` |
+| FR-006 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R008` | plan.md "Side-effect audit" | `tests/test_side_effect_audit.py::test_injected_text_causes_no_write_beyond_the_intended_issue` |
