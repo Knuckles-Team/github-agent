@@ -111,8 +111,8 @@ class Api(BaseApiClient):
         """Schedule an organization for deletion. IRREVERSIBLE.
 
         GitHub responds 202 Accepted and deletes the organization, all of its
-        repositories, and all of its data asynchronously. The MCP layer gates
-        this action behind allow_destructive / GITHUB_ALLOW_DESTRUCTIVE.
+        repositories, and all of its data asynchronously. The SDK asks
+        the caller to confirm this action.
 
         DELETE /orgs/{org}
         https://docs.github.com/en/rest/orgs/orgs#delete-an-organization
@@ -240,8 +240,8 @@ class Api(BaseApiClient):
     def remove_organization_member(self, org: str, username: str) -> Response:
         """Remove a user from an organization (repositories access included).
 
-        Destructive: the MCP layer gates this action behind
-        allow_destructive / GITHUB_ALLOW_DESTRUCTIVE. GitHub responds 204.
+        Destructive: the SDK asks the caller to confirm this
+        action. GitHub responds 204.
 
         DELETE /orgs/{org}/members/{username}
         https://docs.github.com/en/rest/orgs/members#remove-an-organization-member

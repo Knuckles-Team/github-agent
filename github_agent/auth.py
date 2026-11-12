@@ -21,16 +21,6 @@ from github_agent.api_client import Api
 logger = get_logger(__name__)
 
 
-def allow_destructive_default() -> bool:
-    """Fleet-wide default for the destructive-action gate.
-
-    Destructive MCP actions (e.g. organization delete, member removal) are
-    blocked unless the caller passes allow_destructive=true or the
-    GITHUB_ALLOW_DESTRUCTIVE environment variable is set truthy.
-    """
-    return setting("GITHUB_ALLOW_DESTRUCTIVE", False)
-
-
 def _exchange_delegated_token(settings: DelegationSettings) -> str:
     """Exchange the caller's verified MCP token for a downstream GitHub token."""
     logger.info(
