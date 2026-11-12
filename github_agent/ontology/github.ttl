@@ -1,7 +1,8 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix core: <https://knuckles-team.github.io/ontology/core#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix dc: <http://purl.org/dc/terms/> .
-@prefix : <http://knuckles.team/kg#> .
+@prefix : <https://knuckles-team.github.io/ontology/connector/github#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -15,24 +16,26 @@
 # Shared concepts owned by the medulla ontology and referenced here, never redeclared:
 # Repository, PullRequest, Release, Branch, Commit, PipelineRun. Only the GitHub-specific subclasses and properties are declared in this pack.
 
-:Organization a owl:Class .
+:Organization a owl:Class ;
+    rdfs:subClassOf core:Organization .
 
 
 :Issue a owl:Class ;
-    rdfs:subClassOf :WorkItem ;
+    rdfs:subClassOf core:WorkItem ;
     rdfs:label "Issue" ;
     rdfs:comment "A tracked work item, bug, or discussion in a repository (github_get_issues)." .
 
-:Workflow a owl:Class .
+:Workflow a owl:Class ;
+    rdfs:subClassOf core:Workflow .
 
 
 :WorkflowRun a owl:Class ;
-    rdfs:subClassOf :PipelineRun ;
+    rdfs:subClassOf core:PipelineRun ;
     rdfs:label "Workflow Run" ;
     rdfs:comment "A single execution of a GitHub Actions workflow for a ref/commit (github_get_workflow_runs)." .
 
 :CheckRun a owl:Class ;
-    rdfs:subClassOf :PipelineRun ;
+    rdfs:subClassOf core:PipelineRun ;
     rdfs:label "Check Run" ;
     rdfs:comment """A single job/check within a PipelineRun (github_get_workflow_run_jobs workflow-run job or
     GitHub Checks-API check run). Shares its class name with the twin gitlab-api producer.""" .
@@ -42,34 +45,34 @@
 :belongsToRepository a owl:ObjectProperty ;
     rdfs:label "belongs to repository" ;
     rdfs:comment "Links a PullRequest, Issue, Branch, Commit, Release, Workflow, or WorkflowRun to its Repository." ;
-    rdfs:range :Repository .
+    rdfs:range core:Repository .
 
 :ownedByOrg a owl:ObjectProperty ;
     rdfs:label "owned by organization" ;
     rdfs:comment "Links a Repository to the Organization (or user) that owns it." ;
-    rdfs:domain :Repository ;
+    rdfs:domain core:Repository ;
     rdfs:range :Organization .
 
 :authoredBy a owl:ObjectProperty ;
     rdfs:label "authored by" ;
     rdfs:comment "Links a PullRequest, Issue, or Commit to the Person who created it." ;
-    rdfs:range :Person .
+    rdfs:range core:Person .
 
 :assignedTo a owl:ObjectProperty ;
     rdfs:label "assigned to" ;
     rdfs:comment "Links an Issue or PullRequest to the Person responsible for it." ;
-    rdfs:range :Person .
+    rdfs:range core:Person .
 
 :targetsBranch a owl:ObjectProperty ;
     rdfs:label "targets branch" ;
     rdfs:comment "Links a PullRequest to the base Branch it merges into." ;
-    rdfs:domain :PullRequest ;
-    rdfs:range :Branch .
+    rdfs:domain core:PullRequest ;
+    rdfs:range core:Branch .
 
 :closesIssue a owl:ObjectProperty ;
     rdfs:label "closes issue" ;
     rdfs:comment "Links a PullRequest to an Issue it resolves." ;
-    rdfs:domain :PullRequest ;
+    rdfs:domain core:PullRequest ;
     rdfs:range :Issue .
 
 :hasWorkflowRun a owl:ObjectProperty ;
@@ -83,27 +86,27 @@
     rdfs:comment """Links a PipelineRun to what it ran for — its Repository, the Commit it
     built, and/or the PullRequest it validated. Same predicate name as the twin gitlab-api
     producer (Pipeline ranFor Project/Commit/MergeRequest).""" ;
-    rdfs:domain :PipelineRun .
+    rdfs:domain core:PipelineRun .
 
 :hasJob a owl:ObjectProperty ;
     rdfs:label "has job" ;
     rdfs:comment """Links a PipelineRun to a CheckRun (job/check) it contains. Same predicate
     name as the twin gitlab-api producer (Pipeline hasJob Job).""" ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range :CheckRun .
 
 :documentsRelease a owl:ObjectProperty ;
     rdfs:label "documents release" ;
     rdfs:comment "Links a Release to the :Document carrying its release-notes body." ;
-    rdfs:domain :Release ;
-    rdfs:range :Document .
+    rdfs:domain core:Release ;
+    rdfs:range core:Document .
 
 # --- fields (owl:DatatypeProperty) ---
 
 :fullName a owl:DatatypeProperty ;
     rdfs:label "full name" ;
     rdfs:comment "Owner-qualified repository name (owner/repo)." ;
-    rdfs:domain :Repository ;
+    rdfs:domain core:Repository ;
     rdfs:range xsd:string .
 
 :htmlUrl a owl:DatatypeProperty ;
@@ -114,7 +117,7 @@
 :state a owl:DatatypeProperty ;
     rdfs:label "state" ;
     rdfs:comment "Lifecycle state (open, closed, merged)." ;
-    rdfs:domain [ a owl:Class ; owl:unionOf ( :Issue :PullRequest ) ] ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( :Issue core:PullRequest ) ] ;
     rdfs:range xsd:string .
 
 :number a owl:DatatypeProperty ;
@@ -135,13 +138,13 @@
 :defaultBranch a owl:DatatypeProperty ;
     rdfs:label "default branch" ;
     rdfs:comment "Name of a repository's default branch." ;
-    rdfs:domain :Repository ;
+    rdfs:domain core:Repository ;
     rdfs:range xsd:string .
 
 :isPrivate a owl:DatatypeProperty ;
     rdfs:label "is private" ;
     rdfs:comment "Whether a repository is private." ;
-    rdfs:domain :Repository ;
+    rdfs:domain core:Repository ;
     rdfs:range xsd:boolean .
 
 :isDraft a owl:DatatypeProperty ;
@@ -167,37 +170,37 @@
 :headSha a owl:DatatypeProperty ;
     rdfs:label "head sha" ;
     rdfs:comment "Full git commit SHA a PipelineRun ran against." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:string .
 
 :headBranch a owl:DatatypeProperty ;
     rdfs:label "head branch" ;
     rdfs:comment "Branch name a PipelineRun ran against." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:string .
 
 :event a owl:DatatypeProperty ;
     rdfs:label "event" ;
     rdfs:comment "Triggering event of a PipelineRun (push, pull_request, schedule, workflow_dispatch)." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:string .
 
 :runStartedAt a owl:DatatypeProperty ;
     rdfs:label "run started at" ;
     rdfs:comment "Timestamp a PipelineRun started executing." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:dateTime .
 
 :runUpdatedAt a owl:DatatypeProperty ;
     rdfs:label "run updated at" ;
     rdfs:comment "Timestamp a PipelineRun was last updated." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:dateTime .
 
 :durationSeconds a owl:DatatypeProperty ;
     rdfs:label "duration seconds" ;
     rdfs:comment "Wall-clock duration in seconds of a PipelineRun (runUpdatedAt - runStartedAt)." ;
-    rdfs:domain :PipelineRun ;
+    rdfs:domain core:PipelineRun ;
     rdfs:range xsd:integer .
 
 :startedAt a owl:DatatypeProperty ;
@@ -212,7 +215,7 @@
     rdfs:domain :CheckRun ;
     rdfs:range xsd:dateTime .
 
-<http://knuckles.team/kg/github> a owl:Ontology ;
+<https://knuckles-team.github.io/ontology/connector/github> a owl:Ontology ;
     rdfs:label "GitHub Ontology" ;
     rdfs:comment """GitHub source-control, code-review and CI/CD model — organizations,
     repositories, pull requests, issues, releases, branches, commits, workflows and
