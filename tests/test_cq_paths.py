@@ -35,7 +35,7 @@ def test_state_is_declared_on_the_issue_type() -> None:
 
 
 def test_check_run_extends_pipeline_run() -> None:
-    assert "rdfs:subClassOf :PipelineRun" in _block("CheckRun")
+    assert "rdfs:subClassOf core:PipelineRun" in _block("CheckRun")
 
 
 def test_no_mapping_has_a_null_ontology_class() -> None:
