@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from pydantic import ValidationError
-from scion_sdk.mcp.destructive import destructive_operation
 from scion_sdk.exceptions import (
     MissingParameterError,
     ParameterError,
     require_auth,
 )
+from scion_sdk.mcp.destructive import destructive_operation
 
 from github_agent.api.api_client_base import BaseApiClient
 from github_agent.github_input_models import (
