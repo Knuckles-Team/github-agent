@@ -2,6 +2,7 @@
 from typing import Any
 
 from scion_sdk.exceptions import require_auth
+from scion_sdk.mcp.destructive import destructive_operation
 
 from github_agent.api.api_client_base import BaseApiClient
 from github_agent.github_response_models import Response
@@ -59,6 +60,7 @@ class Api(BaseApiClient):
         response.raise_for_status()
         return Response(response=response, data=response.json())
 
+    @destructive_operation
     @require_auth
     def update_dependabot_alert(
         self,

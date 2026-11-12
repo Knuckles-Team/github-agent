@@ -223,7 +223,6 @@ When query strings or parameters are supplied, an LLM-free **Knowledge Graph res
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
         "DEPENDABOTTOOL": "True",
-        "GITHUB_ALLOW_DESTRUCTIVE": "False",
         "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
         "GITHUB_HTTP_READ_TIMEOUT": "30",
         "GITHUB_TOKEN": "your_github_token_here",
@@ -274,7 +273,6 @@ own runtime secret boundary.
         "COMMITTOOL": "True",
         "CONTENTTOOL": "True",
         "DEPENDABOTTOOL": "True",
-        "GITHUB_ALLOW_DESTRUCTIVE": "False",
         "GITHUB_HTTP_CONNECT_TIMEOUT": "10",
         "GITHUB_HTTP_READ_TIMEOUT": "30",
         "GITHUB_TOKEN": "your_github_token_here",
@@ -324,7 +322,6 @@ docker run -i --rm \
   -e COMMITTOOL=True \
   -e CONTENTTOOL=True \
   -e DEPENDABOTTOOL=True \
-  -e GITHUB_ALLOW_DESTRUCTIVE=False \
   -e GITHUB_HTTP_CONNECT_TIMEOUT=10 \
   -e GITHUB_HTTP_READ_TIMEOUT=30 \
   -e GITHUB_TOKEN=your_github_token_here \
@@ -388,7 +385,6 @@ the detailed transport contract.
 | `TLS_PROFILE` | `private-ca` | AgentConfig named transport profile |
 | `TLS_PROFILE_REF` | `secret://transport/provider` | Direct runtime profile reference |
 | `TLS_PROFILES_REF` | `secret://transport/catalog` | Named runtime profile catalog |
-| `GITHUB_ALLOW_DESTRUCTIVE` | `False` | Allow destructive (delete/force) operations |
 | `GITHUB_HTTP_CONNECT_TIMEOUT` | `10` | HTTP client timeouts (seconds) |
 | `GITHUB_HTTP_READ_TIMEOUT` | `30` |  |
 | `DEBUG` | `False` |  |
