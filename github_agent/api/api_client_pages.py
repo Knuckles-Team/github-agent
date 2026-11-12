@@ -150,8 +150,8 @@ class Api(BaseApiClient):
     def delete_pages(self, owner: str, repo: str) -> Response:
         """Disable GitHub Pages for a repository and delete the site.
 
-        Destructive: the MCP layer gates this action behind
-        allow_destructive / GITHUB_ALLOW_DESTRUCTIVE. GitHub responds 204.
+        Destructive: the SDK asks the caller to confirm this
+        action. GitHub responds 204.
 
         DELETE /repos/{owner}/{repo}/pages
         https://docs.github.com/en/rest/pages/pages#delete-a-apiname-pages-site

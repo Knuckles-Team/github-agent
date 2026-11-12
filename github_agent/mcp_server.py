@@ -29,6 +29,7 @@ from scion_sdk.config import load_config
 from scion_sdk.connector_identity import connector_version
 from scion_sdk.mcp.concurrency import run_blocking
 from scion_sdk.mcp.content import ConnectorContent
+from scion_sdk.mcp.destructive import guard_destructive
 from scion_sdk.mcp.server import create_mcp_server
 from scion_sdk.mcp.tool_surface import register_tool_surface
 
@@ -218,7 +219,7 @@ def register_auto_merge_tools(mcp: FastMCP):
     """Register the GraphQL-only pull request auto-merge tools."""
 
     @mcp.tool(
-        tags={"pulls"}, annotations={"readOnlyHint": False, "destructiveHint": False}
+        tags={"pulls"}, annotations={"readOnlyHint": False, "destructiveHint": True}
     )
     async def github_pulls_enable_auto_merge(
         owner: str = Field(description="Repository owner."),
@@ -228,9 +229,21 @@ def register_auto_merge_tools(mcp: FastMCP):
             default="MERGE", description="MERGE, SQUASH or REBASE."
         ),
         client=Depends(get_client),
+        confirm: bool = Field(
+            default=False,
+            description="Confirm this destructive call when the client cannot be asked.",
+        ),
         ctx: Context | None = Field(default=None, description="MCP context"),
     ) -> Any:
         """Turn on auto-merge for a pull request: it merges once required checks pass."""
+        refused = await guard_destructive(
+            ctx,
+            "enable_auto_merge",
+            {"owner": owner, "repo": repo, "number": number},
+            confirm=confirm,
+        )
+        if refused is not None:
+            return refused
         try:
             gql_client = await run_blocking(get_graphql_client)
         except Exception as e:

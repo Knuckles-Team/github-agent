@@ -30,6 +30,11 @@ PARENT_CLASSES = frozenset(
         "https://knuckles-team.github.io/ontology/connector/github#Workflow",
     )
 )
+# The core ontology is addressed under its one HTTPS base; a pack class rolls up to a core class by that IRI.
+CORE_BASE = "https://knuckles-team.github.io/ontology/core#"
+PARENT_CLASSES = PARENT_CLASSES | frozenset(
+    CORE_BASE + iri.rsplit("#", 1)[1] for iri in PARENT_CLASSES
+)
 # Classes for which the parent ontology has no fitting class yet. Each is a candidate for a new
 # parent class (see the orphan mapping report); a class leaves this set when it gains a parent.
 PENDING_NEW_PARENT: frozenset[str] = frozenset()

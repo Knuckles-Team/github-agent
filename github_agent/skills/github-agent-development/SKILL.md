@@ -65,8 +65,7 @@ with local copies or bypass a failing check.
 - Credentials come from `GITHUB_TOKEN`; the endpoint is derived from `GITHUB_URL`
   (`api.github.com`, or a GitHub Enterprise `/api/v3` host whose GraphQL endpoint
   is `/api/graphql`). Mock all GitHub calls; never use a real token in a gate.
-- Destructive operations stay behind `GITHUB_ALLOW_DESTRUCTIVE`; keep it false
-  by default and test both states.
+- Destructive operations are declared once with the SDK `destructive_operation` decorator; the SDK asks the caller to confirm (`confirm=true`), and `SCION_ALLOW_DESTRUCTIVE` is the one operator setting. Never add a connector-local knob.
 - Prefer one aliased `github_graphql` query over many REST calls for cross-repo
   reads; keep REST and GraphQL parity when adding a tool domain.
 - Packaged skills under `github_agent/skills/` have their own helper tests

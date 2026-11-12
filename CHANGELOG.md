@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-11-12
+
+### Changed
+- Destructive operations use the SDK's one declaration and guard: `merge_pull_request` and `update_dependabot_alert` are declared destructive, auto-merge asks for confirmation first, and every destructive tool takes the standard `confirm` argument. The connector-local `GITHUB_ALLOW_DESTRUCTIVE` setting and `allow_destructive_default` are removed; the one operator setting is `SCION_ALLOW_DESTRUCTIVE`.
+- Require `scion-sdk[mcp,graphql]>=0.10.2,<0.11`.
+
 ## [2.4.15] - 2026-11-06
 
 ### Changed

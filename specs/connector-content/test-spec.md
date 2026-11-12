@@ -26,3 +26,4 @@ Governing spec: [spec.md](spec.md).
 | T-020 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.13` | `tests/test_scm_events.py::test_each_event_maps_to_one_feedback_kind` | Normalize webhook events to feedback events. |
 | T-021 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.14` | `tests/test_cq_paths.py::test_delivery_records_map_to_shared_classes` | Map delivery records to the shared ontology classes. |
 | T-022 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.15` | `tests/test_change_proposal_served.py::test_served_tools_and_normalizer_round_trip` | Hot-path proof: served change-proposal tools. |
+| T-023 | `CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R008` | `tests/test_destructive_declaration.py::test_declared_and_classified_operations_are_destructive_tools_that_ask_first` | Each declared tool has `destructiveHint` true and a `confirm` argument and none has `allow_destructive`; an unconfirmed call sends no request. |
