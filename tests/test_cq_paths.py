@@ -14,7 +14,7 @@ pytestmark = pytest.mark.spec("CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R004")
 
 PACKAGE = Path(github_agent.__file__).parent
 TTL = (PACKAGE / "ontology" / "github.ttl").read_text("utf-8")
-# Concepts the epistemic-graph ontology owns: referenced, never declared here.
+# Concepts the medulla ontology owns: referenced, never declared here.
 SHARED = ("Repository", "PullRequest", "Release", "Branch", "Commit", "PipelineRun")
 
 

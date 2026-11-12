@@ -12,7 +12,7 @@
 # MCP tool surface (the typed github_* tools). The shared
 # :Person / :Document classes (users, release notes) are REUSED, never redefined.
 
-# Shared concepts owned by the epistemic-graph ontology and referenced here, never redeclared:
+# Shared concepts owned by the medulla ontology and referenced here, never redeclared:
 # Repository, PullRequest, Release, Branch, Commit, PipelineRun. Only the GitHub-specific subclasses and properties are declared in this pack.
 
 :Organization a owl:Class .
