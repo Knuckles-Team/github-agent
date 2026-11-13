@@ -103,6 +103,42 @@
 
 # --- fields (owl:DatatypeProperty) ---
 
+:url a owl:DatatypeProperty ;
+    rdfs:label "url" ;
+    rdfs:comment "API URL of a pull request." ;
+    rdfs:domain core:PullRequest ;
+    rdfs:range xsd:string .
+
+:merged a owl:DatatypeProperty ;
+    rdfs:label "merged" ;
+    rdfs:comment "Whether a pull request has been merged." ;
+    rdfs:domain core:PullRequest ;
+    rdfs:range xsd:boolean .
+
+:mergedAt a owl:DatatypeProperty ;
+    rdfs:label "merged at" ;
+    rdfs:comment "When a pull request was merged." ;
+    rdfs:domain core:PullRequest ;
+    rdfs:range xsd:dateTime .
+
+:changedPaths a owl:DatatypeProperty ;
+    rdfs:label "changed paths" ;
+    rdfs:comment "File paths a pull request changes." ;
+    rdfs:domain core:PullRequest ;
+    rdfs:range xsd:string .
+
+:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:comment "Short name of a repository." ;
+    rdfs:domain core:Repository ;
+    rdfs:range xsd:string .
+
+:pushedAt a owl:DatatypeProperty ;
+    rdfs:label "pushed at" ;
+    rdfs:comment "When a repository was last pushed to." ;
+    rdfs:domain core:Repository ;
+    rdfs:range xsd:dateTime .
+
 :fullName a owl:DatatypeProperty ;
     rdfs:label "full name" ;
     rdfs:comment "Owner-qualified repository name (owner/repo)." ;
