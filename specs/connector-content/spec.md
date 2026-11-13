@@ -1,6 +1,6 @@
 # CONN-GITHUB-AGENT-CONNECTOR-CONTENT — The connector serves its packaged content
 
-Owner: github-agent. Cross-repo IDs: `SCION-CONNECTOR-CONTROL-R071`, `SCION-CONNECTOR-CONTROL-R073`, `SCION-GOVERNED-WRITEBACK-R004.8`, `MEDULLA-CQ-CONN-R086`.
+Owner: github-agent. Cross-repo IDs: `SCION-CONNECTOR-CONTROL-R071`, `SCION-CONNECTOR-CONTROL-R073`, `SCION-GOVERNED-WRITEBACK-R004.8`, `MEDULLA-CQ-CONN-R006.2, MEDULLA-CQ-CONN-R012.2, MEDULLA-CQ-CONN-R015.2`.
 Component: Connector
 
 The `github-mcp` server serves its packaged skills, prompts and ontology to any client, with no wiring of its own. It also serves one tool per GitHub API operation that autonomous delivery of a change proposal needs.
