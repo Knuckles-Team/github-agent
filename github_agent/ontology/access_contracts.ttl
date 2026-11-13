@@ -1,0 +1,39 @@
+@prefix ac: <https://knuckles-team.github.io/ontology/access#> .
+@prefix core: <https://knuckles-team.github.io/ontology/core#> .
+@prefix : <https://knuckles-team.github.io/ontology/connector/github#> .
+
+# Competency reads: github_get_pull_requests and github_get_repositories.
+
+:pullRequestAccess a ac:AccessContract ;
+    ac:classIri core:PullRequest ;
+    ac:sourceId "github-agent" ;
+    ac:entity "pull_request" ;
+    ac:keyField "node_id" ;
+    ac:accessKind "mcp_tool" ;
+    ac:operation "github_get_pull_requests" ;
+    ac:pagination "none" .
+
+:pullRequestUrlBinding a ac:PropertyBinding ;
+    ac:contract :pullRequestAccess ; ac:property :url ; ac:field "url" .
+:pullRequestStateBinding a ac:PropertyBinding ;
+    ac:contract :pullRequestAccess ; ac:property :state ; ac:field "state" .
+:pullRequestMergedBinding a ac:PropertyBinding ;
+    ac:contract :pullRequestAccess ; ac:property :merged ; ac:field "merged" .
+:pullRequestMergedAtBinding a ac:PropertyBinding ;
+    ac:contract :pullRequestAccess ; ac:property :mergedAt ; ac:field "mergedAt" .
+:pullRequestChangedPathsBinding a ac:PropertyBinding ;
+    ac:contract :pullRequestAccess ; ac:property :changedPaths ; ac:field "changedPaths" .
+
+:repositoryAccess a ac:AccessContract ;
+    ac:classIri core:Repository ;
+    ac:sourceId "github-agent" ;
+    ac:entity "repository" ;
+    ac:keyField "node_id" ;
+    ac:accessKind "mcp_tool" ;
+    ac:operation "github_get_repositories" ;
+    ac:pagination "none" .
+
+:repositoryNameBinding a ac:PropertyBinding ;
+    ac:contract :repositoryAccess ; ac:property :name ; ac:field "name" .
+:repositoryPushedAtBinding a ac:PropertyBinding ;
+    ac:contract :repositoryAccess ; ac:property :pushedAt ; ac:field "pushedAt" .

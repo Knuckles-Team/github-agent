@@ -1,0 +1,18 @@
+[
+  {
+    "node_id": "PR_kwDOFixture0001",
+    "url": "https://api.example.invalid/repos/org/repo/pulls/12",
+    "state": "closed",
+    "merged": true,
+    "mergedAt": "2026-11-01T10:00:00Z",
+    "changedPaths": ["src/main.py", "tests/test_main.py"]
+  },
+  {
+    "node_id": "PR_kwDOFixture0002",
+    "url": "https://api.example.invalid/repos/org/repo/pulls/13",
+    "state": "open",
+    "merged": false,
+    "mergedAt": null,
+    "changedPaths": ["README.md"]
+  }
+]

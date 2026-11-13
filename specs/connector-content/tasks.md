@@ -8,7 +8,7 @@ Each task line reads `- [ ] T001 [P] [US1] <ID>-R012.4 description`. Order is pr
 - [x] T002 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002 Ontology joins the parent graph.
 - [x] T003 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R003 Ingestible sources.
 - [x] T004 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R004 Competency-question paths.
-- [ ] T005 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R005 Declare access contracts for the competency reads of github-agent.
+- [x] T005 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R005 Declare access contracts for the competency reads of github-agent.
 - [ ] T006 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R006 Repository file write tool over the SDK repository effect transport.
 - [ ] T007 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007 Change-proposal delivery tools (rollup).
 - [ ] T008 [US1] CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R007.1 Read one pull request as a change-proposal record.
