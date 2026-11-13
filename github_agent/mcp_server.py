@@ -115,7 +115,7 @@ def register_ingest_tools(mcp: FastMCP):
             default=None, description="MCP context for progress reporting"
         ),
     ) -> Any:
-        """Natively ingest GitHub repositories into epistemic-graph as typed :Repository nodes.
+        """Natively ingest GitHub repositories into medulla as typed :Repository nodes.
 
         Lists the authenticated user's repositories via the GitHub API and pushes them
         (with their owner :Organization/:Person + :ownedByOrg links) into the knowledge
@@ -171,7 +171,7 @@ def register_ingest_tools(mcp: FastMCP):
             default=None, description="MCP context for progress reporting"
         ),
     ) -> Any:
-        """Natively ingest GitHub Actions workflow runs into epistemic-graph.
+        """Natively ingest GitHub Actions workflow runs into medulla.
 
         Lists recent workflow runs for a repository (+ each run's jobs, unless
         ``include_jobs=false``) via the GitHub API and pushes them as typed

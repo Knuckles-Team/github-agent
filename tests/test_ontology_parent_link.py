@@ -1,4 +1,4 @@
-"""Every class of the packaged ontology reaches an epistemic-graph parent class (CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002)."""
+"""Every class of the packaged ontology reaches an medulla parent class (CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002)."""
 
 from __future__ import annotations
 
@@ -9,25 +9,25 @@ import pytest
 
 pytestmark = pytest.mark.spec("CONN-GITHUB-AGENT-CONNECTOR-CONTENT-R002")
 
-PARENT_IRI = "http://knuckles.team/kg"
+PARENT_IRI = "https://knuckles-team.github.io/ontology/core"
 ONTOLOGIES = sorted(
     (Path(__file__).resolve().parents[1] / "github_agent" / "ontology").glob("*.ttl")
 )
 OWL = "http://www.w3.org/2002/07/owl#"
 RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 SUBCLASS = "http://www.w3.org/2000/01/rdf-schema#subClassOf"
-# Parent classes of the epistemic-graph ontology that this connector links to or redeclares.
+# Parent classes of the medulla ontology that this connector links to or redeclares.
 PARENT_CLASSES = frozenset(
     (
-        "http://knuckles.team/kg#Commit",
-        "http://knuckles.team/kg#Document",
-        "http://knuckles.team/kg#Organization",
-        "http://knuckles.team/kg#Person",
-        "http://knuckles.team/kg#PipelineRun",
-        "http://knuckles.team/kg#PullRequest",
-        "http://knuckles.team/kg#SoftwareProject",
-        "http://knuckles.team/kg#WorkItem",
-        "http://knuckles.team/kg#Workflow",
+        "https://knuckles-team.github.io/ontology/core#Commit",
+        "https://knuckles-team.github.io/ontology/core#Document",
+        "https://knuckles-team.github.io/ontology/connector/github#Organization",
+        "https://knuckles-team.github.io/ontology/core#Person",
+        "https://knuckles-team.github.io/ontology/core#PipelineRun",
+        "https://knuckles-team.github.io/ontology/core#PullRequest",
+        "https://knuckles-team.github.io/ontology/core#SoftwareProject",
+        "https://knuckles-team.github.io/ontology/core#WorkItem",
+        "https://knuckles-team.github.io/ontology/connector/github#Workflow",
     )
 )
 # The core ontology is addressed under its one HTTPS base; a pack class rolls up to a core class by that IRI.

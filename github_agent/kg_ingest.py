@@ -1,7 +1,7 @@
-"""Native epistemic-graph ingestion for GitHub records (typed graph nodes + documents).
+"""Native medulla ingestion for GitHub records (typed graph nodes + documents).
 
 CONCEPT:AU-KG.ingest.enterprise-source-extractor. The github-agent connector natively
-pushes its data into the ONE epistemic-graph knowledge graph as **typed OWL nodes**
+pushes its data into the ONE medulla knowledge graph as **typed OWL nodes**
 (``:Repository``, ``:PullRequest``, ``:Issue``, ``:Release``, ``:Organization``,
 ``:Person``, ``:PipelineRun``, ``:CheckRun``) plus links, and release notes as
 **:Document** nodes for semantic search, through the ``scion_sdk.ingest``
@@ -65,7 +65,7 @@ async def ingest_entities(
     *,
     ingest: KnowledgeIngest | None = None,
 ) -> dict[str, int] | None:
-    """Write typed OWL nodes (+ edges) into epistemic-graph. Best-effort, never raises.
+    """Write typed OWL nodes (+ edges) into medulla. Best-effort, never raises.
 
     ``entities``: ``[{"id":..., "node_type":<owl:Class>, ...props}]``.
     ``relationships``: ``[{"source":id, "target":id, "relationship":<link>}]``.
