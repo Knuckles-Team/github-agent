@@ -67,7 +67,7 @@ def _competency_findings(
             if (
                 field not in bound
                 or _local(bound[field]) != field
-                or field not in terms
+                or ("/ontology/connector/" in bound[field] and field not in terms)
             ):
                 found.append(f"{entity}: column {field} is not an ontology property")
         path = recordings / f"{entity}.json"

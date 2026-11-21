@@ -1,6 +1,7 @@
 @prefix ac: <https://knuckles-team.github.io/ontology/access#> .
 @prefix core: <https://knuckles-team.github.io/ontology/core#> .
 @prefix : <https://knuckles-team.github.io/ontology/connector/github#> .
+@prefix vg: <https://knuckles-team.github.io/ontology/virtual-graph#> .
 
 # Competency reads: github_get_pull_requests and github_get_repositories.
 
@@ -14,9 +15,9 @@
     ac:pagination "none" .
 
 :pullRequestUrlBinding a ac:PropertyBinding ;
-    ac:contract :pullRequestAccess ; ac:property :url ; ac:field "url" .
+    ac:contract :pullRequestAccess ; ac:property vg:url ; ac:field "url" .
 :pullRequestStateBinding a ac:PropertyBinding ;
-    ac:contract :pullRequestAccess ; ac:property :state ; ac:field "state" .
+    ac:contract :pullRequestAccess ; ac:property core:state ; ac:field "state" .
 :pullRequestMergedBinding a ac:PropertyBinding ;
     ac:contract :pullRequestAccess ; ac:property :merged ; ac:field "merged" .
 :pullRequestMergedAtBinding a ac:PropertyBinding ;

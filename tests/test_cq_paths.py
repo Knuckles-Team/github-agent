@@ -29,9 +29,8 @@ def test_shared_concepts_are_not_redeclared(name: str) -> None:
     assert not re.search(rf"^:{name} a owl:Class", TTL, flags=re.M), name
 
 
-def test_state_is_declared_on_the_issue_type() -> None:
-    block = _block("state")
-    assert re.search(r"rdfs:domain \[ a owl:Class ; owl:unionOf \( :Issue ", block)
+def test_state_is_the_core_property_not_a_pack_declaration() -> None:
+    assert not re.search(r"^:state a owl:", TTL, flags=re.M)
 
 
 def test_check_run_extends_pipeline_run() -> None:
