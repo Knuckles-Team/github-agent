@@ -2,7 +2,7 @@
 name: github-pr-review-sweep
 skill_type: skill
 description: >-
-  Sweeps open pull requests across one or more GitHub accounts (a user and/or an organization, all repositories) and produces a per-PR review summary: for each open PR it gathers the diff size, mergeable state, required-review/check status, conflicts, and staleness, then classifies it as ready-to-merge, changes-requested, failing-checks, conflicts, or draft, with a recommended next action. Use when asked to review all open PRs across the org, audit pull-request health for a user/org, see which PRs are ready to merge or blocked, or triage review workload across repos. Defaults to read-only analysis; leaving a review, commenting, or merging is opt-in and runs only on explicit confirmation. Do NOT use for a single PR's checks (use github-tools), for issue/PR backlog planning (use github-backlog-planner), for CI failure triage (use github-ci-failure-sweep), or for GitLab merge requests.
+  Sweeps open pull requests across GitHub accounts and classifies each as ready-to-merge, changes-requested, failing-checks, conflicts, or draft with a next action. Use to review all open PRs for a user or org. Read-only by default. Do NOT use for a single PR (github-tools), backlog planning, or CI triage.
 license: MIT
 tags: []
 metadata:
@@ -11,6 +11,8 @@ metadata:
 ---
 # Github Pr Review Sweep
 
+Scope: Sweeps open pull requests across one or more GitHub accounts (a user and/or an organization, all repositories) and produces a per-PR review summary: for each open PR it gathers the diff size, mergeable state, required-review/check status, conflicts, and staleness, then classifies it as ready-to-merge, changes-requested, failing-checks, conflicts, or draft, with a recommended next action. Use when asked to review all open PRs across the org, audit pull-request health for a user/org, see which PRs are ready to merge or blocked, or triage review workload across repos. Defaults to read-only analysis; leaving a review, commenting, or merging is opt-in and runs only on explicit confirmation. Do NOT use for a single PR's checks (use github-tools), for issue/PR backlog planning (use github-backlog-planner), for CI failure triage (use github-ci-failure-sweep), or for GitLab merge requests.
+
 Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
 ## Rules
@@ -18,6 +20,22 @@ Typed github_* tools take owner and repo explicitly; resolve both before acting.
 - Resolve owner and repo (and the pull request number) before any call.
 - Read first, then change, then read the object back.
 - Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
+
+## Steps
+
+1. List the repositories in scope with `github_get_org_repos`(org) or `github_get_repositories`(owner). Verify the list is non-empty.
+2. Collect open PRs per repository with `github_get_pull_requests`(owner, repo, state="open"). Verify each PR has a number, draft flag and mergeable state.
+3. Gather checks and reviews with `github_get_pull_request`(owner, repo, number) and `github_get_workflow_runs`(owner, repo, branch). Verify required checks and review state are captured.
+4. Classify the collected JSON with `python scripts/summarize_prs.py prs.json`. Verify every PR lands in one of ready-to-merge, changes-requested, failing-checks, conflicts or draft.
+5. Report the per-PR summary with a next action each. Leave reviews or merges to explicit confirmation using `github_create_pull_request_review`(owner, repo, number, event) and verify the review appears on the PR.
+
+## Failure recovery
+
+| Failure | Cause | Recovery |
+|---|---|---|
+| HTTP 401 or 403 from a github_* tool | `GITHUB_TOKEN` is missing, expired or lacks the scope for this owner | Set a valid `GITHUB_TOKEN` with the needed scope in the server environment, and call `github_get_repository`(owner, repo) to verify it returns the repository |
+| mergeable is null | GitHub has not computed mergeability yet | Poll `github_get_pull_request`(owner, repo, number) until mergeable is set and classify only after that |
+| Summary script rejects input | The JSON is not the shape the script expects | Rebuild the file from `github_get_pull_request` responses and pass it to `scripts/summarize_prs.py` |
 
 ## Task workflows
 

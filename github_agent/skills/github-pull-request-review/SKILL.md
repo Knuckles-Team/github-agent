@@ -2,7 +2,7 @@
 name: github-pull-request-review
 skill_type: skill
 description: >-
-  Review and merge GitHub pull requests via the github-agent MCP server — by default the PRs assigned to you or where your review is requested, optionally scoped to an org, user, or repo. Read a PR, gate it on green GitHub Actions CI (runs → jobs → job logs), then approve, enable/disable auto-merge, or merge it — write actions are confirmed with the user and CI-gated. Use when the agent must review open PRs, verify CI passes on the head ref, approve, set auto-merge, or merge. Do NOT use to open a PR (github-pull-request-create), triage issues (github-issue-tracking), sweep CI across many repos (github-actions-ci-review), or manage branches/files (github-repository-management).
+  Review and merge GitHub pull requests via the github-agent MCP server — by default the PRs assigned to you or where your review is requested, optionally scoped to an org, user, or repo. Use when the agent must review open PRs, verify CI passes on the head ref, approve, set auto-merge, or merge.
 license: MIT
 tags: []
 metadata:
@@ -11,6 +11,8 @@ metadata:
 ---
 # Github Pull Request Review
 
+Scope: Review and merge GitHub pull requests via the github-agent MCP server — by default the PRs assigned to you or where your review is requested, optionally scoped to an org, user, or repo. Read a PR, gate it on green GitHub Actions CI (runs → jobs → job logs), then approve, enable/disable auto-merge, or merge it — write actions are confirmed with the user and CI-gated. Use when the agent must review open PRs, verify CI passes on the head ref, approve, set auto-merge, or merge. Do NOT use to open a PR (github-pull-request-create), triage issues (github-issue-tracking), sweep CI across many repos (github-actions-ci-review), or manage branches/files (github-repository-management).
+
 Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
 ## Rules
@@ -18,6 +20,22 @@ Typed github_* tools take owner and repo explicitly; resolve both before acting.
 - Resolve owner and repo (and the pull request number) before any call.
 - Read first, then change, then read the object back.
 - Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
+
+## Steps
+
+1. List PRs to review with `github_get_pull_requests`(owner, repo, state="open"). Verify the PR number and head ref are captured.
+2. Read the PR with `github_get_pull_request`(owner, repo, number). Verify mergeable state and draft flag.
+3. Gate on CI with `github_get_workflow_runs`(owner, repo, branch) and `github_get_workflow_run_jobs`(owner, repo, run_id). Verify every required run concluded success, and read `github_get_workflow_job_logs` for any failure.
+4. Approve or comment with `github_create_pull_request_review`(owner, repo, number, event) after confirmation. Verify the review shows on the PR.
+5. Merge only when CI is green and the person confirms, with `github_merge_pull_request`(owner, repo, number) or `github_pulls_enable_auto_merge`(owner, repo, number). Verify the PR state is merged or auto-merge is enabled.
+
+## Failure recovery
+
+| Failure | Cause | Recovery |
+|---|---|---|
+| HTTP 401 or 403 from a github_* tool | `GITHUB_TOKEN` is missing, expired or lacks the scope for this owner | Set a valid `GITHUB_TOKEN` with the needed scope in the server environment, and call `github_get_repository`(owner, repo) to verify it returns the repository |
+| Merge blocked | Required checks are failing or reviews are missing | Read the failing job with `github_get_workflow_job_logs`(owner, repo, job_id), fix the branch and merge only when green |
+| Auto-merge cannot be enabled | The repository does not allow auto-merge | Merge directly with `github_merge_pull_request` after confirmation, or enable auto-merge with `github_update_repository`(owner, repo) |
 
 ## Task workflows
 

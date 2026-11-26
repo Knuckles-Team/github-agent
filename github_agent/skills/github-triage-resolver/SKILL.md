@@ -2,7 +2,7 @@
 name: github-triage-resolver
 skill_type: skill
 description: >-
-  Triages open pull requests and issues across a GitHub user/org (all repos), verifies whether each is still real/relevant, decides resolve-or-skip, and — only when deemed safe — closes or merges it with an explanatory comment. For each item it gathers evidence (is the issue already fixed? is the PR mergeable with green checks?), classifies it safe_merge / safe_close / skip via deterministic rules, and acts behind a dry-run + explicit-confirmation gate. Use when asked to go through open PRs/issues and actually resolve them, auto-merge safe dependency bumps, close already-fixed issues or abandoned PRs with a comment, or clear a backlog with action (not just a report). Read-only by default; every write needs confirmation. Do NOT use for read-only reporting (use github-pr-review-sweep or github-backlog-planner), for CI triage (github-ci-failure-sweep), or for GitLab.
+  Triages open PRs and issues across a GitHub user or org, decides resolve-or-skip from evidence, and closes or merges safe items with a comment. Use to actually clear a backlog or auto-merge safe dependency bumps. Read-only by default, writes need confirmation. Do NOT use for report-only sweeps or CI triage.
 license: MIT
 tags: []
 metadata:
@@ -11,6 +11,8 @@ metadata:
 ---
 # Github Triage Resolver
 
+Scope: Triages open pull requests and issues across a GitHub user/org (all repos), verifies whether each is still real/relevant, decides resolve-or-skip, and — only when deemed safe — closes or merges it with an explanatory comment. For each item it gathers evidence (is the issue already fixed? is the PR mergeable with green checks?), classifies it safe_merge / safe_close / skip via deterministic rules, and acts behind a dry-run + explicit-confirmation gate. Use when asked to go through open PRs/issues and actually resolve them, auto-merge safe dependency bumps, close already-fixed issues or abandoned PRs with a comment, or clear a backlog with action (not just a report). Read-only by default; every write needs confirmation. Do NOT use for read-only reporting (use github-pr-review-sweep or github-backlog-planner), for CI triage (github-ci-failure-sweep), or for GitLab.
+
 Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
 ## Rules
@@ -18,6 +20,22 @@ Typed github_* tools take owner and repo explicitly; resolve both before acting.
 - Resolve owner and repo (and the pull request number) before any call.
 - Read first, then change, then read the object back.
 - Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
+
+## Steps
+
+1. Collect open PRs and issues with `github_get_pull_requests`(owner, repo) and `github_get_issues`(owner, repo, state="open"). Verify each item has a number and updated date.
+2. Gather evidence per item with `github_get_commits`(owner, repo) and CI from `github_get_workflow_runs`(owner, repo). Verify each item has evidence recorded.
+3. Classify with `python scripts/classify_safe.py items.json`, using `references/resolution-rules.md`. Verify each item is safe_merge, safe_close or skip.
+4. Show the dry-run plan with `python scripts/classify_safe.py items.json --format md` and wait for explicit confirmation. Verify the person approved each write item.
+5. Apply an approved action with `python scripts/gh_write.py comment owner/repo 12 --body text --confirm` or the merge subcommand. Verify with `github_get_issue` or `github_get_pull_request` that the state changed.
+
+## Failure recovery
+
+| Failure | Cause | Recovery |
+|---|---|---|
+| HTTP 401 or 403 from a github_* tool | `GITHUB_TOKEN` is missing, expired or lacks the scope for this owner | Set a valid `GITHUB_TOKEN` with the needed scope in the server environment, and call `github_get_repository`(owner, repo) to verify it returns the repository |
+| gh_write refuses to run | The --confirm flag is missing | Pass --confirm only after the person approved that item, and verify the state afterwards |
+| Item classified skip | Evidence is missing or checks are not green | Leave the item open and report the missing evidence; do not force a merge |
 
 ## Task workflows
 
