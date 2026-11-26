@@ -37,6 +37,22 @@ owning spec row in the commit trailer.
 - One logical change per commit, with `Spec: <ID>` and the assisting agent
   trailer adjacent in the final paragraph.
 
+## Steps
+
+1. Find the owning spec row with `git grep -n "<term>" -- specs`. Verify one row owns the change before editing code.
+2. Make the smallest change in `github_agent/` (API mapping, MCP tool or skill content), reusing existing SDK clients. Verify with `git diff --stat` that only connector paths changed.
+3. Run the focused tests, for example `uv run --all-extras pytest tests/test_default_content_surfaces.py -q`. Verify the run reports no failures.
+4. Run the repository gate `uvx pre-commit run --all-files`. Verify every hook reports Passed.
+5. Commit explicit paths with `git add -- <paths>` and a `Spec: <ID>` trailer adjacent to the `Co-Authored-By:` trailer. Verify `git diff --cached --name-status` lists only intended files.
+
+## Failure recovery
+
+| Failure | Cause | Recovery |
+|---|---|---|
+| Gate hook fails | A shared hook found a standard violation in the changed files | Read the hook output, fix the named file, and rerun `uvx pre-commit run --all-files` until it passes; never bypass the hook |
+| Tests need an environment that is missing | The locked environment is not synced | Run `uv sync --locked --all-extras` from the checkout root and rerun the focused pytest command |
+| No owning spec row found | The change is new or the search term is wrong | Search with a broader `git grep -n` term in `specs` and extend the closest row instead of adding new requirement text |
+
 ## Setup and gates
 
 Use the pinned environment from `uv sync --locked --all-extras`. Run the

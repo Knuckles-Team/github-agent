@@ -2,7 +2,7 @@
 name: github-repository-management
 skill_type: skill
 description: >-
-  Repository lifecycle and structure operations on GitHub via the github-agent MCP server — list/read/create/update/delete repositories, manage branches and branch protection, read and write file contents, manage collaborators, and enable/configure GitHub Pages. Use when the agent must inspect or provision a repo, set up branch protection, commit a file, add a collaborator, or turn on Pages. Do NOT use for pull-request review (github-pull-request-review), issue triage (github-issue-tracking), or raw GraphQL fan-out (use the github_graphql tool).
+  Repository lifecycle and structure operations on GitHub via the github-agent MCP server — list/read/create/update/delete repositories, manage branches and branch protection, read and write file contents, manage collaborators, and enable/configure GitHub Pages. Use when the agent must inspect or provision a repo, set up branch protection, commit a file, add a collaborator, or turn on Pages.
 license: MIT
 tags: []
 metadata:
@@ -11,6 +11,8 @@ metadata:
 ---
 # Github Repository Management
 
+Scope: Repository lifecycle and structure operations on GitHub via the github-agent MCP server — list/read/create/update/delete repositories, manage branches and branch protection, read and write file contents, manage collaborators, and enable/configure GitHub Pages. Use when the agent must inspect or provision a repo, set up branch protection, commit a file, add a collaborator, or turn on Pages. Do NOT use for pull-request review (github-pull-request-review), issue triage (github-issue-tracking), or raw GraphQL fan-out (use the github_graphql tool).
+
 Typed github_* tools take owner and repo explicitly; resolve both before acting.
 
 ## Rules
@@ -18,6 +20,22 @@ Typed github_* tools take owner and repo explicitly; resolve both before acting.
 - Resolve owner and repo (and the pull request number) before any call.
 - Read first, then change, then read the object back.
 - Delete, remove and merge-class tools take confirm=true or an explicit request; ask first.
+
+## Steps
+
+1. Find the repository with `github_get_repository`(owner, repo) or `github_search_repositories`(q). Verify the full name and default branch.
+2. Create or update with `github_create_repository`(name) or `github_update_repository`(owner, repo). Verify with `github_get_repository` that the settings match.
+3. Manage branches with `github_create_branch`(owner, repo, branch, ref) and protection with `github_update_branch_protection`(owner, repo, branch). Verify with `github_get_branch_protection`(owner, repo, branch).
+4. Write files with `github_create_content`(owner, repo, path, message, content) or `github_update_content` using the current sha. Verify with `github_get_contents`(owner, repo, path).
+5. Manage collaborators with `github_add_collaborator`(owner, repo, username) and Pages with `github_create_pages`(owner, repo). Verify with `github_get_collaborators`(owner, repo) and `github_get_pages`(owner, repo).
+
+## Failure recovery
+
+| Failure | Cause | Recovery |
+|---|---|---|
+| HTTP 401 or 403 from a github_* tool | `GITHUB_TOKEN` is missing, expired or lacks the scope for this owner | Set a valid `GITHUB_TOKEN` with the needed scope in the server environment, and call `github_get_repository`(owner, repo) to verify it returns the repository |
+| Destructive tool refuses to run | confirm=true was not passed or the person has not agreed | Ask the person for explicit agreement, pass confirm=true on that one call and verify the object is gone with the matching read tool |
+| 409 or 422 updating a file | The sha is stale or missing | Read the file with `github_get_contents`(owner, repo, path), take its sha and call `github_update_content` with that sha |
 
 ## Task workflows
 
